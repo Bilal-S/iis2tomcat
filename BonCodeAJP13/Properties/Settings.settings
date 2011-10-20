@@ -1,0 +1,30 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="BonCodeAJP13.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="Port" Description="port on which the AJP13 worker is active. Check your worker.properties files on tomcat." Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">8009</Value>
+    </Setting>
+    <Setting Name="Server" Description="target server hosting tomcat instance." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">localhost</Value>
+    </Setting>
+    <Setting Name="MaxConnections" Description="Maximum number of concurrent connections." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">200</Value>
+    </Setting>
+    <Setting Name="FlushThreshold" Description="determine whether we should attempt to detect http flushes. Set in tick counts. Set to zero to turn off." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="LogLevel" Description="0=turn off logging, 1=log errors, 2=log headers, 3=log packets (full debug)" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="LogDir" Description="Log Directory to use. If not provided the internet cache directory will be used for logging." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="EnableRemoteAdmin" Description="When remote admin is enabled users can access administrative pages via this connector" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="AutoCompression" Description="Should the connector compress content to client if client indicated that compressed streams can be handled." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" GenerateDefaultValueInCode="false" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

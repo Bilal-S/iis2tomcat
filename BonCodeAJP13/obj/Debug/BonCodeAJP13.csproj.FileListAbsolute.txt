@@ -1,0 +1,7 @@
+C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\bin\Debug\app.config
+C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\bin\Debug\BonCodeAJP13.dll.config
+C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\bin\Debug\BonCodeAJP13.dll
+C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\bin\Debug\BonCodeAJP13.pdb
+C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\obj\Debug\BonCodeAJP13.dll
+C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\obj\Debug\BonCodeAJP13.pdb

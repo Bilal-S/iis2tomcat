@@ -1,0 +1,7 @@
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\bin\Release\app.config
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\bin\Release\BonCodeAJP13.dll.config
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\bin\Release\BonCodeAJP13.dll
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\bin\Release\BonCodeAJP13.pdb
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\obj\Release\ResolveAssemblyReference.cache
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\obj\Release\BonCodeAJP13.dll
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeAJP13\obj\Release\BonCodeAJP13.pdb
