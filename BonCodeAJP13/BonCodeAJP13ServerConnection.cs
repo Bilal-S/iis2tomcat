@@ -51,6 +51,11 @@ namespace BonCodeAJP13
     /// Delegate of function that will iterate through collection of packets and process for browser. Actual implementation will be passed in.
     /// </summary>
     public delegate void FlushPacketsCollectionDelegate(BonCodeAJP13PacketCollection collection);
+    /// <summary>
+    /// Delegate function indicating whether data is being pushed to browser
+    /// </summary>
+    public delegate bool FlushStatusDelegate();
+
 
 
     #endregion
@@ -98,12 +103,15 @@ namespace BonCodeAJP13
         private long p_LastTick = 0;
         private bool p_IsFlush = false;
         private long p_ThisConnectionID = -1;
+        private bool p_SendTermPacket = false; //indicate whether we need to send extra terminator package
 
         private Stopwatch p_StopWatch = new Stopwatch();
 
         //this is a function place holder
         private FlushPacketsCollectionDelegate p_FpDelegate;
         
+        //this is function place holder
+        private FlushStatusDelegate p_FlushInProgress;
 
 
         #endregion
@@ -133,6 +141,14 @@ namespace BonCodeAJP13
         public FlushPacketsCollectionDelegate FlushDelegateFunction
         {
             set { this.p_FpDelegate = value; }
+        }
+
+        /// <summary>
+        /// Sets the function that will indicate whether flushing to browser is already in progress.
+        /// </summary>
+        public FlushStatusDelegate FlushStatusFunction
+        {
+            set { this.p_FlushInProgress = value; }
         }
 
         /// <summary>
@@ -292,6 +308,18 @@ namespace BonCodeAJP13
             //only process if we have delegate function assignment
             if (p_FpDelegate != null)
             {
+                //we have to wait until previous flush completes before flushing or until our timeout has expired
+                if (p_FlushInProgress != null)
+                {
+                    int maxWaitCount = (BonCodeAJP13Settings.BONCODEAJP13_FLUSH_TIMEOUT * 1000) / 50;
+                    int i = 0;
+                    while (p_FlushInProgress() && i < maxWaitCount)
+                    {
+                        i++;
+                        Thread.Sleep(50); //wait 50 miliseconds for flush to complete
+                    }
+                }
+
                 //pass on the packets received to delegate function for processing
                 p_FpDelegate(p_PacketsReceived);
                 //Delete all packets processed so far
@@ -340,15 +368,17 @@ namespace BonCodeAJP13
 
             try
             {
-                //create new connection
+                //create new connection and timer if we maintain connection timeout within this class
                 if (p_TCPClient == null)
+                {
                     p_TCPClient = new TcpClient(p_Server, p_Port);
 
-                p_KeepAliveTimer = new System.Timers.Timer();
-                p_KeepAliveTimer.Interval = BonCodeAJP13Consts.BONCODEAJP13_SERVER_KEEP_ALIVE_TIMEOUT;
-                p_KeepAliveTimer.Elapsed += new System.Timers.ElapsedEventHandler(p_KeepAliveTimer_Elapsed);
-                p_KeepAliveTimer.Enabled = true;
-
+                    p_KeepAliveTimer = new System.Timers.Timer();
+                    p_KeepAliveTimer.Interval = BonCodeAJP13Consts.BONCODEAJP13_SERVER_KEEP_ALIVE_TIMEOUT;
+                    p_KeepAliveTimer.Elapsed += new System.Timers.ElapsedEventHandler(p_KeepAliveTimer_Elapsed);
+                    p_KeepAliveTimer.AutoReset = false;
+                    p_KeepAliveTimer.Enabled = true; //starts the timer
+                }
                 //start p_StopWatch
                 p_StopWatch.Start();
 
@@ -373,7 +403,8 @@ namespace BonCodeAJP13
         /// </summary>
         private void p_KeepAliveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {            
-            p_AbortConnection = true;           
+            p_AbortConnection = true;
+            ((Timer)sender).Dispose(); // should be equivalent but rather be safe  p_KeepAliveTimer.Dispose();
             ConnectionError("Timeout on Connection ID " + p_ThisConnectionID, "Time Out");
 
         }
@@ -384,12 +415,12 @@ namespace BonCodeAJP13
         /// </summary>
         public void HandleConnection()
         {
-            //set timeouts
+            //set timeouts (default 15m/30s)
             try
             {
 
-                p_TCPClient.ReceiveTimeout = BonCodeAJP13Consts.BONCODEAJP13_CLIENT_RECEIVE_TIMEOUT;
-                p_TCPClient.SendTimeout = BonCodeAJP13Consts.BONCODEAJP13_SERVER_SEND_TIMEOUT;
+                p_TCPClient.ReceiveTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
+                p_TCPClient.SendTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
 
 
             }
@@ -403,10 +434,13 @@ namespace BonCodeAJP13
             if (p_Logger != null) p_Logger.LogMessage(" New Connection to tomcat : " + p_TCPClient.Client.RemoteEndPoint.ToString() + " ID:" + p_ThisConnectionID);
 
 
-            //get stream
+            //get stream set timeouts again (default 30 minutes)
             try
             {
                 p_NetworkStream = p_TCPClient.GetStream();
+                p_NetworkStream.ReadTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
+                p_NetworkStream.WriteTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
+
             }
             catch (Exception ex)
             {
@@ -429,7 +463,7 @@ namespace BonCodeAJP13
             
             
 
-            //if we have to transfer more than one packet we need to implement a listener instead of receiving packets directly
+            //send packages. If multiple forward requests (i.e. form data or files) there is a different behavior expected
             if (p_PacketsToSend.Count > 1)
             {
                        
@@ -504,11 +538,22 @@ namespace BonCodeAJP13
      
             try
             {
+                int readCount = 0;
+
                 while (p_NetworkStream.CanRead && !p_AbortConnection && !p_IsLastPacket)
                 {
+                    //check to see whether we need to send extra termination package
+                    if (p_SendTermPacket)
+                    {
+                        p_SendTermPacket = false;
+                        BonCodeAJP13ForwardRequest terminatorFR = new BonCodeAJP13ForwardRequest(new byte[] { });
+                        p_NetworkStream.Write(terminatorFR.GetDataBytes(), 0, terminatorFR.PacketLength);
+                    }
+                    
                     //clear reading array
                     Array.Clear(receivedPacketBuffer,0,receivedPacketBuffer.Length);
                     //read incoming packets until timeout or last package has been received.
+                    readCount++;
                     numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
                     
 
@@ -558,9 +603,13 @@ namespace BonCodeAJP13
  
             if (p_IsLastPacket == true)
             {
-                // keep alive timer needs reset             
-                p_KeepAliveTimer.Stop();
-                p_KeepAliveTimer.Start();
+                // keep alive timer needs reset (we are maintaining connection but resetting the timer
+                if (p_KeepAliveTimer != null)
+                {
+                    p_KeepAliveTimer.Stop();
+                   
+                    p_KeepAliveTimer.Start();
+                }
 
                 //CloseConnectionNoError();
                
@@ -581,7 +630,7 @@ namespace BonCodeAJP13
             if (p_Logger != null) p_Logger.LogMessage(message, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG);
            
 
-           /* eloborate close   */            
+            /* eloborate close   */            
             p_TCPClient.Client.Close();
             p_TCPClient.Close();
             p_TCPClient.Client.Shutdown(SocketShutdown.Both);
@@ -591,6 +640,8 @@ namespace BonCodeAJP13
             p_TCPClient = null;
             p_NetworkStream = null;
             p_ConnectionsID--;
+            //Kill associated timer
+            if (p_KeepAliveTimer != null) p_KeepAliveTimer.Dispose();
         }
 
 
@@ -699,6 +750,13 @@ namespace BonCodeAJP13
                         {
                             case BonCodeAJP13TomcatPacketType.TOMCAT_GETBODYCHUNK:
                                 p_PacketsReceived.Add(new TomcatGetBodyChunk(userData));
+                                //if this command is encountered when only one GET package was previously send (no multi-packets) we need to send a terminator body package
+                                if (p_PacketsToSend.Count == 1)
+                                {
+                                    p_SendTermPacket=true;                                    
+                                }
+
+                                //p_NetworkStream.Write(sendPacket.GetDataBytes(), 0, sendPacket.PacketLength);
                                 break;
                             case BonCodeAJP13TomcatPacketType.TOMCAT_ENDRESPONSE:
                                 p_PacketsReceived.Add(new TomcatEndResponse(userData));

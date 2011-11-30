@@ -26,5 +26,23 @@
     <Setting Name="AutoCompression" Description="Should the connector compress content to client if client indicated that compressed streams can be handled." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" GenerateDefaultValueInCode="false" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="EnableHeaderDataSupport" Description="Add additional data to each header to support certain tomcat operations. Currently  X-Tomcat-DocRoot will be added to each request." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="HeaderBlacklist" Description="CSV list of HTTP headers that will not be send to Tomcat even if present" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="HeaderWhitelist" Description="CSV list of HTTP headers that will be transferred. Once white list is used, all other headers not on this list will not be transferred." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="ReadTimeOut" Description="Number of milliseconds to wait before we stop listening for more traffic. 1000ms=1s. Default 90000 (15 min)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">900000</Value>
+    </Setting>
+    <Setting Name="WriteTimeOut" Description="Number of milliseconds to wait until we stop writing to tomcat. 1000ms=1s. Default 30000 (30s)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">30000</Value>
+    </Setting>
+    <Setting Name="ForceSecureSession" Description="Forces SSL to tomcat; forces secure jsession cookie. Standard HTTP connection will be accepted but responses will be redirected to secure port." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

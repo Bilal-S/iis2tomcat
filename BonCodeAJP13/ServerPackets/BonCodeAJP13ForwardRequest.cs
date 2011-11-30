@@ -151,13 +151,13 @@ namespace BonCodeAJP13.ServerPackets
             
             //set values from header information
             string protocol = GetKeyValue(httpHeaders, "SERVER_PROTOCOL");   // "HTTP/1.1"            
-            int num_headers = httpHeaders.AllKeys.Length; // -lstSkipHeaders.Length;
+            int num_headers = httpHeaders.AllKeys.Length; // -lstSystemBlacklist.Length;
             byte method = BonCodeAJP13PacketHeaders.GetMethodByte(GetKeyValue(httpHeaders, "REQUEST_METHOD"));
             string req_uri = GetKeyValue(httpHeaders, "SCRIPT_NAME");
             string remote_addr = GetKeyValue(httpHeaders, "REMOTE_ADDR");
             string remote_host = GetKeyValue(httpHeaders, "REMOTE_HOST");
-            string server_name = BonCodeAJP13Settings.BONCODEAJP13_SERVER;
-            ushort server_port = System.Convert.ToUInt16(BonCodeAJP13Settings.BONCODEAJP13_PORT);
+            string server_name = GetKeyValue(httpHeaders, "HTTP_HOST"); //BonCodeAJP13Settings.BONCODEAJP13_SERVER;
+            ushort server_port = System.Convert.ToUInt16(GetKeyValue(httpHeaders, "SERVER_PORT"));   // System.Convert.ToUInt16(BonCodeAJP13Settings.BONCODEAJP13_PORT);
 
             //check whether ssl is on
             string sslCheck = GetKeyValue(httpHeaders, "HTTPS");
@@ -187,11 +187,17 @@ namespace BonCodeAJP13.ServerPackets
                             NameValueCollection httpHeaders)
         {
             //locals
-            int pos = 0;            
+            int pos = 0;
+            byte attributeByte = 0x00;
             byte[] aUserData = new byte[BonCodeAJP13Consts.MAX_BONCODEAJP13_PACKET_LENGTH]; //allocate full number of bytes for processing
 
             NameValueCollection goodHeaders = CheckHeaders(httpHeaders); //determine headers to be transferred
             num_headers = goodHeaders.AllKeys.Length; 
+            //debug:num_headers = 1; 
+            
+            //add one more header if setting enable setting is used
+            if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT ) num_headers++;    
+            
 
             //write a packet
             // ============================================================
@@ -204,12 +210,25 @@ namespace BonCodeAJP13.ServerPackets
             pos = SetString(aUserData, server_name, pos); //server name
             pos = SetInt16(aUserData, server_port, pos); //port
             pos = SetByte(aUserData, Convert.ToByte(is_ssl), pos); //is ssl
-            //pos = SetInt16(aUserData, System.Convert.ToUInt16(num_headers), pos); //number of headers
-            pos = SetInt16(aUserData, System.Convert.ToUInt16(goodHeaders.AllKeys.Length), pos); //number of headers
+            pos = SetInt16(aUserData, System.Convert.ToUInt16(num_headers), pos); //number of headers
+            //pos = SetInt16(aUserData, System.Convert.ToUInt16(goodHeaders.AllKeys.Length), pos); //number of headers
             //iterate through headers and add to packet
             string keyName = "";
             string keyValue = "";
-            for (int i = 0; i < goodHeaders.AllKeys.Length; i++) 
+            
+            //add optional headers
+            if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT)
+            {
+                keyName = "x-tomcat-docroot"; //"X-Tomcat-DocRoot";
+                keyValue = BonCodeAJP13Settings.BonCodeAjp13_DocRoot; // System.Web.HttpContext.Current.Server.MapPath("~"); alternatly we could use "appl-physical-path" http var
+                pos = SetString(aUserData, keyName.ToLower(), pos);
+                pos = SetString(aUserData, keyValue, pos);
+
+            }
+
+
+
+            for (int i = 0; i < goodHeaders.AllKeys.Length; i++)            
             {
                 keyName = goodHeaders.AllKeys[i];
                 keyValue = goodHeaders[keyName];
@@ -221,37 +240,40 @@ namespace BonCodeAJP13.ServerPackets
                 }
                 else
                 {
-                    //string header
+                    //string header (remove HTTP prefix this is added by IIS) and change underscore  
+                    if(keyName.StartsWith("HTTP_")) keyName = keyName.Remove(0,5);
                     keyName=keyName.Replace("_", "-");
                     pos = SetString(aUserData, keyName.ToLower(), pos); 
                 }
-                //add value
+                //add value if keyName is not empty string
                 pos = SetString(aUserData, keyValue, pos);
 
                 
             }
 
-            //ATTRIBUTES FOLLOW: Some header values have to be passed as attributes REMOTE_USER, AUTH_TYPE, QUERY_STRING
 
-            if (httpHeaders["REMOTE_USER"] != "")
+            //ATTRIBUTES FOLLOW: Second iteration through headers Some header values have to be passed as attributes REMOTE_USER, AUTH_TYPE, QUERY_STRING
+
+            for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
             {
-                pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_REMOTE_USER, pos); //attribute marker
-                pos = SetString(aUserData, httpHeaders["REMOTE_USER"], pos); //attribute value
+                keyName = httpHeaders.AllKeys[i];
+                keyValue = httpHeaders[keyName];
+                attributeByte = BonCodeAJP13PacketHeaders.GetAttributeByte(keyName);
+                //check whether this is byte attribute if so wee need to add the header as attribute to packet
+                if (attributeByte != 0x00 && keyValue != "")
+                {
+                    pos = SetByte(aUserData,attributeByte, pos); //attribute marker
+                    pos = SetString(aUserData, keyValue, pos); //attribute value                    
+                }
+            }
+            
+            //add secure session attribute
+            if (BonCodeAJP13Settings.BONCODEAJP13_FORCE_SECURE_SESSION)
+            {
+                pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_SESSION, pos); //attribute marker
+                pos = SetString(aUserData, "on", pos); //attribute value                
             }
 
-            if (httpHeaders["AUTH_TYPE"] != "")
-            {
-                pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_AUTH_TYPE, pos); //attribute marker
-                pos = SetString(aUserData, httpHeaders["AUTH_TYPE"], pos); //attribute value
-            }
-
-
-            //add attributes (this is how QUERY_STRING is transferred)
-            if (httpHeaders["QUERY_STRING"] != "")
-            {
-                pos = SetByte(aUserData,BonCodeAJP13HTTPAttributes.BONCODEAJP13_QUERY_STRING, pos); //attribute marker
-                pos = SetString(aUserData, httpHeaders["QUERY_STRING"], pos); //attribute value
-            }
 
             //add constant attribute for AJP13 JVM Route
             pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_JVM_ROUTE, pos); //attribute marker
@@ -287,8 +309,26 @@ namespace BonCodeAJP13.ServerPackets
             NameValueCollection cleanHeaders = new NameValueCollection();
             string keyName = "";
             string keyValue = "";
-            string[] lstSkipHeaders = new string[] {"PATH_TRANSLATED", "INSTANCE_META_PATH","APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING" };  //list of headers that will be skipped
+            string[] lstSystemBlacklist = new string[] {"PATH_TRANSLATED", "INSTANCE_META_PATH","APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING" };  //list of headers that will be skipped           
             string[] lstAllowBlank = new string[] { "" };  //send also if blank
+            string[] lstUserWhitelist = null; //if we have data here, only these headers will be sent
+
+            //check for whitelist as specified by users
+            if (BonCodeAJP13Settings.BONCODEAJP13_WHITELIST_HEADERS.Length > 5)
+            {
+                lstUserWhitelist = BonCodeAJP13Settings.BONCODEAJP13_WHITELIST_HEADERS.Split(new char[] { ',' });         
+            }
+
+            //"HTTP_CONNECTION","CONTENT_LENGTH","HTTP_ACCEPT","HTTP_ACCEPT_ENCODING","HTTP_ACCEPT_LANGUAGE","HTTP_COOKIE","HTTP_HOST","HTTP_USER_AGENT","HTTP_ACCEPT_CHARSET"
+            //check for headers that should not be sent based on user settings (assume headers are more than 5 characters
+            if ((BonCodeAJP13Settings.BONCODEAJP13_BLACKLIST_HEADERS.Length) > 5)
+            {
+                string[] lstUserBlacklist = BonCodeAJP13Settings.BONCODEAJP13_BLACKLIST_HEADERS.Split(new char[] {','});
+                int lshOriginalSize = lstSystemBlacklist.Length;
+                Array.Resize<string>(ref lstSystemBlacklist, lshOriginalSize + lstUserBlacklist.Length);
+                Array.Copy(lstUserBlacklist, 0, lstSystemBlacklist, lshOriginalSize, lstUserBlacklist.Length);                
+                
+            }
 
             //iterate and ensure rules are met
             for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
@@ -296,16 +336,32 @@ namespace BonCodeAJP13.ServerPackets
                 keyName = httpHeaders.AllKeys[i];
                 keyValue = httpHeaders[keyName];
                 //only process if this key is not on the skip key list
-                if (!lstSkipHeaders.Contains(keyName))
+                if (!lstSystemBlacklist.Contains(keyName))
                 {
-                    //only pass on key if it is populated unless special exeption
-                    //OLD STYLE: if (!(keyValue == "" && lstAllowBlank.Contains(keyName))) {
-                    if (keyValue != "" || lstAllowBlank.Contains(keyName))
-                    {
-                        cleanHeaders.Add(keyName, keyValue);
-                    }                     
+                    //if we have a white list of headers check against it or if not process header
+                    if ((lstUserWhitelist == null) || (lstUserWhitelist.Length > 0 && lstUserWhitelist.Contains(keyName))) {
+
+                        //clear keyvalue if key needs to be passed in attributes
+                        if (BonCodeAJP13PacketHeaders.GetAttributeByte(keyName) != 0x00)
+                        {
+                            //skip key if it is one of the known attributes this will be added in attributes section
+                            keyName = "";
+                            keyValue = "";
+                        }
+
+                        //only pass on key if it is populated unless special exeption                    
+                        if (keyValue != "" || lstAllowBlank.Contains(keyName))
+                        {
+                            if (keyName != "")
+                            {
+                                cleanHeaders.Add(keyName, keyValue);
+                            }
+                        }  
+                    }
+                    
                    
-                }
+                   
+                }//blacklist failure
             }
 
 
@@ -321,7 +377,7 @@ namespace BonCodeAJP13.ServerPackets
                             string remote_addr ="::1",
                             string remote_host ="::1",
                             string server_name ="localhost",
-                            ushort server_port = 8009,
+                            ushort server_port = 80,
                             bool is_ssl = false,
                             int num_headers=1) 
         {
@@ -329,16 +385,18 @@ namespace BonCodeAJP13.ServerPackets
             int pos = 0;            
             byte[] aUserData = new byte[BonCodeAJP13Consts.MAX_BONCODEAJP13_PACKET_LENGTH]; //allocate full number of bytes for processing
 
-            // test write a packet
+            // set protocol required data points
             // ============================================================
             pos = SetByte(aUserData, BonCodeAJP13ServerPacketType.SERVER_FORWARD_REQUEST, pos); // all have to start with this            
             pos = SetByte(aUserData, BonCodeAJP13HTTPMethods.BONCODEAJP13_GET, pos);  //method: e.g. we have clicked on URL
             pos = SetString(aUserData, protocol, pos); //protocol
             pos = SetString(aUserData, req_uri, pos); //uri
+
             pos = SetString(aUserData, remote_addr, pos); //remote addr
             pos = SetString(aUserData, remote_host, pos); //remote host
             pos = SetString(aUserData, server_name, pos); //server name
             pos = SetInt16(aUserData, server_port, pos); //port
+            
             pos = SetByte(aUserData, Convert.ToByte(is_ssl), pos); //is ssl
             pos = SetInt16(aUserData, System.Convert.ToUInt16(num_headers), pos); //number of headers
             //add content lenth as the only header. 

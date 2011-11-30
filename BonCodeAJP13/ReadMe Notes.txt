@@ -35,6 +35,11 @@ Lower Case:
 All Upper:
 	any part of enumeration
 
+
+Main Test Environment:
+	Railo-Administrator
+	Axis2 webservices
+
 Version 0.9.1 Updates:
 •   Added automated installer beta (all windows versions from XP on)
 •   Added thread throttling to not overwhelm tomcat with request. Now allows forcing reconnect for every request if so desired
@@ -66,3 +71,24 @@ Version 0.9.2.3 Updates:
 Version 0.9.2.4 Updates:
 * Add: Installer update. Installation of .net framework feature as option for windows 7 and windows 2008+
 * Add: User friendly error messages when we cannot connect to Apache Tomcat
+
+
+Version 0.9.2.5 Updates:
+* Fix: seperate AJP attributes from headers. All present optional http attributes are transferred even if not processed by tomcat.
+* Fix: Recognize misordered packets from Tomcats (out of order GET BODY CHUNK) and provide propper response. This would result in blank screen.
+* Add: add new setting to transfer optional header (x-tomcat-docroot) note capitalization
+* Add: default secure connection redirect and session support via AJP (SSL); tomcat will automatically choose this mode and the connector will support it
+* Add: automatically fix wrong content-length decleration if content is missing. Fill in empty characters where content is missing. This is not correct but will continue browser processing.
+* Add: IP6 support
+* Fix: Use of System Timer would leak memory when thread was destroyed
+* Fix: AJP protocol header server and port designations send to servlet container were incorrect when IIS and tomcat were remoted.
+* Add: HTTP header Blacklist and Whitelist options in settings file
+* Fix: Correct flush protocol detection problem so HTTP flushes can be detected and spooled to browser.
+
+
+Version 0.9.2.6 Updates:
+* Fix: correct transfer of non-standard headers without the http prefix added by IIS
+* Fix: compatibility with Axis1 projects
+* Add: no longer force conversion of text to UTF8. Will pass directly content as is to browser from tomcat regardless of content-type declaration.
+* Add: Setting [ForceSecureSession] to force secure session via SSL. Will automatically exchange secure session cookies and force all communication over SSL to the Webserver.
+* Add: Settings for timeout tcp/ip connections are exposed and can be changed by user.

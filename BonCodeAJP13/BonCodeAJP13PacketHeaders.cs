@@ -177,7 +177,7 @@ namespace BonCodeAJP13
                     p_ATranslator.Add("SSL_CERT", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_CERT); //SSL_CERT IS NOT IMPLEMENTED IN THIS FORM, IIS7 Uses multiple data point
 
                     p_ATranslator.Add("SSL_CIPHER", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_CIPHER); //SSL_CIPHER IS NOT IMPLEMENTED IN THIS FORM, IIS7 Uses multiple data point
-                    p_ATranslator.Add("HTTPS", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_SESSION); //indicate whether we are using HTTPS
+                    p_ATranslator.Add("SSL_SESSION", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_SESSION); //indicate whether we are using HTTPS session. This impacts how the container responds. It will force SSL and all cookies will be secure.
                     p_ATranslator.Add("HTTPS_SECRETKEYSIZE", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_KEY_SIZE); 
 
 

@@ -229,6 +229,27 @@ namespace BonCodeAJP13
 
         //protect remote execution of manager for tomcat and railo using these signatures
         public static string[] BONCODEAJP13_MANAGER_URLS = new string[] { "/railo-context/admin/", "/manager/" };
+
+
+        //enable HeaderDataSupport. Will send non-standard data in header to support cfml operations -- currently adds X-Tomcat-DocRoot
+        public static bool BONCODEAJP13_HEADER_SUPPORT = Properties.Settings.Default.EnableHeaderDataSupport; //false
+        public static string BonCodeAjp13_DocRoot = ""; //will be set in CallHandler
+
+        //suppressed header list, this should be a comma seperated value (CSV) list of HTTP headers we will not sent to tomcat
+        public static string BONCODEAJP13_BLACKLIST_HEADERS = Properties.Settings.Default.HeaderBlacklist; //blank
+
+        //white header list, this should be a comma seperated value (CSV) list of HTTP headers. Only headers on this list will be sent to tomcat
+        public static string BONCODEAJP13_WHITELIST_HEADERS = Properties.Settings.Default.HeaderWhitelist; //blank
+
+        //timeout waiting on flush to complete 30 seconds. TODO: add setting option in file
+        public static int BONCODEAJP13_FLUSH_TIMEOUT = 30;
+
+        //TCP timouts
+        public static int BONCODEAJP13_SERVER_READ_TIMEOUT = Properties.Settings.Default.ReadTimeOut;// 900000. read timeout 15 minutes
+        public static int BONCODEAJP13_SERVER_WRITE_TIMEOUT = Properties.Settings.Default.WriteTimeOut; // 30000. write timeout 30s
+
+        //Force SSL. Force this from tomcat; this will still accept HTTP inbound all responses will be redirected on port 443 by tomcat. JSession cookie will be issued only securely.
+        public static bool BONCODEAJP13_FORCE_SECURE_SESSION = Properties.Settings.Default.ForceSecureSession; //false
     }  
 
 
@@ -239,6 +260,7 @@ namespace BonCodeAJP13
 
     /// <summary>
     /// General Protocol Consts like timeout, packet length, idle time consts ... 
+    /// Some of these are not used currently
     /// </summary>
     public struct BonCodeAJP13Consts
     {
@@ -253,16 +275,10 @@ namespace BonCodeAJP13
         public const int MAX_BONCODEAJP13_PACKET_LENGTH = 8192;         //this is including control bytes
         public const int MAX_BONCODEAJP13_USERDATA_LENGTH = 8186;       //maximum number of user data bytes that can be packaged into Forward Request, exludes all control bytes. If length bytes are included this would be 8188
 
-        // The max period of time that the BonCodeAJP13 listner can stay listening without any new connection.
+        // The max period of time that the BonCodeAJP13 listner can stay listening without any new connection (not used).
         public const int BONCODEAJP13_LISTENER_MAX_IDLE_TIME = 3600000;
-
-        // Define Send/Receive Timeout for the tomcat.
-        public const int BONCODEAJP13_CLIENT_RECEIVE_TIMEOUT = 30000;
-        public const int BONCODEAJP13_CLIENT_SEND_TIMEOUT = 30000;
-
-        // Define Send/Receive Timeout for the web-server.
-        public const int BONCODEAJP13_SERVER_RECEIVE_TIMEOUT = 900000; //receive timeout 15 minutes
-        public const int BONCODEAJP13_SERVER_SEND_TIMEOUT = 30000;
+       
+        // Define Send/Receive Timeout for connection to be kept alive if invoked in process.               
         public const int BONCODEAJP13_SERVER_KEEP_ALIVE_TIMEOUT = 1800000; //keep alive for 30 minutes
 
  
