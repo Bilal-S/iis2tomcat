@@ -1,11 +1,11 @@
 ﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
- *  Creative Commons License, Version 3.0
+ *  Apache License, Version 2.0
  *  (the "License"); you may not use this file except in compliance with
  *  the License.  You may obtain a copy of the License at
  *
- *      http://creativecommons.org/licenses/by/3.0/
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -418,9 +418,9 @@ namespace BonCodeAJP13
             //set timeouts (default 15m/30s)
             try
             {
-
-                p_TCPClient.ReceiveTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
-                p_TCPClient.SendTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
+                //remove timeouts on the client level. Using only stream level timeouts for AJP
+                //p_TCPClient.ReceiveTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
+                //p_TCPClient.SendTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
 
 
             }
@@ -552,8 +552,25 @@ namespace BonCodeAJP13
                     
                     //clear reading array
                     Array.Clear(receivedPacketBuffer,0,receivedPacketBuffer.Length);
+                 
+                    //flush detection check if we we have no data on channel                    
+                    //check whether we need monitor for tomcat flush signs  
+                    if (!p_NetworkStream.DataAvailable && BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_THRESHOLD > 0)
+                    {
+                        long elapsedTicks = p_StopWatch.ElapsedTicks;
+                        p_TickDelta = elapsedTicks - p_LastTick;
+                        p_LastTick = elapsedTicks;
+                        if (p_TickDelta > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_THRESHOLD)
+                        {
+                            //flush has been detected set the flag. We should flush after this receiveBuffer has been processed.
+                            //no flush is needed if we see end marker during receiveBuffer processing
+                            p_IsFlush = true;
+                        }
+                    }
+
                     //read incoming packets until timeout or last package has been received.
-                    readCount++;
+                    readCount++;                       
+                    //read or wait on next package
                     numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
                     
 
@@ -790,7 +807,7 @@ namespace BonCodeAJP13
                         if (p_Logger != null) p_Logger.LogPacket(p_PacketsReceived[p_PacketsReceived.Count - 1]);
 
                         //reset new iStart
-                        iStart = iStart + packetLength - 1;
+                        iStart = iStart + 4 + packetLength - 1;
 
                         //detect end package
                         if (packetType == BonCodeAJP13TomcatPacketType.TOMCAT_ENDRESPONSE)
@@ -800,6 +817,8 @@ namespace BonCodeAJP13
                         }
                         else
                         {
+                            //old flush check position
+                            /*
                             //check whether we need monitor for tomcat flush signs  
                             if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_THRESHOLD > 0)
                             {
@@ -814,6 +833,7 @@ namespace BonCodeAJP13
                                     p_IsFlush = true;
                                 }
                             }
+                            */
                            
                         }
                     }

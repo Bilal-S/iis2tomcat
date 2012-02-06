@@ -1,11 +1,11 @@
 ﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
- *  Creative Commons License, Version 3.0
+ *  Apache License, Version 2.0
  *  (the "License"); you may not use this file except in compliance with
  *  the License.  You may obtain a copy of the License at
  *
- *      http://creativecommons.org/licenses/by/3.0/
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -348,8 +348,9 @@ namespace BonCodeIIS
                     }
                     else if (flushPacket is TomcatSendBodyChunk)
                     {
-                        transferredBytes = transferredBytes + flushPacket.GetUserDataBytes().Length;
-                        p_Context.Response.BinaryWrite(flushPacket.GetUserDataBytes()); 
+                        transferredBytes = transferredBytes + flushPacket.Length;
+                        if (flushPacket.Length>0) 
+                            p_Context.Response.BinaryWrite(flushPacket.GetUserDataBytes()); 
                         
                     }
                 }

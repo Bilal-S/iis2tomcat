@@ -10,8 +10,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BonCodeIIS", "BonCodeIIS\Bo
 		{EB3EBD2D-970E-479A-AFDA-1B12073BB80B} = {EB3EBD2D-970E-479A-AFDA-1B12073BB80B}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BonCodeUnitTestProject", "BonCodeUnitTestProject\BonCodeUnitTestProject.csproj", "{3FEB7787-42B0-4C10-B9D6-84618E7801B4}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1E21E793-7EF0-4127-9458-A95E774815E2}"
 	ProjectSection(SolutionItems) = preProject
 		ConsoleTCPIP.vsmdi = ConsoleTCPIP.vsmdi
@@ -40,10 +38,6 @@ Global
 		{D934294F-A902-442A-8C49-12A635C39BA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D934294F-A902-442A-8C49-12A635C39BA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D934294F-A902-442A-8C49-12A635C39BA3}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3FEB7787-42B0-4C10-B9D6-84618E7801B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3FEB7787-42B0-4C10-B9D6-84618E7801B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3FEB7787-42B0-4C10-B9D6-84618E7801B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3FEB7787-42B0-4C10-B9D6-84618E7801B4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

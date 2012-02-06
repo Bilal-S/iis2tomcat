@@ -35,4 +35,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("BonCodeUnitTestProject")]
+//TODO: implement this for unit test project
+//[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("BonCodeUnitTestProject, PublicKeyToken=ad590a40d40745cf")]
+

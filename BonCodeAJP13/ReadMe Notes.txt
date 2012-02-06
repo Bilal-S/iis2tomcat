@@ -1,6 +1,6 @@
 ﻿Bilal Soylu
 Notes on AJP13 implementation:
-Licensed under Creative Commons License version 3.0
+Licensed under Apache License, Version 2.0
 
 
 Installation:
@@ -92,3 +92,23 @@ Version 0.9.2.6 Updates:
 * Add: no longer force conversion of text to UTF8. Will pass directly content as is to browser from tomcat regardless of content-type declaration.
 * Add: Setting [ForceSecureSession] to force secure session via SSL. Will automatically exchange secure session cookies and force all communication over SSL to the Webserver.
 * Add: Settings for timeout tcp/ip connections are exposed and can be changed by user.
+
+Version 0.9.2.7 Updates:
+* Add: Improve http flush detection, add network stream behavior in addition to timer.
+* Fix: Zero content tomcat packages would cause display of error message in browser.
+* Fix: ignore binary transfers that contain AJP protocol magic markers would lead to empty screen.
+
+Version 0.9.2.8 Updates :
+* Fix: extend timeout for TCP socket so that longer timeouts in IIS Application Pool do not result in closed socket errors
+* Add: automatic translation of client IPs to account for intermediaries (load balancers and proxies), e.g. HTTP_X_FORWARDED_FOR to REMOTE_ADDR automatic rewrite
+* Add: assembly signing and strong name support so that library files can be deployed in Global Assembly Cache
+
+Version 0.9.2.9 Updates:
+* Add: setting to show suppressed headers (AllowEmptyHeaders). The connectors skips headers that do not have data to speed processing. Set to true to send empty headers as well.
+* Add: setting to send path info in alternate http header (PathInfoHeader). This is to bypass tomcat bug with AJP path-info transfer.
+* Fix: Remove default for ResolveRemoteAddrFrom (HTTP_X_FORWARDED_FOR). Will now need to be explicitly set to be enabled.
+
+Version 1.0 Updates:
+* Add: installer deploy in GAC mode
+* Add: installer accept setting file for silent deployment
+* Add: installer configure tomcat server.xml if on same server

@@ -35,14 +35,23 @@
     <Setting Name="HeaderWhitelist" Description="CSV list of HTTP headers that will be transferred. Once white list is used, all other headers not on this list will not be transferred." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="ReadTimeOut" Description="Number of milliseconds to wait before we stop listening for more traffic. 1000ms=1s. Default 90000 (15 min)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
-      <Value Profile="(Default)">900000</Value>
+    <Setting Name="ReadTimeOut" Description="Number of milliseconds to wait before we stop listening for more traffic. 1000ms=1s. Default 120000 (20 min)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">1200000</Value>
     </Setting>
     <Setting Name="WriteTimeOut" Description="Number of milliseconds to wait until we stop writing to tomcat. 1000ms=1s. Default 30000 (30s)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">30000</Value>
     </Setting>
     <Setting Name="ForceSecureSession" Description="Forces SSL to tomcat; forces secure jsession cookie. Standard HTTP connection will be accepted but responses will be redirected to secure port." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ResolveRemoteAddrFrom" Description="If another HTTP header contains valid IP instead of REMOTE_ADDR, it should be provided here. Set to blank if this is to be disabled. Used for XFF scenario, e.g. HTTP_X_FORWARDED_FOR which is the standard populated header when proxies are used." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="AllowEmptyHeaders" Description="By default the connector only sends HTTP headers that contain a value. If you need to see all headers all the time, you need to change this to True. Default False." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="PathInfoHeader" Description="PATH-INFO HTTP header is not implemented in tomcat AJP protocol. The connector will send path info in this header instead. Default xajp-path-info" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">xajp-path-info</Value>
     </Setting>
   </Settings>
 </SettingsFile>

@@ -1,11 +1,11 @@
 ﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
- *  Creative Commons License, Version 3.0
+ *  Apache License, Version 2.0
  *  (the "License"); you may not use this file except in compliance with
  *  the License.  You may obtain a copy of the License at
  *
- *      http://creativecommons.org/licenses/by/3.0/
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -250,6 +250,17 @@ namespace BonCodeAJP13
 
         //Force SSL. Force this from tomcat; this will still accept HTTP inbound all responses will be redirected on port 443 by tomcat. JSession cookie will be issued only securely.
         public static bool BONCODEAJP13_FORCE_SECURE_SESSION = Properties.Settings.Default.ForceSecureSession; //false
+
+        //IP rewrite from header 
+        //If another HTTP header contains valid IP instead of REMOTE_ADDR, it should be provided here. Common scenario uses HTTP_X_FORWARDED_FOR as alternate reference.
+        public static string BONCODEAJP13_REMOTEADDR_FROM = Properties.Settings.Default.ResolveRemoteAddrFrom; //blank
+
+        //Allow Empty Headrs
+        //By default the connector only sends HTTP headers that contain a value. If you need to see all headers all the time, you need to change this to True. Default False.
+        public static bool BONCODEAJP13_ALLOW_EMTPY_HEADERS = Properties.Settings.Default.AllowEmptyHeaders; //false
+
+        //Path info header
+        public static string BONCODEAJP13_PATHINFO_HEADER = Properties.Settings.Default.PathInfoHeader; //xajp-path-info
     }  
 
 

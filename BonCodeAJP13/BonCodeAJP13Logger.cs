@@ -1,11 +1,11 @@
 ﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
- *  Creative Commons License, Version 3.0
+ *  Apache License, Version 2.0
  *  (the "License"); you may not use this file except in compliance with
  *  the License.  You may obtain a copy of the License at
  *
- *      http://creativecommons.org/licenses/by/3.0/
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -171,7 +171,7 @@ namespace BonCodeAJP13
         }
 
         /// <summary>
-        /// Return directory in which the current code resides.
+        /// Return directory in which the current code resides. If the assembly is in Global Assembly Cache (GAC) we will return windows/system32 dir
         /// No terminating slash will be returned.
         /// </summary>
         public static string GetAssemblyDirectory()
@@ -179,7 +179,11 @@ namespace BonCodeAJP13
             string codeBase = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
             UriBuilder uri = new UriBuilder(codeBase);
             string translatedPath = Uri.UnescapeDataString(uri.Path);
-            return System.IO.Path.GetDirectoryName(translatedPath);
+            string strPath = System.IO.Path.GetDirectoryName(translatedPath);
+            //check whether path is accessible (it is not when in GAC)
+            if (strPath.Contains("GAC_MSIL\\BonCodeAJP13\\1.0.0.0")) strPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            //if (!Directory.Exists(strPath)) strPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            return strPath;
 
         }
 

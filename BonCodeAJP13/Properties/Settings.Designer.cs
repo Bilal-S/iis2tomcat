@@ -183,14 +183,14 @@ namespace BonCodeAJP13.Properties {
         }
         
         /// <summary>
-        /// Number of milliseconds to wait before we stop listening for more traffic. 1000ms=1s. Default 90000 (15 min).
+        /// Number of milliseconds to wait before we stop listening for more traffic. 1000ms=1s. Default 120000 (20 min).
         /// </summary>
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
         [global::System.Configuration.SettingsDescriptionAttribute("Number of milliseconds to wait before we stop listening for more traffic. 1000ms=" +
-            "1s. Default 90000 (15 min).")]
+            "1s. Default 120000 (20 min).")]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("900000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1200000")]
         public int ReadTimeOut {
             get {
                 return ((int)(this["ReadTimeOut"]));
@@ -224,6 +224,54 @@ namespace BonCodeAJP13.Properties {
         public bool ForceSecureSession {
             get {
                 return ((bool)(this["ForceSecureSession"]));
+            }
+        }
+        
+        /// <summary>
+        /// If another HTTP header contains valid IP instead of REMOTE_ADDR, it should be provided here. Set to blank if this is to be disabled. Used for XFF scenario, e.g. HTTP_X_FORWARDED_FOR which is the standard populated header when proxies are used.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("If another HTTP header contains valid IP instead of REMOTE_ADDR, it should be pro" +
+            "vided here. Set to blank if this is to be disabled. Used for XFF scenario, e.g. " +
+            "HTTP_X_FORWARDED_FOR which is the standard populated header when proxies are use" +
+            "d.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ResolveRemoteAddrFrom {
+            get {
+                return ((string)(this["ResolveRemoteAddrFrom"]));
+            }
+        }
+        
+        /// <summary>
+        /// By default the connector only sends HTTP headers that contain a value. If you need to see all headers all the time, you need to change this to True. Default False.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("By default the connector only sends HTTP headers that contain a value. If you nee" +
+            "d to see all headers all the time, you need to change this to True. Default Fals" +
+            "e.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AllowEmptyHeaders {
+            get {
+                return ((bool)(this["AllowEmptyHeaders"]));
+            }
+        }
+        
+        /// <summary>
+        /// PATH-INFO HTTP header is not implemented in tomcat AJP protocol. The connector will send path info in this header instead. Default xajp-path-info
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("PATH-INFO HTTP header is not implemented in tomcat AJP protocol. The connector wi" +
+            "ll send path info in this header instead. Default xajp-path-info")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("xajp-path-info")]
+        public string PathInfoHeader {
+            get {
+                return ((string)(this["PathInfoHeader"]));
             }
         }
     }

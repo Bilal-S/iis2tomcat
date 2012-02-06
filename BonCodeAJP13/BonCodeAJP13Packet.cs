@@ -1,11 +1,11 @@
 ﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
- *  Creative Commons License, Version 3.0
+ *  Apache License, Version 2.0
  *  (the "License"); you may not use this file except in compliance with
  *  the License.  You may obtain a copy of the License at
  *
- *      http://creativecommons.org/licenses/by/3.0/
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,7 +41,7 @@ namespace BonCodeAJP13
         #region data Members
 
         protected byte p_PacketType;    
-        protected UInt16 p_UserDataLength;
+        protected UInt16 p_UserDataLength=0;
         protected int p_PacketLength=0;
         protected byte[] p_ByteStore = null; //declare storage for packet data. it is empty by default
         protected const string p_PACKET_DESCRIPTION = "GENERIC"; //this constant will be overriden with derived classes
@@ -51,7 +51,7 @@ namespace BonCodeAJP13
         #region Properties
 
         /// <summary>
-        /// Length of the packet in bytes.
+        /// Length of the user specific data bytes in packet. This excludes any control bytes.
         /// </summary>
         public virtual ushort Length
         {
@@ -112,7 +112,12 @@ namespace BonCodeAJP13
         {
 
             if (buffer.Length >= BonCodeAJP13Consts.MIN_BONCODEAJP13_PACKET_LENGTH && buffer.Length <= BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH)
-            {       
+            {
+                try
+                {
+                    p_UserDataLength = System.Convert.ToUInt16(buffer.Length - 4);
+                }
+                catch { }
             }
             else
             {

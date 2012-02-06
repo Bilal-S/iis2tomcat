@@ -1,3 +1,4 @@
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\obj\Release\ResolveAssemblyReference.cache
 C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\bin\Release\app.config
 C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\bin\Release\BonCodeUnitTestProject.dll
 C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\bin\Release\BonCodeUnitTestProject.pdb
@@ -9,6 +10,5 @@ C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCo
 C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\bin\Release\BonCodeAJP13_Accessor.dll
 C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\bin\Release\BonCodeIIS_Accessor.pdb
 C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\bin\Release\BonCodeAJP13_Accessor.pdb
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\obj\Release\ResolveAssemblyReference.cache
 C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\obj\Release\BonCodeUnitTestProject.dll
 C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeUnitTestProject\obj\Release\BonCodeUnitTestProject.pdb

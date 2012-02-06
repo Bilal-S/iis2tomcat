@@ -1,11 +1,11 @@
 ﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
- *  Creative Commons License, Version 3.0
+ *  Apache License, Version 2.0
  *  (the "License"); you may not use this file except in compliance with
  *  the License.  You may obtain a copy of the License at
  *
- *      http://creativecommons.org/licenses/by/3.0/
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -125,11 +125,12 @@ namespace BonCodeAJP13.Config
 
             /// <summary>
             /// Get path in which the properties XML file should be located. This is where the .dll is located itself.           
+            /// If dll is in GAC this will switch to windows\system32 dir
             /// </summary>
             public virtual string GetAppSettingsPath()
             {
-                //Used to determine where to store the settings            
-                return BonCodeAJP13Logger.GetAssemblyDirectory();
+
+                return BonCodeAJP13Logger.GetAssemblyDirectory(); ;
             }
 
             /// <summary>

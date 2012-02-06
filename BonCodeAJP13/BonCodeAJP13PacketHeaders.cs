@@ -1,11 +1,11 @@
 ﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
- *  Creative Commons License, Version 3.0
+ *  Apache License, Version 2.0
  *  (the "License"); you may not use this file except in compliance with
  *  the License.  You may obtain a copy of the License at
  *
- *      http://creativecommons.org/licenses/by/3.0/
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -168,7 +168,7 @@ namespace BonCodeAJP13
                     p_ATranslator = new Hashtable();
 
                     p_ATranslator.Add("HTTP_CONTEXT", BonCodeAJP13HTTPAttributes.BONCODEAJP13_CONTEXT); //HTTP_CONTEXT IS NOT IMPLEMENTED IN IIS7 in this fashion, included here for completeness sake
-                    p_ATranslator.Add("PATH_INFO", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SERVLET_PATH);
+                    p_ATranslator.Add("PATH_INFO", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SERVLET_PATH); //PATH_INFO though specified here is not implemented on tomcat side. This is currently is a known defect. Once tomcat implements this just change the name back.
                     p_ATranslator.Add("REMOTE_USER", BonCodeAJP13HTTPAttributes.BONCODEAJP13_REMOTE_USER);
 
                     p_ATranslator.Add("AUTH_TYPE", BonCodeAJP13HTTPAttributes.BONCODEAJP13_AUTH_TYPE);

@@ -1,11 +1,11 @@
 ﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
- *  Creative Commons License, Version 3.0
+ *  Apache License, Version 2.0
  *  (the "License"); you may not use this file except in compliance with
  *  the License.  You may obtain a copy of the License at
  *
- *      http://creativecommons.org/licenses/by/3.0/
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
@@ -154,7 +154,7 @@ namespace BonCodeAJP13.ServerPackets
             int num_headers = httpHeaders.AllKeys.Length; // -lstSystemBlacklist.Length;
             byte method = BonCodeAJP13PacketHeaders.GetMethodByte(GetKeyValue(httpHeaders, "REQUEST_METHOD"));
             string req_uri = GetKeyValue(httpHeaders, "SCRIPT_NAME");
-            string remote_addr = GetKeyValue(httpHeaders, "REMOTE_ADDR");
+            string remote_addr = GetRemoteAddr(httpHeaders);  // GetKeyValue(httpHeaders, "REMOTE_ADDR");  GetRemoteAddr(httpHeaders);
             string remote_host = GetKeyValue(httpHeaders, "REMOTE_HOST");
             string server_name = GetKeyValue(httpHeaders, "HTTP_HOST"); //BonCodeAJP13Settings.BONCODEAJP13_SERVER;
             ushort server_port = System.Convert.ToUInt16(GetKeyValue(httpHeaders, "SERVER_PORT"));   // System.Convert.ToUInt16(BonCodeAJP13Settings.BONCODEAJP13_PORT);
@@ -192,12 +192,13 @@ namespace BonCodeAJP13.ServerPackets
             byte[] aUserData = new byte[BonCodeAJP13Consts.MAX_BONCODEAJP13_PACKET_LENGTH]; //allocate full number of bytes for processing
 
             NameValueCollection goodHeaders = CheckHeaders(httpHeaders); //determine headers to be transferred
-            num_headers = goodHeaders.AllKeys.Length; 
+            num_headers = goodHeaders.AllKeys.Length; //we will allways send the path info 
             //debug:num_headers = 1; 
             
             //add one more header if setting enable setting is used
             if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT ) num_headers++;    
-            
+            //path info in alternate header
+            if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "") num_headers++;    
 
             //write a packet
             // ============================================================
@@ -216,18 +217,25 @@ namespace BonCodeAJP13.ServerPackets
             string keyName = "";
             string keyValue = "";
             
-            //add optional headers
+            //add optional headers            
             if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT)
             {
-                keyName = "x-tomcat-docroot"; //"X-Tomcat-DocRoot";
+                keyName = "x-tomcat-docroot"; //"X-Tomcat-DocRoot";                
                 keyValue = BonCodeAJP13Settings.BonCodeAjp13_DocRoot; // System.Web.HttpContext.Current.Server.MapPath("~"); alternatly we could use "appl-physical-path" http var
-                pos = SetString(aUserData, keyName.ToLower(), pos);
+                pos = SetString(aUserData, keyName.ToLower(), pos);                
                 pos = SetString(aUserData, keyValue, pos);
 
             }
+            //path info alternate header determination            
+            if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "") {
+                keyName = BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER; //"xajp-path-info";                                
+                keyValue = httpHeaders["PATH_INFO"];
+                pos = SetString(aUserData, keyName.ToLower(), pos);
+                pos = SetString(aUserData, keyValue, pos);                
+            }
+             
 
-
-
+            //all other headers
             for (int i = 0; i < goodHeaders.AllKeys.Length; i++)            
             {
                 keyName = goodHeaders.AllKeys[i];
@@ -279,6 +287,12 @@ namespace BonCodeAJP13.ServerPackets
             pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_JVM_ROUTE, pos); //attribute marker
             pos = SetString(aUserData, BonCodeAJP13Markers.BONCODEAJP13_PROTOCOL_MARKER, pos); //attribute value
 
+            //add pathinfo attempt to bypass tomcat bug
+            /*
+            pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_REQ_ATTRIBUTE, pos); //attribute marker
+            pos = SetString(aUserData, "path-info", pos); //attribute name
+            pos = SetString(aUserData, httpHeaders["PATH_INFO"], pos); //attribute value    
+            */
 
             //add packet terminator
             pos = SetByte(aUserData, 0xFF, pos); //marks the end of user packet
@@ -309,7 +323,7 @@ namespace BonCodeAJP13.ServerPackets
             NameValueCollection cleanHeaders = new NameValueCollection();
             string keyName = "";
             string keyValue = "";
-            string[] lstSystemBlacklist = new string[] {"PATH_TRANSLATED", "INSTANCE_META_PATH","APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING" };  //list of headers that will be skipped           
+            string[] lstSystemBlacklist = new string[] {"PATH_TRANSLATED", "INSTANCE_META_PATH","APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING" };  //list of headers that will be skipped because they are already processed through other means, duplicate, or not needed          
             string[] lstAllowBlank = new string[] { "" };  //send also if blank
             string[] lstUserWhitelist = null; //if we have data here, only these headers will be sent
 
@@ -350,7 +364,7 @@ namespace BonCodeAJP13.ServerPackets
                         }
 
                         //only pass on key if it is populated unless special exeption                    
-                        if (keyValue != "" || lstAllowBlank.Contains(keyName))
+                        if (BonCodeAJP13Settings.BONCODEAJP13_ALLOW_EMTPY_HEADERS ||  keyValue != "" || lstAllowBlank.Contains(keyName))
                         {
                             if (keyName != "")
                             {
@@ -448,6 +462,28 @@ namespace BonCodeAJP13.ServerPackets
             {
                 string[] keyValues = httpHeaders.GetValues(keyName);
                 retVal = keyValues[0];
+            }
+
+            return retVal;
+        }
+
+        /// <summary>
+        /// Check for override on REMOTE_ADDR and return the value from designated header instead.  
+        /// Intermediaries such as Proxy Servers and Load Balancers hide the REMOTE_ADDR but add alternate headers.
+        /// Most likely the HTTP_X_FORWARDED_FOR header is used for this.
+        /// </summary>
+        private string GetRemoteAddr(NameValueCollection httpHeaders)
+        {
+            string retVal = GetKeyValue(httpHeaders, "REMOTE_ADDR");
+            //HTTP_X_FORWARDED_FOR
+            if (BonCodeAJP13Settings.BONCODEAJP13_REMOTEADDR_FROM != "") {
+                try
+                {
+                    string tempVal = GetKeyValue(httpHeaders,BonCodeAJP13Settings.BONCODEAJP13_REMOTEADDR_FROM);
+                    if (tempVal != "" && tempVal != null) retVal = tempVal.Split(new char[] { ',' })[0];
+                } catch  {
+                    //we will not return an alternate value in case of error
+                }
             }
 
             return retVal;
