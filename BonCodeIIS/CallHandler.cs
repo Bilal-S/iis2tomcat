@@ -17,7 +17,7 @@
 /*************************************************************************
  * Description: IIS-to-Tomcat connector                                  *
  * Author:      Bilal Soylu <bilal.soylu[at]gmail.com>                   *
- * Version:     0.9                                                      *
+ * Version:     1.0                                                      *
  *************************************************************************/
 
 using System;
@@ -95,7 +95,7 @@ namespace BonCodeIIS
 
             
             //check execution
-            string executionFeedback = CheckExecution(context.Request.ServerVariables);
+            string executionFeedback = CheckExecution(context.Request.ServerVariables, context.Request.QueryString);
             bool blnProceed = true;
 
             /* debug: dump headers
@@ -106,10 +106,11 @@ namespace BonCodeIIS
             if (executionFeedback.Length == 0)
             {
                 //determine web doc root if needed
-                if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT)
-                {
-                    BonCodeAJP13Settings.BonCodeAjp13_DocRoot = System.Web.HttpContext.Current.Server.MapPath("~");
-                }
+                //if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT) { }
+                //set shared settings
+                BonCodeAJP13Settings.BonCodeAjp13_DocRoot = System.Web.HttpContext.Current.Server.MapPath("~");
+                BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath = context.Request.PhysicalPath;
+                
 
                 //check whether we are resuable, we discard and re-establish connections if MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS is set to zero
                 if (BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS == 0)
@@ -137,8 +138,15 @@ namespace BonCodeIIS
                     catch (Exception e)
                     {
                         //check whether we had issues connecting to tomcat
-                        string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port.<br>Details:<br>" + e.Message;
-                        context.Response.Write(errMsg);
+                        if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL.Length > 5)
+                        {
+                            context.Response.Redirect(BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL);
+                        }
+                        else
+                        {
+                            string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port..<br>Details:<br>" + e.Message + "<br><small><small><br>You can change this message by changing TomcatConnectErrorURL setting in setting file.</small></small>";
+                            context.Response.Write(errMsg);
+                        }
                         blnProceed = false;
 
                     }
@@ -154,9 +162,21 @@ namespace BonCodeIIS
                     }
 
                 }
+                else
+                {
+                    //check whether existin TCP/IP connection is still working. If tomcat is restarted the connection needs to be reset here as well
+                    if (!p_TcpClient.Connected)
+                    {
+                        KillConnection();
+                        p_TcpClient = new TcpClient(BonCodeAJP13Settings.BONCODEAJP13_SERVER, BonCodeAJP13Settings.BONCODEAJP13_PORT);
+                    }
+
+                }
 
                 if (blnProceed)
                 {
+                    
+
                     //initialize AJP13 protocol connection
                     BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection();
                     sconn.FlushDelegateFunction = PrintFlush;  //this function will do the transfer to browser if we use Flush detection, we pass as delegate
@@ -171,22 +191,22 @@ namespace BonCodeIIS
                     if (context.Request.ContentLength > 0)
                     {
                         // need to create a collection of forward requests to package data in                               
-                        int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH))));
+                        int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH))));
                         int iStart = 0;
                         int iCount = 0;
                         for (int i = 1; i <= numOfPackets; i++)
                         {
                             //we need to breakdown data into multiple FR packages to tomcat
-                            if (i * BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH <= streamLen)
+                            if (i * BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH <= streamLen)
                             {
-                                //we are in the middle of transferring data grab next 8188 bytes and create package
-                                iStart = (i - 1) * BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH;
-                                iCount = Convert.ToInt32(BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH);
+                                //we are in the middle of transferring data grab next 8188 (if default packet size) bytes and create package
+                                iStart = (i - 1) * BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH;
+                                iCount = Convert.ToInt32(BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH);
                             }
                             else
                             {
                                 //last user package
-                                iStart = (i - 1) * BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH;
+                                iStart = (i - 1) * BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH;
                                 iCount = Convert.ToInt32(streamLen) - iStart;
                             }
                             //add package to collection
@@ -331,7 +351,8 @@ namespace BonCodeIIS
 
                         }
                         //set response status code
-                        p_Context.Response.StatusCode = tcshPackage.GetStatus();
+                        if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)  
+                            p_Context.Response.StatusCode = tcshPackage.GetStatus();
 
                     }
                     else if (flushPacket is TomcatEndResponse)
@@ -346,12 +367,17 @@ namespace BonCodeIIS
                         }
 
                     }
+                    else if (flushPacket is TomcatPhysicalPathRequest)
+                    {
+                        //do nothing here Adobe introduced this package
+                    }
+
                     else if (flushPacket is TomcatSendBodyChunk)
                     {
                         transferredBytes = transferredBytes + flushPacket.Length;
-                        if (flushPacket.Length>0) 
-                            p_Context.Response.BinaryWrite(flushPacket.GetUserDataBytes()); 
-                        
+                        if (flushPacket.Length > 0)
+                            p_Context.Response.BinaryWrite(flushPacket.GetUserDataBytes());
+
                     }
                 }
                 catch (Exception)
@@ -423,7 +449,7 @@ namespace BonCodeIIS
         /// Logic that checks whether a request should be run, this is before we pass it to tomcat.
         /// all custom logic should be placed into this method
         /// </summary>
-        private string CheckExecution(NameValueCollection httpHeaders)
+        private string CheckExecution(NameValueCollection httpHeaders, NameValueCollection queryParams)
         {
             string retVal = "";
             try
@@ -449,7 +475,24 @@ namespace BonCodeIIS
                     }
 
                 }
+
                 //end of check for remote administrator use
+                //----------------------------------
+
+                //check for version request
+                //----------------------------------
+                if (queryParams["BonCodeConnectorVersion"] != null)
+                {                    
+                    //has to be local call
+                    if (IsLocalIP(GetKeyValue(httpHeaders, "REMOTE_ADDR")))
+                    {
+                        retVal = "BonCodeAJP Connector Version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION;
+                   
+                    }
+
+                }
+
+                //end of check for version request
                 //----------------------------------
 
             }

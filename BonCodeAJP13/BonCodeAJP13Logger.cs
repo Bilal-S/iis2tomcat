@@ -17,7 +17,7 @@
 /*************************************************************************
  * Description: IIS-to-Tomcat connector                                  *
  * Author:      Bilal Soylu <bilal.soylu[at]gmail.com>                   *
- * Version:     0.9                                                      *
+ * Version:     1.0                                                      *
  *************************************************************************/
 
 using System;
@@ -63,7 +63,7 @@ namespace BonCodeAJP13
                 {
 
                     logStream.WriteLine("------------------------------------------------------------------------");
-                    logStream.WriteLine("Error at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
+                    logStream.WriteLine("Error at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
                     logStream.WriteLine(message);
                     logStream.WriteLine(e.Message);
                     if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
@@ -181,7 +181,7 @@ namespace BonCodeAJP13
             string translatedPath = Uri.UnescapeDataString(uri.Path);
             string strPath = System.IO.Path.GetDirectoryName(translatedPath);
             //check whether path is accessible (it is not when in GAC)
-            if (strPath.Contains("GAC_MSIL\\BonCodeAJP13\\1.0.0.0")) strPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            if (strPath.Contains("GAC_MSIL\\BonCodeAJP13\\1.0.0.0")) strPath = Environment.GetEnvironmentVariable("windir"); //Environment.GetFolderPath(Environment.SpecialFolder.System);
             //if (!Directory.Exists(strPath)) strPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
             return strPath;
 

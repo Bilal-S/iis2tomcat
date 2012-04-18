@@ -17,7 +17,7 @@
 /*************************************************************************
  * Description: IIS-to-Tomcat connector                                  *
  * Author:      Bilal Soylu <bilal.soylu[at]gmail.com>                   *
- * Version:     0.9                                                      *
+ * Version:     1.0                                                      *
  *************************************************************************/
 
 using System;
@@ -57,13 +57,13 @@ namespace BonCodeAJP13.ServerPackets
         /// </summary>
         public BonCodeAJP13ForwardRequest(byte[] content) {
 
-            if (content.Length >= 0 && content.Length <= BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH)
+            if (content.Length >= 0 && content.Length <= BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH)
             {
                 WritePacket(content);
             }
             else
             {
-                throw new Exception("Invalid BonCodeAJP13ForwardRequest content received. New content cannot exceed " + BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH + " bytes. Provided content length is " + content.Length + " bytes.");
+                throw new Exception("Invalid BonCodeAJP13ForwardRequest content received. New content cannot exceed " + BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH + " bytes. Provided content length is " + content.Length + " bytes.");
             }
 
         
@@ -114,7 +114,7 @@ namespace BonCodeAJP13.ServerPackets
         /// </summary>
         private void WritePacket(byte[] transferContent)
         {
-            if (transferContent.Length > 0 && transferContent.Length <= BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH)
+            if (transferContent.Length > 0 && transferContent.Length <= BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH)
             {
                 p_ByteStore = new byte[transferContent.Length + 6];
                 int pos = 2;
@@ -189,7 +189,9 @@ namespace BonCodeAJP13.ServerPackets
             //locals
             int pos = 0;
             byte attributeByte = 0x00;
-            byte[] aUserData = new byte[BonCodeAJP13Consts.MAX_BONCODEAJP13_PACKET_LENGTH]; //allocate full number of bytes for processing
+            byte[] aUserData = new byte[BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH]; //allocate full number of bytes for processing
+            int packetFillBytes = 14; //bytes used to complete package
+            int expectedPacketSize = 0;
 
             NameValueCollection goodHeaders = CheckHeaders(httpHeaders); //determine headers to be transferred
             num_headers = goodHeaders.AllKeys.Length; //we will allways send the path info 
@@ -199,6 +201,13 @@ namespace BonCodeAJP13.ServerPackets
             if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT ) num_headers++;    
             //path info in alternate header
             if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "") num_headers++;    
+
+  
+            //add a mapping prefix if one is provided
+            if (BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length > 2)
+            {
+                req_uri = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX + req_uri;
+            }
 
             //write a packet
             // ============================================================
@@ -234,28 +243,53 @@ namespace BonCodeAJP13.ServerPackets
                 pos = SetString(aUserData, keyValue, pos);                
             }
              
+            //TODO Remove this    
+            /*
+            keyName = "xajp-setting-drive"; 
+            keyValue = BonCodeAJP13Logger.GetAssemblyDirectory();
+            pos = SetString(aUserData, keyName.ToLower(), pos);
+            pos = SetString(aUserData, keyValue, pos);
+
+            keyName = "xajp-setting-file";
+            keyValue = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+            pos = SetString(aUserData, keyName.ToLower(), pos);
+            pos = SetString(aUserData, keyValue, pos);
+             */
+            //END REMOVE THIS
+
 
             //all other headers
             for (int i = 0; i < goodHeaders.AllKeys.Length; i++)            
             {
                 keyName = goodHeaders.AllKeys[i];
-                keyValue = goodHeaders[keyName];
-                //only process if this key is not on the skip key list                
-                if (BonCodeAJP13PacketHeaders.GetHeaderBytes(keyName) != null)
+                keyValue = goodHeaders[keyName];                
+                expectedPacketSize = keyName.Length + keyValue.Length + pos + packetFillBytes;
+
+                if (expectedPacketSize < BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH)
                 {
-                    //byte header
-                    pos = SetSimpleByteArray(aUserData, BonCodeAJP13PacketHeaders.GetHeaderBytes(keyName), pos);
+                    //add byte or string header name               
+                    if (BonCodeAJP13PacketHeaders.GetHeaderBytes(keyName) != null)
+                    {
+                        //byte header
+                        pos = SetSimpleByteArray(aUserData, BonCodeAJP13PacketHeaders.GetHeaderBytes(keyName), pos);
+                    }
+                    else
+                    {
+                        //string header (remove HTTP prefix this is added by IIS) and change underscore  
+                        if (keyName.StartsWith("HTTP_")) keyName = keyName.Remove(0, 5);
+                        keyName = keyName.Replace("_", "-");
+                        pos = SetString(aUserData, keyName.ToLower(), pos);
+                    }
+                    //add value if keyName is not empty string
+                    pos = SetString(aUserData, keyValue, pos);
                 }
                 else
                 {
-                    //string header (remove HTTP prefix this is added by IIS) and change underscore  
-                    if(keyName.StartsWith("HTTP_")) keyName = keyName.Remove(0,5);
-                    keyName=keyName.Replace("_", "-");
-                    pos = SetString(aUserData, keyName.ToLower(), pos); 
-                }
-                //add value if keyName is not empty string
-                pos = SetString(aUserData, keyValue, pos);
+                    //raise error:
+                    throw new Exception("Invalid content length. Last header processed [" + keyName + "]. Please reconfigure BonCode Connector and Apache Tomcat to allow larger transfer packets. Your max allowed content length is " + BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH + " bytes. Provided content length would be at least " + expectedPacketSize + " bytes. Clearing cookies may allow you proceed.");
 
+                }
+               
                 
             }
 
@@ -266,12 +300,20 @@ namespace BonCodeAJP13.ServerPackets
             {
                 keyName = httpHeaders.AllKeys[i];
                 keyValue = httpHeaders[keyName];
+                expectedPacketSize = keyName.Length + keyValue.Length + pos + packetFillBytes;
                 attributeByte = BonCodeAJP13PacketHeaders.GetAttributeByte(keyName);
                 //check whether this is byte attribute if so wee need to add the header as attribute to packet
                 if (attributeByte != 0x00 && keyValue != "")
                 {
-                    pos = SetByte(aUserData,attributeByte, pos); //attribute marker
-                    pos = SetString(aUserData, keyValue, pos); //attribute value                    
+                    if (expectedPacketSize < BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH)
+                    {
+                        pos = SetByte(aUserData, attributeByte, pos); //attribute marker
+                        pos = SetString(aUserData, keyValue, pos); //attribute value                    
+                    }
+                    else
+                    {
+                        throw new Exception("Invalid content length. Last header processed [" + keyName + "]. Please reconfigure BonCode Connector and Apache Tomcat to allow larger transfer packets. Your max allowed content length is " + BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH + " bytes. Provided content length would be at least " + expectedPacketSize + " bytes.");
+                    }
                 }
             }
             
@@ -396,8 +438,14 @@ namespace BonCodeAJP13.ServerPackets
                             int num_headers=1) 
         {
             //create request in bytes. first create user data
-            int pos = 0;            
-            byte[] aUserData = new byte[BonCodeAJP13Consts.MAX_BONCODEAJP13_PACKET_LENGTH]; //allocate full number of bytes for processing
+            int pos = 0;
+            byte[] aUserData = new byte[BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH]; //allocate full number of bytes for processing
+
+            //add a mapping prefix if one is provided
+            if (BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length > 2)
+            {
+                req_uri = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length + "/" + req_uri;
+            }
 
             // set protocol required data points
             // ============================================================
@@ -481,6 +529,8 @@ namespace BonCodeAJP13.ServerPackets
                 {
                     string tempVal = GetKeyValue(httpHeaders,BonCodeAJP13Settings.BONCODEAJP13_REMOTEADDR_FROM);
                     if (tempVal != "" && tempVal != null) retVal = tempVal.Split(new char[] { ',' })[0];
+                    //TODO: interate through and find left most non-private address
+                    //(Left(testIP,3) NEQ "10.")  AND   (Left(testIP,7) NEQ "172.16.")   AND   (Left(testIP,8) NEQ "192.168.")   
                 } catch  {
                     //we will not return an alternate value in case of error
                 }

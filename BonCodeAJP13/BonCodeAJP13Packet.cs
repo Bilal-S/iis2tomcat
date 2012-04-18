@@ -17,7 +17,7 @@
 /*************************************************************************
  * Description: IIS-to-Tomcat connector                                  *
  * Author:      Bilal Soylu <bilal.soylu[at]gmail.com>                   *
- * Version:     0.9                                                      *
+ * Version:     1.0                                                      *
  *************************************************************************/
 
 //==============================================================================
@@ -111,7 +111,7 @@ namespace BonCodeAJP13
         public BonCodeAJP13Packet(byte[] buffer)
         {
 
-            if (buffer.Length >= BonCodeAJP13Consts.MIN_BONCODEAJP13_PACKET_LENGTH && buffer.Length <= BonCodeAJP13Consts.MAX_BONCODEAJP13_USERDATA_LENGTH)
+            if (buffer.Length >= BonCodeAJP13Consts.MIN_BONCODEAJP13_PACKET_LENGTH && buffer.Length <= BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH)
             {
                 try
                 {
@@ -124,6 +124,33 @@ namespace BonCodeAJP13
                 // throw an exeption to mark reason
                 throw new Exception("Invalid BonCodeAJP13 Packet received. Wrong byte length.");
             }
+
+        }
+
+        /// <summary>
+        /// Initialize the packet from string, it sets the essential properties of the packet like type. 
+        /// Each derived class will define details. 
+        /// </summary>
+        public BonCodeAJP13Packet(string content)
+        {
+            System.Text.UTF8Encoding encoder = new System.Text.UTF8Encoding();
+
+            byte[] buffer = encoder.GetBytes(content);
+
+            if (buffer.Length >= BonCodeAJP13Consts.MIN_BONCODEAJP13_PACKET_LENGTH && buffer.Length <= BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH)
+            {
+                try
+                {
+                    p_UserDataLength = System.Convert.ToUInt16(buffer.Length - 4);
+                }
+                catch { }
+            }
+            else
+            {
+                // throw an exeption to mark reason
+                throw new Exception("Invalid BonCodeAJP13 Packet received. Wrong byte length.");
+            }
+            
 
         }
 
@@ -483,6 +510,21 @@ namespace BonCodeAJP13
             //the last byte of valueData is allways zero based on our initial declaration. This indicates the terminator byte as well. Copy this to the main byte array
             Array.Copy(valueData, 0, data, pos, valueData.Length); 
             return pos + value.Length + 3; //we added three more characters/bytes than passed in
+        }
+
+        /// <summary>
+        /// Set the String value in the array starting from the pos index 
+        /// The length prefix will be omitted.
+        /// </summary>
+        protected static int SetSimpleString(byte[] data, string value, int pos)
+        {
+            
+            //We use UTF 8 encoding for any string conversion
+            UTF8Encoding encodingLib = new System.Text.UTF8Encoding();
+            byte[] stringBytes = new byte[value.Length];
+            stringBytes = encodingLib.GetBytes(value);
+                        
+            return SetSimpleByteArray(data,stringBytes,pos); 
         }
 
         /// <summary>

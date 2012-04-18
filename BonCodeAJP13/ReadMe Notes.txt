@@ -112,3 +112,29 @@ Version 1.0 Updates:
 * Add: installer deploy in GAC mode
 * Add: installer accept setting file for silent deployment
 * Add: installer configure tomcat server.xml if on same server
+
+
+Version 1.0.1 Updates:
+* Add: installer option for header data support 
+* Add: Settings for HTTP Status Codes option, ErrorRedirectURL, TCPClientErrorMessage, TCPStreamErrorMessage
+* Add: Automatic connection recovery after tomcat has been restarted while IIS is still running.
+* Add: Error message displays for different connection errors occur (rather than empty screens).
+* Edt: In global install mode. Change settings directory from system32 to windows.
+
+Version 1.0.2 Updates:
+* Fix: Port setting was not read from setting file
+* Add: Adobe Extension support to AJP
+
+Version 1.0.3 Updates:
+* Add: Connector Version identifier through local URL parameter call (BonCodeConnectorVersion=yes)
+* Add: Installer enable flush option
+* Add: Installer enable client IP detection
+* Add: Installer scripted support for uninstall directory
+
+Version 1.0.4 Updates:
+* Add: path prefix setting to allow mapping of a given IIS site root to designated tomcat application
+* Fix: Installer Windows 2003 and Windows XP 64-bit asp.net references
+
+Version 1.0.5 Updates:
+* Add: Installer allow unlocking of IIS sub configurations (sub path)
+* Add: packetSize option to support non-default packet sizes

@@ -2,7 +2,7 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="BonCodeAJP13.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="Port" Description="port on which the AJP13 worker is active. Check your worker.properties files on tomcat." Type="System.Int32" Scope="Application">
+    <Setting Name="Port" Description="port on which the AJP13 worker is active. Check your worker.properties files on tomcat." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">8009</Value>
     </Setting>
     <Setting Name="Server" Description="target server hosting tomcat instance." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
@@ -52,6 +52,24 @@
     </Setting>
     <Setting Name="PathInfoHeader" Description="PATH-INFO HTTP header is not implemented in tomcat AJP protocol. The connector will send path info in this header instead. Default xajp-path-info" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
       <Value Profile="(Default)">xajp-path-info</Value>
+    </Setting>
+    <Setting Name="TomcatConnectErrorURL" Description="URL to which user is redirected is we cannot connect to Tomcat (server is down). If no value provided a default message will be displayed. Default: Blank" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="EnableHTTPStatusCodes" Description="Whether HTTP status codes from Apache Tomcat are set in IIS. Default: True" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="TCPClientErrorMessage" Description="Message to be displayed to user if we experience issues with TCP client connections to Tomcat." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="TCPStreamErrorMessage" Description="Message to be displayed to user if we experience TCP Stream problems with Tomcat." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="PathPrefix" Description="URL path prefix such as /axis that will be prefixed to any call from IIS to tomcat. Allows for easier mapping." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="PacketSize" Description="The packet size to use for AJP. If changed from default, this also needs to be changed on Apache Tomcat side in the server.xml file. Add packetSize attribute to AJP connection." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">8192</Value>
     </Setting>
   </Settings>
 </SettingsFile>

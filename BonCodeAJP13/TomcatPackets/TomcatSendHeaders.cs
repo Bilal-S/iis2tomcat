@@ -17,7 +17,7 @@
 /*************************************************************************
  * Description: IIS-to-Tomcat connector                                  *
  * Author:      Bilal Soylu <bilal.soylu[at]gmail.com>                   *
- * Version:     0.9                                                      *
+ * Version:     1.0                                                      *
  *************************************************************************/
 
 
@@ -134,7 +134,7 @@ namespace BonCodeAJP13.TomcatPackets
         //no specific method for this class
         public string TestHeader()
         {
-            return "Test Header";
+            return "Test Header " + p_PACKET_DESCRIPTION;
         }
 
         #endregion

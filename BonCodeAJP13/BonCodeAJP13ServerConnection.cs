@@ -17,7 +17,7 @@
 /*************************************************************************
  * Description: IIS-to-Tomcat connector                                  *
  * Author:      Bilal Soylu <bilal.soylu[at]gmail.com>                   *
- * Version:     0.9                                                      *
+ * Version:     1.0                                                      *
  *************************************************************************/
 
 //==============================================================================
@@ -392,6 +392,9 @@ namespace BonCodeAJP13
             {
                 if (p_Logger != null) p_Logger.LogException(e, "TCP Client level -- Server/Port:" + p_Server + "/" + p_Port.ToString());
                 ConnectionError();
+                string errMsg = "Connection to Tomcat has been closed. Tomcat may be restarting. Please retry later.";
+                if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_TCPCLIENT_ERRORMSG.Length > 1) errMsg = BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_TCPCLIENT_ERRORMSG;
+                p_PacketsReceived.Add(new TomcatSendBodyChunk(errMsg));
                 return;
             }
         }
@@ -445,6 +448,11 @@ namespace BonCodeAJP13
             catch (Exception ex)
             {
                 if (p_Logger != null) p_Logger.LogException(ex, "Stream level -- Server/Port:" + p_Server + "/" + p_Port.ToString());
+
+                string errMsg = "Stream Connection to Tomcat unavailable. Tomcat may be restarting. Please retry later.";
+                if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_STREAM_ERRORMSG.Length > 1) errMsg = BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_STREAM_ERRORMSG;
+                p_PacketsReceived.Add(new TomcatSendBodyChunk(errMsg));
+                
                 ConnectionError();
                 return;
             }
@@ -456,7 +464,7 @@ namespace BonCodeAJP13
         private void ComunicateWithTomcat()
         {
             int numOfBytesReceived = 0;
-            byte[] receivedPacketBuffer = new byte[BonCodeAJP13Consts.MAX_BONCODEAJP13_PACKET_LENGTH];
+            byte[] receivedPacketBuffer = new byte[BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH];
             byte[] notProcessedBytes = null;
             int sendPacketCount = 0;
             p_IsLastPacket = false;
@@ -466,7 +474,7 @@ namespace BonCodeAJP13
             //send packages. If multiple forward requests (i.e. form data or files) there is a different behavior expected
             if (p_PacketsToSend.Count > 1)
             {
-                       
+                //TODO: move this loop to a function by itself so we can reuse it.
                 foreach (Object oIterate in p_PacketsToSend)
                 {
                     //we will continue sending all packets in queue unless tomcat sends us End Comm package
@@ -501,6 +509,9 @@ namespace BonCodeAJP13
                     }
 
                 }  
+                
+
+
                 //if the last received message from tomcat is "GET_BODY_CHUNK" we need to send terminator package
                 if(p_PacketsReceived[p_PacketsReceived.Count-1] is TomcatGetBodyChunk) {
                     BonCodeAJP13Packet sendPacket = new BonCodeAJP13ForwardRequest(new byte[] { }); //create terminator (empty) package
@@ -592,6 +603,8 @@ namespace BonCodeAJP13
                         notProcessedBytes = AnalyzePackage(tempArray);
                     }
 
+                    //check to see whether we have any packets to send now
+
                 }
                     
                 
@@ -637,7 +650,7 @@ namespace BonCodeAJP13
             }
         }
 
-          
+         
 
         /// <summary>
         /// Close connection and its Network stream. Everything is OK.
@@ -789,6 +802,16 @@ namespace BonCodeAJP13
                                 break;
                             case BonCodeAJP13TomcatPacketType.TOMCAT_SENDBODYCHUNK:
                                 p_PacketsReceived.Add(new TomcatSendBodyChunk(userData));
+                                break;
+
+                            case BonCodeAJP13TomcatPacketType.TOMCAT_CFPATHREQUEST:
+                                //this is Adobe specific we will need to send back a header
+                                p_PacketsReceived.Add(new TomcatPhysicalPathRequest(userData));
+                                //TODO: move this into the response queue
+                                //prep response and return now
+                                BonCodeFilePathPacket pathResponse = new BonCodeFilePathPacket(BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath);
+                                p_NetworkStream.Write(pathResponse.GetDataBytes(), 0, pathResponse.PacketLength);
+                                if (p_Logger != null) p_Logger.LogPacket(pathResponse);
                                 break;
                             default:
                                 //we don't know this type of package; add to collection anyway and log it, we will not raise error but continue processing                               

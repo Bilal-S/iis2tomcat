@@ -17,7 +17,7 @@
 /*************************************************************************
  * Description: IIS-to-Tomcat connector                                  *
  * Author:      Bilal Soylu <bilal.soylu[at]gmail.com>                   *
- * Version:     0.9                                                      *
+ * Version:     1.0                                                      *
  *************************************************************************/
 
 
@@ -130,7 +130,7 @@ namespace BonCodeAJP13.Config
             public virtual string GetAppSettingsPath()
             {
 
-                return BonCodeAJP13Logger.GetAssemblyDirectory(); ;
+                return BonCodeAJP13Logger.GetAssemblyDirectory(); 
             }
 
             /// <summary>

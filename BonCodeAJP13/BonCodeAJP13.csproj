@@ -62,10 +62,12 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="ServerPackets\BonCodeAJP13ForwardRequest.cs" />
+    <Compile Include="ServerPackets\BonCodeFilePathPacket.cs" />
     <Compile Include="Test.cs" />
     <Compile Include="TomcatPackets\TomcatCPongReply.cs" />
     <Compile Include="TomcatPackets\TomcatEndResponse.cs" />
     <Compile Include="TomcatPackets\TomcatGetBodyChunk.cs" />
+    <Compile Include="TomcatPackets\TomcatPhysicalPathRequest.cs" />
     <Compile Include="TomcatPackets\TomcatReturn.cs" />
     <Compile Include="TomcatPackets\TomcatSendBodyChunk.cs" />
     <Compile Include="TomcatPackets\TomcatSendHeaders.cs" />

@@ -17,7 +17,7 @@
 /*************************************************************************
  * Description: IIS-to-Tomcat connector                                  *
  * Author:      Bilal Soylu <bilal.soylu[at]gmail.com>                   *
- * Version:     0.9                                                      *
+ * Version:     1.0                                                      *
  *************************************************************************/
 
 
@@ -33,10 +33,11 @@ namespace BonCodeAJP13
     /// </summary>
     public struct BonCodeAJP13Markers
     {
+
         public const byte BONCODEAJP13_PACKET_START = 0x12;
         public const byte BONCODEAJP13_PACKET_START2 = 0x34;
         public const byte BONCODEAJP13_BYTE_HEADER_MARKER = 0xA0;
-        public const string BONCODEAJP13_PROTOCOL_MARKER = "ajp13w";
+        public const string BONCODEAJP13_PROTOCOL_MARKER = "ajp13w";        
 
     }
 
@@ -67,7 +68,7 @@ namespace BonCodeAJP13
         public const byte TOMCAT_ENDRESPONSE = 0x05;        //Marks the end of the response (and thus the request-handling cycle).
         public const byte TOMCAT_GETBODYCHUNK = 0x06;       //Get further data from the request if it hasn't all been transferred yet.
         public const byte TOMCAT_CPONGREPLY = 0x09;         //The reply to a CPing request       
-
+        public const byte TOMCAT_CFPATHREQUEST = 0x0F;      //Vendor specific extension. Not part of standard AJP13
     }
 
    
@@ -234,6 +235,7 @@ namespace BonCodeAJP13
         //enable HeaderDataSupport. Will send non-standard data in header to support cfml operations -- currently adds X-Tomcat-DocRoot
         public static bool BONCODEAJP13_HEADER_SUPPORT = Properties.Settings.Default.EnableHeaderDataSupport; //false
         public static string BonCodeAjp13_DocRoot = ""; //will be set in CallHandler
+        public static string BonCodeAjp13_PhysicalFilePath = ""; //will be set in CallHandler
 
         //suppressed header list, this should be a comma seperated value (CSV) list of HTTP headers we will not sent to tomcat
         public static string BONCODEAJP13_BLACKLIST_HEADERS = Properties.Settings.Default.HeaderBlacklist; //blank
@@ -255,12 +257,32 @@ namespace BonCodeAJP13
         //If another HTTP header contains valid IP instead of REMOTE_ADDR, it should be provided here. Common scenario uses HTTP_X_FORWARDED_FOR as alternate reference.
         public static string BONCODEAJP13_REMOTEADDR_FROM = Properties.Settings.Default.ResolveRemoteAddrFrom; //blank
 
-        //Allow Empty Headrs
+        //Allow Empty Headers
         //By default the connector only sends HTTP headers that contain a value. If you need to see all headers all the time, you need to change this to True. Default False.
         public static bool BONCODEAJP13_ALLOW_EMTPY_HEADERS = Properties.Settings.Default.AllowEmptyHeaders; //false
 
         //Path info header
         public static string BONCODEAJP13_PATHINFO_HEADER = Properties.Settings.Default.PathInfoHeader; //xajp-path-info
+
+        //HTTP status codes
+        public static bool BONCODEAJP13_ENABLE_HTTPSTATUSCODES = Properties.Settings.Default.EnableHTTPStatusCodes; //true
+
+        //Tomcat Error URL (will redirect to this page if tomcat is not available)
+        public static string BONCODEAJP13_TOMCAT_DOWN_URL = Properties.Settings.Default.TomcatConnectErrorURL; //blank
+
+        //TCPStreamErrorMessage
+        public static string BONCODEAJP13_TOMCAT_STREAM_ERRORMSG = Properties.Settings.Default.TCPStreamErrorMessage; //blank
+
+        //TCPClientErrorMessage
+        public static string BONCODEAJP13_TOMCAT_TCPCLIENT_ERRORMSG = Properties.Settings.Default.TCPClientErrorMessage; //blank
+
+        //URL path prefix such as /axis that will be prefixed to any call from IIS to tomcat. Allows for easier mapping.
+        public static string BONCODEAJP13_PATH_PREFIX = Properties.Settings.Default.PathPrefix; //blank
+
+        //packet size. Needs to corredpond with Apache Tomcat packetSize
+        public static int MAX_BONCODEAJP13_PACKET_LENGTH = Properties.Settings.Default.PacketSize; //8192
+        public static int MAX_BONCODEAJP13_USERDATA_LENGTH = MAX_BONCODEAJP13_PACKET_LENGTH - 6;
+
     }  
 
 
@@ -283,17 +305,19 @@ namespace BonCodeAJP13
         public const int MIN_BONCODEAJP13_PACKET_LENGTH = 5;
 
         //Defines the current maximum data length for a BonCodeAJP13 packets.
-        public const int MAX_BONCODEAJP13_PACKET_LENGTH = 8192;         //this is including control bytes
-        public const int MAX_BONCODEAJP13_USERDATA_LENGTH = 8186;       //maximum number of user data bytes that can be packaged into Forward Request, exludes all control bytes. If length bytes are included this would be 8188
-
+        
+        //public const int MAX_BONCODEAJP13_PACKET_LENGTH = 8192;         //this is including control bytes
+        //public const int MAX_BONCODEAJP13_USERDATA_LENGTH = 8186;       //maximum number of user data bytes that can be packaged into Forward Request, exludes all control bytes. If length bytes are included this would be 8188
+        
+        
         // The max period of time that the BonCodeAJP13 listner can stay listening without any new connection (not used).
         public const int BONCODEAJP13_LISTENER_MAX_IDLE_TIME = 3600000;
        
         // Define Send/Receive Timeout for connection to be kept alive if invoked in process.               
         public const int BONCODEAJP13_SERVER_KEEP_ALIVE_TIMEOUT = 1800000; //keep alive for 30 minutes
 
- 
-
+        //connector version identifier
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.5";
     }   
 
     /// <summary>

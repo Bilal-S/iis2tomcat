@@ -20,21 +20,17 @@
  * Version:     1.0                                                      *
  *************************************************************************/
 
-
-//==============================================================================
-// This is the main container of data. Returned data here will flow into browser
-//==============================================================================
-//==============================================================================
-
+/*
+ * This is a non-standard use of the AJP13 protocol by vendor
+ */
 namespace BonCodeAJP13.TomcatPackets
 {
-    public class TomcatSendBodyChunk : TomcatReturn
+    public class TomcatPhysicalPathRequest:TomcatReturn
     {
-
         #region data Members
         
         //set packet name overrides base class
-        new const string p_PACKET_DESCRIPTION = "TOMCAT SEND BODY CHUNK RETURN";
+        new const string p_PACKET_DESCRIPTION = "COLDFUSION PHYSICAL PATH REQUEST";
 
         #endregion
 
@@ -50,7 +46,7 @@ namespace BonCodeAJP13.TomcatPackets
         /// <summary>
         /// Generic Constructor can be used to create empty package       
         /// </summary>
-        public TomcatSendBodyChunk()
+        public TomcatPhysicalPathRequest()
         {
 
         }
@@ -58,7 +54,7 @@ namespace BonCodeAJP13.TomcatPackets
         /// <summary>
         /// constructor with data to initialize      
         /// </summary>
-        public TomcatSendBodyChunk(byte[] content)
+        public TomcatPhysicalPathRequest(byte[] content)
         {
             p_ByteStore = content;
             try
@@ -70,28 +66,7 @@ namespace BonCodeAJP13.TomcatPackets
             {
                 //do nothing for now
             }
-        }
-
-        /// <summary>
-        /// constructor with data to initialize using string as input 
-        /// </summary>
-        public TomcatSendBodyChunk(string strContent)
-        {
-            System.Text.UTF8Encoding encoder = new System.Text.UTF8Encoding();
-            //when content is retrieved the first and last 4 bytes are dropped so we are adding space chars
-            byte[] content =  encoder.GetBytes("    " + strContent + "    ");
-
-            p_ByteStore = content;
-            try
-            {
-                p_PacketLength = content.Length;
-                p_UserDataLength = System.Convert.ToUInt16(content.Length - 4);
-            }
-            catch
-            {
-                //do nothing for now
-            }
-        } 
+        }        
 
         #endregion
 
