@@ -41,9 +41,9 @@ Main Test Environment:
 	Axis2 webservices
 
 Version 0.9.1 Updates:
-•   Added automated installer beta (all windows versions from XP on)
-•   Added thread throttling to not overwhelm tomcat with request. Now allows forcing reconnect for every request if so desired
-•   Updated documentation with trouble shooting section
+* Add: Added automated installer beta (all windows versions from XP on)
+* Add: Added thread throttling to not overwhelm tomcat with request. Now allows forcing reconnect for every request if so desired
+* Upd: Updated documentation with trouble shooting section
 
 Version 0.9.2 Updates:
 * Fix: Issues with UTF-8 conversion from double byte regions
@@ -138,3 +138,43 @@ Version 1.0.4 Updates:
 Version 1.0.5 Updates:
 * Add: Installer allow unlocking of IIS sub configurations (sub path)
 * Add: packetSize option to support non-default packet sizes
+
+Version 1.0.6 Updates:
+* Add: setting file location in version identification. Also identify whether defaults are used or setting file data.
+* Add: auto-correction for Path-Info (xajp-path-info) to RFC3875 standard
+* Upd: access to administrator when deployed as war is not allowed when disable remote access is selected
+
+Version 1.0.7 Updates:
+* Fix: Non default large PacketSizes (over 32KB) would cause arythmetic errors
+* Fix: Adobe ColdFusion 10 release version adjustments
+* Upd: Update Manuals
+
+Version 1.0.8 Updates:
+* Fix: More Adobe ColdFusion 10 release version adjustments, added setting to switch into Adobe mode
+* Upd: Update Manuals
+
+Version 1.0.9 Updates:
+* Fix: Adobe PathRequest packets for absolute paths and relative path that are different from document path
+* Upd: Update Manuals
+* Upd: Remove duplicate HTTP headers
+* Add: Support for Adobe ColdFusion 10 file upload data packet order
+* Add: Support for AllowPartiallyTrustedCaller in the .net assembly so connector can be run with restricted permissions
+* Add: Support for EMC Documentum chunked file transfers
+* Add: retranslate header names and cases from IIS standard to original client supplied (RAW) format when possible
+
+
+Version 1.0.10 Updates Planning:
+* Upd: Logging format
+* Upd: Use RAW IIS Headers as baseline to mimic ISAPI connector behavior
+* Add: Automatic Log Cycle
+* Add: Strip prefix from inbound URL if a prefix is specified to be added
+* Add: installer add mapping for *.cfchart / *.cfres / *.cfr
+
+Version 2.0 Planning:
+* Upd: move to .net 4.0
+* Add: add default documents for the chosen handlers during install (currently manual)
+* Add: support Windows 8/ Server 2012 with installer (currently manual config of IIS is still needed)
+* Add: Load Balancing 
+* Upd: Install Option Selection Default. if site-by-site is selected it will remain default.
+* Fix: Uninstall process starts removing of software before fully receiving OK from user requiring a reinstall if cancelled.
+* Add: Installer unblock DLL script (needed for Windows8)

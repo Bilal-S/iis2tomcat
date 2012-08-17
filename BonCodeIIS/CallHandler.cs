@@ -92,16 +92,22 @@ namespace BonCodeIIS
         /// </summary>
         public void ProcessRequest(HttpContext context)
         {
-
+            //TODO: application scope move: need to see whether config data is better saved in app scope after initial reading. Would need a reset mechanism if cached this way
+            //System.Web.HttpContext.Current.Application.Lock();
+            //System.Web.HttpContext.Current.Application["Server"] = "localhost";
+            //System.Web.HttpContext.Current.Application.UnLock();
             
             //check execution
             string executionFeedback = CheckExecution(context.Request.ServerVariables, context.Request.QueryString);
             bool blnProceed = true;
+            bool isChunkedTransfer = false;
+            int sourcePort = p_InstanceCount;  //init with count will override with port if later available
 
             /* debug: dump headers
             string strOut = GetHeaders(context.Request.ServerVariables);
             context.Response.Write(strOut);
             */
+            //context.Response.Write(System.Web.HttpContext.Current.Server.MapPath("/addTest"));
 
             if (executionFeedback.Length == 0)
             {
@@ -175,38 +181,63 @@ namespace BonCodeIIS
 
                 if (blnProceed)
                 {
-                    
+                    //check for chunked transfer
+                    if (context.Request.ServerVariables["HTTP_TRANSFER_ENCODING"] != null && context.Request.ServerVariables["HTTP_TRANSFER_ENCODING"] =="chunked")
+                    {
+                        isChunkedTransfer = true;
+                    }
+
 
                     //initialize AJP13 protocol connection
                     BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection();
                     sconn.FlushDelegateFunction = PrintFlush;  //this function will do the transfer to browser if we use Flush detection, we pass as delegate
                     sconn.FlushStatusFunction = IsFlushing; //will let the implementation know if flushing is still in progress
                     sconn.SetTcpClient = p_TcpClient;
+                    sconn.ChunkedTransfer = isChunkedTransfer;
+
+                    //check for Adobe support
+                    if (BonCodeAJP13Settings.BONCODEAJP13_ADOBE_SUPPORT)
+                    {
+                        sconn.ServerPathFunction = ServerPath;
+                    }
                     //setup basic information (base ForwardRequest package)            
-                    BonCodeAJP13ForwardRequest FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables);
+                    sourcePort = ((IPEndPoint) p_TcpClient.Client.LocalEndPoint).Port;
+                    
+                    BonCodeAJP13ForwardRequest FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables,context.Request.PathInfo,sourcePort);
                     sconn.AddPacketToSendQueue(FR);
+   
 
                     //determine if extra ForwardRequests are needed. 
                     //We need to create a collection of Requests (for form data and file uploads etc.) 
-                    if (context.Request.ContentLength > 0)
+                    //TODO: think about streaming support. The reading would be posted to a different thread that continues the reading process while
+                    //      the AJP handler continues writing the packets back to tomcat
+                    if (context.Request.ContentLength > 0 || isChunkedTransfer)
                     {
-                        // need to create a collection of forward requests to package data in                               
-                        int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH))));
+                        // need to create a collection of forward requests to package data in      
+                        int maxPacketSize = BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH - 1;
+                        int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(maxPacketSize))));
                         int iStart = 0;
                         int iCount = 0;
+
+                        //for chunked transfer we use stream length to determine number of packets
+                        if (isChunkedTransfer)
+                        {
+                            numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(streamLen / Convert.ToDouble(maxPacketSize)))); ;
+                        }
+
                         for (int i = 1; i <= numOfPackets; i++)
                         {
                             //we need to breakdown data into multiple FR packages to tomcat
-                            if (i * BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH <= streamLen)
+                            if (i * maxPacketSize <= streamLen)
                             {
                                 //we are in the middle of transferring data grab next 8188 (if default packet size) bytes and create package
-                                iStart = (i - 1) * BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH;
-                                iCount = Convert.ToInt32(BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH);
+                                iStart = (i - 1) * (maxPacketSize);
+                                iCount = Convert.ToInt32(maxPacketSize);
                             }
                             else
                             {
                                 //last user package
-                                iStart = (i - 1) * BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH;
+                                iStart = (i - 1) * (maxPacketSize);
                                 iCount = Convert.ToInt32(streamLen) - iStart;
                             }
                             //add package to collection
@@ -238,10 +269,17 @@ namespace BonCodeIIS
             {
                 //execution was denied by logic, only print message
                 context.Response.Write(executionFeedback);
-
             }
             
 
+        }
+
+        /// <summary>
+        /// Return the mapping of or URi to physical server path, including virtual directories etc.
+        /// </summary>
+        string ServerPath(String virtualPath)
+        {
+            return System.Web.HttpContext.Current.Server.MapPath(virtualPath);
         }
 
         /// <summary>
@@ -251,6 +289,7 @@ namespace BonCodeIIS
         {
             return p_FlushInProgress;
         }
+
         /// <summary>
         /// Function to be passed as delegate to BonCodeAJP13 process
         /// Will pass packet collection content to user browser and flush
@@ -397,6 +436,7 @@ namespace BonCodeIIS
             catch (Exception)
             {
                 //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred
+                //TODO: log this as Warning
                 bool errFlag = true;
             }
 
@@ -423,6 +463,7 @@ namespace BonCodeIIS
         /// <summary>
         /// Test whether the user content is expected to be binary or text.
         /// Returns true if binary, false if text.
+        /// DEPRICATED: WE ALWAYS ASSUME BINARY AND DO NOT CHANGE ENCODING
         /// </summary>           
         private bool TestBinary(string contentType)
         {
@@ -465,17 +506,36 @@ namespace BonCodeIIS
                         //determine whether we are trying to access an admin URL
                         for (int i = 0; i < BonCodeAJP13Settings.BONCODEAJP13_MANAGER_URLS.Length; i++)
                         {
-                            if (uriPath.Length >= BonCodeAJP13Settings.BONCODEAJP13_MANAGER_URLS[i].Length &&
-                                uriPath.Substring(0,BonCodeAJP13Settings.BONCODEAJP13_MANAGER_URLS[i].Length).ToLower() == BonCodeAJP13Settings.BONCODEAJP13_MANAGER_URLS[i] )
+                            if (uriPath.Length >= BonCodeAJP13Settings.BONCODEAJP13_MANAGER_URLS[i].Length)
                             {
-                                retVal = "Access from remote not allowed.";
-                                break;
+                                //check for starting URi pattern
+                                if (uriPath.Substring(0, BonCodeAJP13Settings.BONCODEAJP13_MANAGER_URLS[i].Length).ToLower() == BonCodeAJP13Settings.BONCODEAJP13_MANAGER_URLS[i])
+                                {
+                                    retVal = "Access from remote not allowed (1).";
+                                    break;
+                                }                                
+
+                            }                            
+                        } // end of fixed check
+
+                        if (retVal.Length == 0)
+                        {
+                            for (int i = 0; i < BonCodeAJP13Settings.BONCODEAJP13_MANAGER_FLEXURLS.Length; i++)
+                            {
+                                if (uriPath.Length >= BonCodeAJP13Settings.BONCODEAJP13_MANAGER_FLEXURLS[i].Length)
+                                {
+                                    //check for any part URi pattern
+                                    if (uriPath.ToLower().IndexOf(BonCodeAJP13Settings.BONCODEAJP13_MANAGER_FLEXURLS[i]) != -1)
+                                    {
+                                        retVal = "Access from remote not allowed (2).";
+                                        break;
+                                    }
+
+                                }
                             }
-                        }
+                        } // end of flex check
                     }
-
                 }
-
                 //end of check for remote administrator use
                 //----------------------------------
 
@@ -486,7 +546,14 @@ namespace BonCodeIIS
                     //has to be local call
                     if (IsLocalIP(GetKeyValue(httpHeaders, "REMOTE_ADDR")))
                     {
-                        retVal = "BonCodeAJP Connector Version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION;
+                        string usePath = BonCodeAJP13Logger.GetAssemblyDirectory() + "\\BonCodeAJP13.settings";
+                        retVal = "BonCodeAJP Connector Version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + "<br>";
+                        if (System.IO.File.Exists(usePath)) {
+                            retVal = retVal + "<small>using setting file in " + usePath + "</small>";
+                        } else {
+                              retVal = retVal + "<small>using generated defaults. No setting file in " + usePath + "</small>" ;
+                        }
+
                    
                     }
 

@@ -28,11 +28,15 @@
 
 
 using System;
+using System.Web;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 using BonCodeAJP13.TomcatPackets;
 using BonCodeAJP13.ServerPackets;
+
+
+
 
 
 namespace BonCodeAJP13
@@ -55,7 +59,10 @@ namespace BonCodeAJP13
     /// Delegate function indicating whether data is being pushed to browser
     /// </summary>
     public delegate bool FlushStatusDelegate();
-
+    /// <summary>
+    /// Delegate function indicating server path mapping
+    /// </summary>
+    public delegate string ServerPathDelegate(String virtualPath);
 
 
     #endregion
@@ -104,6 +111,7 @@ namespace BonCodeAJP13
         private bool p_IsFlush = false;
         private long p_ThisConnectionID = -1;
         private bool p_SendTermPacket = false; //indicate whether we need to send extra terminator package
+        private bool p_IsChunked = false;
 
         private Stopwatch p_StopWatch = new Stopwatch();
 
@@ -113,6 +121,8 @@ namespace BonCodeAJP13
         //this is function place holder
         private FlushStatusDelegate p_FlushInProgress;
 
+        //this is function place holder
+        private ServerPathDelegate p_ServerPath;
 
         #endregion
 
@@ -126,6 +136,16 @@ namespace BonCodeAJP13
             get { return p_AbortConnection; }
             set { p_AbortConnection = value; }
         }
+
+        /// <summary>
+        /// Sets or gets the status of the HTTP Transfer Encoding
+        /// </summary>
+        public bool ChunkedTransfer
+        {
+            get { return p_IsChunked; }
+            set { p_IsChunked = value; }
+        }
+
 
         /// <summary>
         /// Sets the TcpClient to use. Will conserve threads
@@ -150,6 +170,15 @@ namespace BonCodeAJP13
         {
             set { this.p_FlushInProgress = value; }
         }
+
+        /// <summary>
+        /// Sets the function that will indicate true server path given a relative URi.
+        /// </summary>
+        public  ServerPathDelegate ServerPathFunction
+        {
+            set { this.p_ServerPath = value; }
+        }
+
 
         /// <summary>
         /// Get/Sets the Server
@@ -298,6 +327,23 @@ namespace BonCodeAJP13
             p_PacketsToSend.Add(singlePacket);
         }
 
+
+        /// <summary>
+        /// implement delegated call to return a physical path for a given virtual path 
+        /// </summary>
+        /// 
+        private string ServerPath(String virtualPath)
+        {
+            //default to return the main path for the request unless we have a delegate function 
+            //to resolve it
+            string returnPath = BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath;
+            if (p_ServerPath != null)
+            {
+                returnPath = p_ServerPath(virtualPath);   
+            }
+
+            return returnPath;
+        }
 
 
         /// <summary>
@@ -468,7 +514,12 @@ namespace BonCodeAJP13
             byte[] notProcessedBytes = null;
             int sendPacketCount = 0;
             p_IsLastPacket = false;
-            
+            int listenAfterPacket = 2; //this is standard behavior, we sent first two packets for posts then listen
+
+            if (BonCodeAJP13Settings.BONCODEAJP13_ADOBE_SUPPORT || p_IsChunked) 
+            {
+                listenAfterPacket = 1;
+            }
             
 
             //send packages. If multiple forward requests (i.e. form data or files) there is a different behavior expected
@@ -483,14 +534,14 @@ namespace BonCodeAJP13
                         sendPacketCount++;
                         BonCodeAJP13Packet sendPacket = oIterate as BonCodeAJP13Packet; //only objects derived from this class should be in the collection
 
-                        //send first two packets immediatly
+                        //send first packet immediatly (most likely a post)
                         p_NetworkStream.Write(sendPacket.GetDataBytes(), 0, sendPacket.PacketLength);
 
                         //log packet
                         if (p_Logger != null) p_Logger.LogPacket(sendPacket, false, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS);
 
-                        //after the second packet in a packet collection we have to listen and receive a TomcatGetBodyChunk
-                        if (sendPacketCount >= 2)
+                        //after the second packet (first packet for Adobe) in a packet collection we have to listen and receive a TomcatGetBodyChunk
+                        if (sendPacketCount >= listenAfterPacket)
                         {
                             numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
                             notProcessedBytes = AnalyzePackage(receivedPacketBuffer, true); //no flush processing during sending of data
@@ -739,14 +790,14 @@ namespace BonCodeAJP13
         /// <summary>
         /// Review received bytes and put them into the package container
         /// </summary>
-        private byte[] AnalyzePackage(byte[] receiveBuffer,bool skipFlush = false)
+        private byte[] AnalyzePackage(byte[] receiveBuffer,bool skipFlush = false,int iOffset=0)
         {
             //the packages received by tomcat have to start with the correct package signature start bytes (41 42 or AB)
-            int iStart = 0;
+            int iStart = 0 + iOffset; //offset determines where we start in this package
             byte[] searchFor = new byte[2] {0x41, 0x42};
             int packetLength = 0;
             byte[] unalyzedBytes = null ;
-            int iSafety = 0; //safety check for exit condition (max theoretical packets to be analyze is 8196/4)
+            int iSafety = 0; //safety check for exit condition (with standard packets and a min packet size of 4 bytes max theoretical packets to be analyze is 8196/4)
 
             while (iStart >= 0 && iStart <= receiveBuffer.Length -1 && iSafety <= 2050) {
                 iSafety++;
@@ -755,7 +806,7 @@ namespace BonCodeAJP13
                 iStart = ByteSearch(receiveBuffer, searchFor, iStart);
                 if (iStart >= 0)
                 {
-                    //determine end of packet
+                    //determine end of packet if this is negative we need continue scanning 
                     try
                     {
                         packetLength = GetInt16B(receiveBuffer, iStart + 2);
@@ -771,6 +822,9 @@ namespace BonCodeAJP13
                         //TODO: check whether packet length is beyond maximum and throw error
                         int packetType = (int)receiveBuffer[iStart+4];
                         byte[] userData = new byte[packetLength];
+                        string adobePath = "";
+                        string requestPath = "";
+
                         //we skip 4-bytes:magic (AB) and packet length markers when determining user data
                         Array.Copy(receiveBuffer, iStart + 4, userData, 0, packetLength);
 
@@ -807,9 +861,16 @@ namespace BonCodeAJP13
                             case BonCodeAJP13TomcatPacketType.TOMCAT_CFPATHREQUEST:
                                 //this is Adobe specific we will need to send back a header
                                 p_PacketsReceived.Add(new TomcatPhysicalPathRequest(userData));
-                                //TODO: move this into the response queue
-                                //prep response and return now
-                                BonCodeFilePathPacket pathResponse = new BonCodeFilePathPacket(BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath);
+                                requestPath = ((TomcatPhysicalPathRequest)p_PacketsReceived[p_PacketsReceived.Count - 1]).GetFilePath();
+                                //TODO: move the following into a response queue
+                                //prep response and return now CF will ask for two paths one for index.htm one for the actual URI 
+                                //The user did not ask for index.htm it is how CF marks root vs final path
+                                adobePath = ServerPath(requestPath); //System.Web.HttpContext.Current.Server.MapPath("/yeah") ;//BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath;                                
+                                if (requestPath == "/index.htm")
+                                {
+                                    adobePath = BonCodeAJP13Settings.BonCodeAjp13_DocRoot + "index.htm";                
+                                };
+                                BonCodeFilePathPacket pathResponse = new BonCodeFilePathPacket(adobePath);
                                 p_NetworkStream.Write(pathResponse.GetDataBytes(), 0, pathResponse.PacketLength);
                                 if (p_Logger != null) p_Logger.LogPacket(pathResponse);
                                 break;
@@ -900,13 +961,14 @@ namespace BonCodeAJP13
         /// </summary>
         private int GetInt16B(byte[] Data, int Pos)
         {
-            Int16 Value = 0;
+            UInt16 Value = 0;
             byte[] ValueData = new byte[sizeof(Int16)];
             Array.Copy(Data, Pos, ValueData, 0, sizeof(Int16));
 
             //flipping for BigEndian conversion prep
             ValueData = FlipArray(ValueData);
-            Value = BitConverter.ToInt16(ValueData, 0);
+            //Value = BitConverter.ToInt16(ValueData, 0);
+            Value = BitConverter.ToUInt16(ValueData, 0);
             return (int) Value;
         }
 

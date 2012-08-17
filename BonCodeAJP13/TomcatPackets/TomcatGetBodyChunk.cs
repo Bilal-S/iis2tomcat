@@ -21,6 +21,7 @@
  *************************************************************************/
 
 
+using System;
 namespace BonCodeAJP13.TomcatPackets
 {
     public class TomcatGetBodyChunk:TomcatReturn
@@ -67,10 +68,27 @@ namespace BonCodeAJP13.TomcatPackets
             
         }        
 
+
+        
         #endregion
 
         #region Methods
-        //no specific method for this class
+        /// <summary>
+        /// A Get Body Chunk message may also contain the length of the desired body chunk to be transmitted.
+        /// If no desired length is specficied we will use the Maximum package length possible
+        /// </summary>
+        public int GetRequestedLength()
+        {
+            int RLEN = BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH;
+            if (p_UserDataLength == 3) 
+            {
+                ushort tempLength=0;
+                GetInt16(p_ByteStore,ref tempLength,5);
+                RLEN = tempLength; //implicit cast
+            }
+
+            return RLEN;
+        }
         #endregion
     }
 }

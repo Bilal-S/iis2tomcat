@@ -30,7 +30,7 @@ namespace BonCodeAJP13
     /// <summary>
     /// Used to Log packets and events in the AJPv13 connection
     /// </summary>
-    class BonCodeAJP13Logger
+    public class BonCodeAJP13Logger
     {
         private Mutex p_Mut;
         private string p_FileName;

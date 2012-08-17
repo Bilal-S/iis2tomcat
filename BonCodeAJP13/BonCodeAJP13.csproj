@@ -12,6 +12,7 @@
     <AssemblyName>BonCodeAJP13</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -63,6 +64,7 @@
     </Compile>
     <Compile Include="ServerPackets\BonCodeAJP13ForwardRequest.cs" />
     <Compile Include="ServerPackets\BonCodeFilePathPacket.cs" />
+    <Compile Include="ServerPackets\BonCodeAJP13CPing.cs" />
     <Compile Include="Test.cs" />
     <Compile Include="TomcatPackets\TomcatCPongReply.cs" />
     <Compile Include="TomcatPackets\TomcatEndResponse.cs" />

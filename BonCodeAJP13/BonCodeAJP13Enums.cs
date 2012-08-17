@@ -51,7 +51,7 @@ namespace BonCodeAJP13
         public const byte SERVER_FORWARD_REQUEST = 0x02;    //Begin the request-processing cycle with the following data
         public const byte SERVER_SHUTDOWN = 0x07;           //The web server asks the container to shut itself down. Only available via localhost
         public const byte SERVER_PING = 0x08;               //The web server asks the container to take control (secure login phase).
-        public const byte SERVER_CPING = 0x10;              //The web server asks the container to respond quickly with a CPong.
+        public const byte SERVER_CPING = 0x0A;              //The web server asks the container to respond quickly with a CPong (decimal 9).
 
         //following packet types from tomcat to server
 
@@ -167,6 +167,7 @@ namespace BonCodeAJP13
        public const byte BONCODEAJP13_SSL_KEY_SIZE = 0x0B;     // ?ssl_key_size 0x0B  
        public const byte BONCODEAJP13_ACCEPT = 0xFF;           // are_done 0xFF request_terminator. This one is appended automatically to packet.
 
+
     }
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -202,6 +203,9 @@ namespace BonCodeAJP13
     /// </summary>
     public struct BonCodeAJP13Settings
     {
+        //Adobe Mode will also change packet size and path info header
+        public static bool BONCODEAJP13_ADOBE_SUPPORT = Properties.Settings.Default.EnableAdobeMode; //FALSE
+
         // The TCP port number used by BonCodeAJP13.    
         public static int BONCODEAJP13_PORT = Properties.Settings.Default.Port; //8009
 
@@ -229,8 +233,8 @@ namespace BonCodeAJP13
         public static string[] BONCODEAJP13_TEXT_MARK = new string[] { "text", "xml", "html", "plain" };
 
         //protect remote execution of manager for tomcat and railo using these signatures
-        public static string[] BONCODEAJP13_MANAGER_URLS = new string[] { "/railo-context/admin/", "/manager/" };
-
+        public static string[] BONCODEAJP13_MANAGER_URLS = new string[] { "/manager/","/host-manager" }; //these cannot be at the start of the URi
+        public static string[] BONCODEAJP13_MANAGER_FLEXURLS = new string[] { "/railo-context/admin/","/bluedragon/administrator/" }; //these cannot be anywhere in the URi path
 
         //enable HeaderDataSupport. Will send non-standard data in header to support cfml operations -- currently adds X-Tomcat-DocRoot
         public static bool BONCODEAJP13_HEADER_SUPPORT = Properties.Settings.Default.EnableHeaderDataSupport; //false
@@ -261,8 +265,8 @@ namespace BonCodeAJP13
         //By default the connector only sends HTTP headers that contain a value. If you need to see all headers all the time, you need to change this to True. Default False.
         public static bool BONCODEAJP13_ALLOW_EMTPY_HEADERS = Properties.Settings.Default.AllowEmptyHeaders; //false
 
-        //Path info header
-        public static string BONCODEAJP13_PATHINFO_HEADER = Properties.Settings.Default.PathInfoHeader; //xajp-path-info
+        //Path info header: default changes based on Adobe support
+        public static string BONCODEAJP13_PATHINFO_HEADER = BONCODEAJP13_ADOBE_SUPPORT ? "path-info" : Properties.Settings.Default.PathInfoHeader; //xajp-path-info
 
         //HTTP status codes
         public static bool BONCODEAJP13_ENABLE_HTTPSTATUSCODES = Properties.Settings.Default.EnableHTTPStatusCodes; //true
@@ -279,8 +283,8 @@ namespace BonCodeAJP13
         //URL path prefix such as /axis that will be prefixed to any call from IIS to tomcat. Allows for easier mapping.
         public static string BONCODEAJP13_PATH_PREFIX = Properties.Settings.Default.PathPrefix; //blank
 
-        //packet size. Needs to corredpond with Apache Tomcat packetSize
-        public static int MAX_BONCODEAJP13_PACKET_LENGTH = Properties.Settings.Default.PacketSize; //8192
+        //packet size. Needs to corredpond with Apache Tomcat packetSize. Default changes based on Adobe Support
+        public static int MAX_BONCODEAJP13_PACKET_LENGTH = BONCODEAJP13_ADOBE_SUPPORT ? 65536 : Properties.Settings.Default.PacketSize; //8192
         public static int MAX_BONCODEAJP13_USERDATA_LENGTH = MAX_BONCODEAJP13_PACKET_LENGTH - 6;
 
     }  
@@ -297,7 +301,10 @@ namespace BonCodeAJP13
     /// </summary>
     public struct BonCodeAJP13Consts
     {
-        
+
+        //connector version identifier
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.9";
+
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;
 
@@ -316,8 +323,7 @@ namespace BonCodeAJP13
         // Define Send/Receive Timeout for connection to be kept alive if invoked in process.               
         public const int BONCODEAJP13_SERVER_KEEP_ALIVE_TIMEOUT = 1800000; //keep alive for 30 minutes
 
-        //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.5";
+        
     }   
 
     /// <summary>

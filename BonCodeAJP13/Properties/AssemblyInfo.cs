@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
@@ -21,6 +22,12 @@ using System.Runtime.InteropServices;
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
 [assembly: Guid("1c42ef98-4cb2-47cf-8a3a-4ae0ce36fec8")]
+
+
+// The AllowPartiallyTrustedCallersAttribute requires the assembly to be signed with a strong name key.
+// This attribute is necessary since the control is called by either an intranet or Internet
+// Web page that should be running under restricted permissions.
+[assembly: AllowPartiallyTrustedCallers]
 
 // Version information for an assembly consists of the following four values:
 //

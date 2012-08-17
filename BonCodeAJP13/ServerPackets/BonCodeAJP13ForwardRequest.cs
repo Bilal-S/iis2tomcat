@@ -21,6 +21,7 @@
  *************************************************************************/
 
 using System;
+using System.Collections;
 using System.Collections.Specialized;
 using System.Linq;
 
@@ -35,6 +36,7 @@ namespace BonCodeAJP13.ServerPackets
         #region data Members
         //set packet name overrides base class
         new const string p_PACKET_DESCRIPTION = "FORWARD REQUEST";
+        private Hashtable p_RawHeadersTranlator = null;
 
         #endregion
 
@@ -101,7 +103,27 @@ namespace BonCodeAJP13.ServerPackets
         public BonCodeAJP13ForwardRequest(NameValueCollection httpHeaders)
         {
 
-            WritePacket(httpHeaders);
+            WritePacket(httpHeaders,"");
+
+        }
+
+        /// <summary>
+        /// Constructor with HTTP Headers and PathInfo     
+        /// </summary>
+        public BonCodeAJP13ForwardRequest(NameValueCollection httpHeaders, String pathInfo)
+        {
+
+            WritePacket(httpHeaders,pathInfo,0);
+
+        }
+
+        /// <summary>
+        /// Constructor with HTTP Headers, PathInfo, and Source Port
+        /// </summary>
+        public BonCodeAJP13ForwardRequest(NameValueCollection httpHeaders, String pathInfo, int sourcePort)
+        {
+
+            WritePacket(httpHeaders, pathInfo, sourcePort);
 
         }
 
@@ -144,7 +166,7 @@ namespace BonCodeAJP13.ServerPackets
         /// <summary>
         /// Creates forward request package based on header data       
         /// </summary>
-        private void WritePacket(NameValueCollection httpHeaders)
+        private void WritePacket(NameValueCollection httpHeaders, String pathInfo, int sourcePort=0)
         {
             //set defaults first
             bool is_ssl = false;
@@ -167,7 +189,7 @@ namespace BonCodeAJP13.ServerPackets
          
 
             //call alternate method to complete writing of forward request packet. Final data will be stored in in p_ByteStore instance var
-            WritePacket(method, protocol, req_uri, remote_addr, remote_host, server_name, server_port, is_ssl, num_headers, httpHeaders);
+            WritePacket(method, protocol, req_uri, remote_addr, remote_host, server_name, server_port, is_ssl, num_headers, httpHeaders, pathInfo, sourcePort);
         }
 
 
@@ -184,7 +206,9 @@ namespace BonCodeAJP13.ServerPackets
                             ushort server_port,
                             bool is_ssl,
                             int num_headers,
-                            NameValueCollection httpHeaders)
+                            NameValueCollection httpHeaders,
+                            String realPathInfo ="",
+                            int sourcePort=0)
         {
             //locals
             int pos = 0;
@@ -195,7 +219,8 @@ namespace BonCodeAJP13.ServerPackets
 
             NameValueCollection goodHeaders = CheckHeaders(httpHeaders); //determine headers to be transferred
             num_headers = goodHeaders.AllKeys.Length; //we will allways send the path info 
-            //debug:num_headers = 1; 
+            PopulateRawHeaders(httpHeaders["ALL_RAW"]);
+
             
             //add one more header if setting enable setting is used
             if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT ) num_headers++;    
@@ -238,7 +263,7 @@ namespace BonCodeAJP13.ServerPackets
             //path info alternate header determination            
             if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "") {
                 keyName = BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER; //"xajp-path-info";                                
-                keyValue = httpHeaders["PATH_INFO"];
+                keyValue = realPathInfo; // httpHeaders["PATH_INFO"];
                 pos = SetString(aUserData, keyName.ToLower(), pos);
                 pos = SetString(aUserData, keyValue, pos);                
             }
@@ -275,10 +300,8 @@ namespace BonCodeAJP13.ServerPackets
                     }
                     else
                     {
-                        //string header (remove HTTP prefix this is added by IIS) and change underscore  
-                        if (keyName.StartsWith("HTTP_")) keyName = keyName.Remove(0, 5);
-                        keyName = keyName.Replace("_", "-");
-                        pos = SetString(aUserData, keyName.ToLower(), pos);
+                        //string header (remove HTTP prefix this is added by IIS) and change underscore                       
+                        pos = SetString(aUserData, GetCorrectHeaderName(keyName), pos);
                     }
                     //add value if keyName is not empty string
                     pos = SetString(aUserData, keyValue, pos);
@@ -324,17 +347,39 @@ namespace BonCodeAJP13.ServerPackets
                 pos = SetString(aUserData, "on", pos); //attribute value                
             }
 
-
             //add constant attribute for AJP13 JVM Route
+            /*
             pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_JVM_ROUTE, pos); //attribute marker
             pos = SetString(aUserData, BonCodeAJP13Markers.BONCODEAJP13_PROTOCOL_MARKER, pos); //attribute value
+            */
+
 
             //add pathinfo attempt to bypass tomcat bug
             /*
             pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_REQ_ATTRIBUTE, pos); //attribute marker
-            pos = SetString(aUserData, "path-info", pos); //attribute name
+            pos = SetString(aUserData, "path_info", pos); //attribute name
             pos = SetString(aUserData, httpHeaders["PATH_INFO"], pos); //attribute value    
-            */
+             */
+
+            //START ADOBE MODIFICATIONS
+
+            //add Adobe ColdFusion 10 specific attributes, this is backwards since this data is already available, adobe chose to
+            //transfer again in attributes because of problems with ISAPI constructed connector
+
+            //SERVER_SOFTWARE VIA ATTRIBUTES
+            //pos = SetByte(aUserData, 0x0E, pos); //attribute marker for web server
+            //pos = SetString(aUserData, httpHeaders["SERVER_SOFTWARE"], pos); //attribute value
+
+            
+            //END OF ADOBE MODIFICATIONS
+
+            //Remote port marker seems to be a common element transferred in attributes
+            if (sourcePort > 0)
+            {        
+                pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_REQ_ATTRIBUTE, pos); //attribute marker
+                pos = SetString(aUserData, "AJP_REMOTE_PORT", pos); //attribute name
+                pos = SetString(aUserData, sourcePort.ToString(), pos); //attribute value 
+            }
 
             //add packet terminator
             pos = SetByte(aUserData, 0xFF, pos); //marks the end of user packet
@@ -365,7 +410,7 @@ namespace BonCodeAJP13.ServerPackets
             NameValueCollection cleanHeaders = new NameValueCollection();
             string keyName = "";
             string keyValue = "";
-            string[] lstSystemBlacklist = new string[] {"PATH_TRANSLATED", "INSTANCE_META_PATH","APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING" };  //list of headers that will be skipped because they are already processed through other means, duplicate, or not needed          
+            string[] lstSystemBlacklist = new string[] { "PATH_TRANSLATED", "INSTANCE_META_PATH", "APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING", "ACCEPT", "ACCEPT_CHARSET", "ACCEPT_ENCODING", "ACCEPT_LANGUAGE", "AUTHORIZATION", "CONNECTION", "HTTP_CONTENT_TYPE", "HTTP_CONTENT_LENGTH", "PRAGMA", "REFERER", "USER_AGENT" };  //list of headers that will be skipped because they are already processed through other means, duplicate, or not needed          
             string[] lstAllowBlank = new string[] { "" };  //send also if blank
             string[] lstUserWhitelist = null; //if we have data here, only these headers will be sent
 
@@ -535,6 +580,52 @@ namespace BonCodeAJP13.ServerPackets
                     //we will not return an alternate value in case of error
                 }
             }
+
+            return retVal;
+        }
+
+
+        /// <summary>
+        /// Populate the p_RawHeadersTranlator hashtable with correct data from Raw Headers
+        /// </summary> 
+        private  void PopulateRawHeaders(String rawHeaders)
+        {
+            if (this.p_RawHeadersTranlator == null && rawHeaders.Length > 0)
+            {
+                string[] lstRawHeaders = rawHeaders.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                
+                this.p_RawHeadersTranlator = new Hashtable();
+                
+                foreach (String rawHeader in lstRawHeaders)
+                {
+                    string rawKeyName = rawHeader.Split(new char[] { ':' })[0];
+                    this.p_RawHeadersTranlator.Add(rawKeyName.ToLower(), rawKeyName);
+                }
+
+            }
+
+        }
+
+
+        /// <summary>
+        /// Return a correct case for the HTTP header. IIS upper cases all header names
+        /// this may throw of some Java programs. We redo the character case for all headers 
+        /// that were initially sent in by browser or client in to their orignal case.
+        /// If this is an IIS generated header we will lower case the name and return it with escaped underscores.        
+        /// </summary> 
+        private string GetCorrectHeaderName(String headerKey)
+        {
+            
+            string retVal = headerKey.ToLower();
+
+            if (retVal.StartsWith("http_")) retVal = retVal.Remove(0, 5); //IIS adds the HTTP_ prefix we need to remove
+            retVal = retVal.Replace("_", "-"); //escape underscores to dashes
+            if (this.p_RawHeadersTranlator.ContainsKey(retVal))
+            {
+                //inbound data had this header, use that spelling and casing
+                retVal = (string)this.p_RawHeadersTranlator[retVal];
+            };
+            
 
             return retVal;
         }

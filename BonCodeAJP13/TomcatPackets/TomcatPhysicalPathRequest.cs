@@ -71,7 +71,18 @@ namespace BonCodeAJP13.TomcatPackets
         #endregion
 
         #region Methods
-        //no specific method for this class
+        /// <summary>
+        /// return the encoded path string in this packet.     
+        /// </summary>
+        public string GetFilePath()
+        {
+            string sReturn = "";
+            int pos = 1;
+
+            pos = GetString(p_ByteStore, ref sReturn, pos);
+
+            return sReturn;
+        }
         #endregion
     }
 }

@@ -1,5 +1,5 @@
-C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\app.config
 C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\ConsoleTCPIP.exe.config
+C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\app.config
 C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\ConsoleTCPIP.exe
 C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\ConsoleTCPIP.pdb
 C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\BonCodeAJP13.dll
