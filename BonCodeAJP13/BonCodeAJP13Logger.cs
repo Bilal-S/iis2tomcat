@@ -89,8 +89,8 @@ namespace BonCodeAJP13
                 p_Mut.WaitOne();
                 using (StreamWriter logStream = File.AppendText(p_FileName))
                 {
-                    logStream.WriteLine("------------------------------------------------------------------------");
-                    logStream.WriteLine(message + "     at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
+                    logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString()) + " " + message;
+
                     logStream.Flush();
                     logStream.Close();
                 }
@@ -109,9 +109,9 @@ namespace BonCodeAJP13
                 using (StreamWriter logStream = File.AppendText(p_FileName))
                 {
                     //logStream.WriteLine(" ");
-                    logStream.WriteLine("------------------------------------------------------------------------");                    
-                    logStream.WriteLine(messageType + " at:  " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
-                    logStream.WriteLine(message);
+                    
+                    logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString()) + " " + messageType + " " + message;
+
                     logStream.Flush();
                     logStream.Close();
                 }
