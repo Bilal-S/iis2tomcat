@@ -495,21 +495,31 @@ namespace BonCodeAJP13
         /// Set the String value in the array starting from the pos index 
         /// String will be transmitted prefixed by length UInt16 in bytes and terminated by zero byte
         /// </summary>
-        protected static int SetString(byte[] data, string value, int pos)
-        {            
-            byte[] valueData = new byte[value.Length + 3]; // need space for character counter at the beginning of array and termination at end
-            SetUInt16(valueData, (UInt16)value.Length, 0); //first two bytes set the length of the string
-            // ASCIIEncoding encodingLib = new System.Text.ASCIIEncoding();
-            UTF8Encoding encodingLib = new System.Text.UTF8Encoding();
+        protected static int SetString(byte[] data, string value="", int pos=-1)
+        {
+            if (value == null) value = "";
+
+            if (data != null && pos > -1 )
+            {
+                byte[] valueData = new byte[value.Length + 3]; // need space for character counter at the beginning of array and termination at end
+                SetUInt16(valueData, (UInt16)value.Length, 0); //first two bytes set the length of the string
+                // ASCIIEncoding encodingLib = new System.Text.ASCIIEncoding();
+                UTF8Encoding encodingLib = new System.Text.UTF8Encoding();
 
 
-            byte[] temp = new byte[value.Length];
-            temp = encodingLib.GetBytes(value);
+                byte[] temp = new byte[value.Length];
+                temp = encodingLib.GetBytes(value);
 
-            Array.Copy(temp, 0, valueData, 2, temp.Length);
-            //the last byte of valueData is allways zero based on our initial declaration. This indicates the terminator byte as well. Copy this to the main byte array
-            Array.Copy(valueData, 0, data, pos, valueData.Length); 
-            return pos + value.Length + 3; //we added three more characters/bytes than passed in
+                Array.Copy(temp, 0, valueData, 2, temp.Length);
+                //the last byte of valueData is allways zero based on our initial declaration. This indicates the terminator byte as well. Copy this to the main byte array
+                Array.Copy(valueData, 0, data, pos, valueData.Length);
+                return pos + value.Length + 3; //we added three more characters/bytes than passed in
+            }
+            else
+            {
+                //we cannot write to null data reference or invalid pos, return zero pos or same pos as passed
+                return pos == -1 ? 0:pos;
+            }
         }
 
         /// <summary>
@@ -608,8 +618,23 @@ namespace BonCodeAJP13
         public virtual string PrintPacket()
         {
             string strPck;
-            strPck = PrintPacketHeader() + "\r\n begin of packet ====> \r\n" + System.Text.Encoding.UTF8.GetString(p_ByteStore, 0, p_ByteStore.Length);
-            strPck = strPck + "\r\n <==== end of packet";
+            strPck =  "\r\n begin of packet ====> \r\nType:" + p_ByteStore[0].ToString();
+            if (p_ByteStore.Length > 2)
+            {
+                strPck = strPck + "\r\nUser Data High:" + p_ByteStore[1].ToString();
+                strPck = strPck + "\r\nUser Data Low:" + p_ByteStore[2].ToString();
+                strPck = strPck + "\r\n";
+                if (p_ByteStore.Length > 4)
+                {
+                    strPck = strPck + GetUserDataString();
+                }
+            }
+            else
+            {
+                strPck = strPck + System.Text.Encoding.UTF8.GetString(p_ByteStore, 0, p_ByteStore.Length);
+            }
+            
+            strPck = strPck  + "\r\n <==== end of packet";
             return strPck;
 
 
@@ -621,7 +646,7 @@ namespace BonCodeAJP13
         public virtual string PrintPacketHeader()
         {
             string strPckHead="";
-            strPckHead = "-- DataLength: " + p_ByteStore.Length.ToString() + " bytes\r\n";    
+            strPckHead = " " + p_ByteStore.Length.ToString() + " bytes";    
 
 
             return strPckHead;

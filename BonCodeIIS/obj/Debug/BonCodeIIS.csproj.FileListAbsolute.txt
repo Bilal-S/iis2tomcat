@@ -5,6 +5,6 @@ C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCo
 C:\inetpub\wwwroot\BIN\app.config
 C:\inetpub\wwwroot\BIN\BonCodeIIS.dll
 C:\inetpub\wwwroot\BIN\BonCodeIIS.pdb
-C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Debug\ResolveAssemblyReference.cache
-C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Debug\BonCodeIIS.dll
-C:\Users\Bilal.COLUMBIA\documents\visual studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Debug\BonCodeIIS.pdb
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Debug\BonCodeIIS.dll
+C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Debug\BonCodeIIS.pdb

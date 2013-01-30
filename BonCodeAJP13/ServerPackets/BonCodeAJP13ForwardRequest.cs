@@ -24,6 +24,9 @@ using System;
 using System.Collections;
 using System.Collections.Specialized;
 using System.Linq;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace BonCodeAJP13.ServerPackets
 {
@@ -37,11 +40,33 @@ namespace BonCodeAJP13.ServerPackets
         //set packet name overrides base class
         new const string p_PACKET_DESCRIPTION = "FORWARD REQUEST";
         private Hashtable p_RawHeadersTranlator = null;
+        private NameValueCollection p_HttpHeaders = null; //only used for storing headers for logging level is set to headers
+
+        //for logging
+        private string p_Url = "";
+        private string p_Method = "";
 
         #endregion
 
         //additional properties from base class if any
         #region Properties
+
+        /// <summary>
+        /// Returns URL string if this forward packet contains one. return empty string if not
+        /// </summary>
+        public string GetUrl
+        {
+            get { return p_Url; }          
+        }
+
+        /// <summary>
+        /// Returns HTTP Method string if this forward packet contains one. return empty string if not
+        /// </summary>
+        public string GetMethod
+        {
+            get { return p_Method; }
+        }
+
         #endregion
 
 
@@ -132,6 +157,31 @@ namespace BonCodeAJP13.ServerPackets
         #region Methods
 
         /// <summary>
+        /// override to base class return  header information about a packet.
+        /// we use this for logging
+        /// </summary>
+        public override string PrintPacketHeader()
+        {
+            string strPckHead = "";
+            string keyName = "";
+            string keyValue = "";
+
+            strPckHead = p_Method + " " +  p_Url + " "  + p_ByteStore.Length.ToString() + " bytes";
+            //output headers if present
+            if (p_HttpHeaders != null)
+            {
+                for (int i = 0; i < p_HttpHeaders.AllKeys.Length; i++)  //for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
+                {
+                    keyName = p_HttpHeaders.AllKeys[i];
+                    keyValue = p_HttpHeaders[keyName];
+                    strPckHead = strPckHead + "\r\n < " + GetCorrectHeaderName(keyName) + " : " + keyValue + "";
+                }
+            }
+                  
+            return strPckHead;
+        }
+
+        /// <summary>
         /// Creates forward request package based on byte array. This is normally a follow on package to initial forward request.       
         /// </summary>
         private void WritePacket(byte[] transferContent)
@@ -173,7 +223,7 @@ namespace BonCodeAJP13.ServerPackets
             
             //set values from header information
             string protocol = GetKeyValue(httpHeaders, "SERVER_PROTOCOL");   // "HTTP/1.1"            
-            int num_headers = httpHeaders.AllKeys.Length; // -lstSystemBlacklist.Length;
+            int num_headers = 0; //httpHeaders.AllKeys.Length; // -lstSystemBlacklist.Length;
             byte method = BonCodeAJP13PacketHeaders.GetMethodByte(GetKeyValue(httpHeaders, "REQUEST_METHOD"));
             string req_uri = GetKeyValue(httpHeaders, "SCRIPT_NAME");
             string remote_addr = GetRemoteAddr(httpHeaders);  // GetKeyValue(httpHeaders, "REMOTE_ADDR");  GetRemoteAddr(httpHeaders);
@@ -183,13 +233,59 @@ namespace BonCodeAJP13.ServerPackets
 
             //check whether ssl is on
             string sslCheck = GetKeyValue(httpHeaders, "HTTPS");
-            if (sslCheck != null && sslCheck == "on") {
+            if (sslCheck == "on") {
                 is_ssl = true;
             }
          
 
             //call alternate method to complete writing of forward request packet. Final data will be stored in in p_ByteStore instance var
-            WritePacket(method, protocol, req_uri, remote_addr, remote_host, server_name, server_port, is_ssl, num_headers, httpHeaders, pathInfo, sourcePort);
+            try
+            {
+                WritePacket(method, protocol, req_uri, remote_addr, remote_host, server_name, server_port, is_ssl, num_headers, httpHeaders, pathInfo, sourcePort);
+            }
+            catch (Exception exp)
+            {
+               
+                //error write details to special log file
+                if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
+                {
+                    /* DEBUG SPECIAL CODE START
+                    string fileName = BonCodeAJP13Logger.GetLogDir() + "\\BonCodeAJP13LastAJPException.log";
+                    string fo = "M:" + method.ToString() + "\r\n";
+                    fo = fo + "P:" + protocol.ToString() + "\r\n";
+                    fo = fo + "URI:" + req_uri.ToString() + "\r\n";
+                    fo = fo + "ADDR:" + remote_addr.ToString() + "\r\n";
+                    fo = fo + "HOST:" + remote_host.ToString() + "\r\n";
+                    fo = fo + "SERVER:" + server_name.ToString() + "\r\n";
+                    fo = fo + "PORT:" + server_port.ToString() + "\r\n";
+                    fo = fo + "SSL:" + is_ssl.ToString() + "\r\n";
+                    fo = fo + "PI:" + pathInfo.ToString() + "\r\n";
+                    fo = fo + "SP:" + sourcePort.ToString() + "\r\n";
+                    if (httpHeaders != null)
+                    {
+                        fo = fo + GetHeaders(httpHeaders);
+                    }
+                    else
+                    {
+                        fo = fo + "NO HEADERS \r\n";
+                    }
+                    //stack trace
+                    fo = fo + "STACK \r\n";
+                    fo = fo + exp.StackTrace;
+                    //write file (this is not                 
+                    TextWriter tw = new StreamWriter(fileName);
+
+                    // write text to file
+                    tw.WriteLine(fo);
+
+                    // close the stream
+                    tw.Close();
+                    DEBUG SPECIAL CODE END */
+
+                    //rethrow
+                    throw;
+                }
+            }
         }
 
 
@@ -217,20 +313,31 @@ namespace BonCodeAJP13.ServerPackets
             int packetFillBytes = 14; //bytes used to complete package
             int expectedPacketSize = 0;
 
-            NameValueCollection goodHeaders = CheckHeaders(httpHeaders); //determine headers to be transferred
-            num_headers = goodHeaders.AllKeys.Length; //we will allways send the path info 
-            PopulateRawHeaders(httpHeaders["ALL_RAW"]);
 
+            NameValueCollection goodHeaders = CheckHeaders(httpHeaders); //determine headers to be transferred
+            num_headers = goodHeaders.AllKeys.Length; 
+            PopulateRawHeaders(httpHeaders["ALL_RAW"]); //we use this to do retranslate the spelling (case) of header names
+
+            //populate log values
+            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
+            {
+                p_Method = BonCodeAJP13PacketHeaders.GetMethodString(method);   //not using: GetKeyValue(httpHeaders, "REQUEST_METHOD");
+                p_Url = req_uri;
+                p_HttpHeaders = goodHeaders;
+            }
             
             //add one more header if setting enable setting is used
             if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT ) num_headers++;    
             //path info in alternate header
             if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "") num_headers++;    
-
+            //finger print header
+            if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_CLIENTFINGERPRINT) num_headers++;  
+           
   
-            //add a mapping prefix if one is provided
-            if (BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length > 2)
-            {
+            //add a mapping prefix if one is provided unless the same prefix is already on the start of Uri (case sensitive comparison)
+            if (BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length > 2
+                && !BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Equals(req_uri.Substring(0, BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length - 1), StringComparison.Ordinal))
+            {                
                 req_uri = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX + req_uri;
             }
 
@@ -266,6 +373,15 @@ namespace BonCodeAJP13.ServerPackets
                 keyValue = realPathInfo; // httpHeaders["PATH_INFO"];
                 pos = SetString(aUserData, keyName.ToLower(), pos);
                 pos = SetString(aUserData, keyValue, pos);                
+            }
+
+            //determine client fingerprint based on HTTP information
+            if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_CLIENTFINGERPRINT)
+            {
+                keyName = "xajp-clientfingerprint";
+                keyValue = GetFingerprint(httpHeaders);
+                pos = SetString(aUserData, keyName, pos);
+                pos = SetString(aUserData, keyValue, pos);  
             }
              
             //TODO Remove this    
@@ -318,7 +434,6 @@ namespace BonCodeAJP13.ServerPackets
 
 
             //ATTRIBUTES FOLLOW: Second iteration through headers Some header values have to be passed as attributes REMOTE_USER, AUTH_TYPE, QUERY_STRING
-
             for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
             {
                 keyName = httpHeaders.AllKeys[i];
@@ -399,6 +514,8 @@ namespace BonCodeAJP13.ServerPackets
             //determine overall packet length
             p_PacketLength = p_ByteStore.Length;
         }
+
+
 
         /// <summary>
         /// evaluates the headers passed from webserver and checks whether they can be 
@@ -546,11 +663,11 @@ namespace BonCodeAJP13.ServerPackets
         }
 
         /// <summary>
-        /// Returns the zero node string of a key existing in the collection. Return null if key is not defined.   
+        /// Returns the zero node string of a key existing in the collection. Return empty string if key is not defined.   
         /// </summary>
         private string GetKeyValue(NameValueCollection httpHeaders, string keyName)
         {
-            string retVal = null;
+            string retVal = "";
             if (httpHeaders[keyName] != null)
             {
                 string[] keyValues = httpHeaders.GetValues(keyName);
@@ -573,7 +690,7 @@ namespace BonCodeAJP13.ServerPackets
                 try
                 {
                     string tempVal = GetKeyValue(httpHeaders,BonCodeAJP13Settings.BONCODEAJP13_REMOTEADDR_FROM);
-                    if (tempVal != "" && tempVal != null) retVal = tempVal.Split(new char[] { ',' })[0];
+                    if (tempVal != "") retVal = tempVal.Split(new char[] { ',' })[0];
                     //TODO: interate through and find left most non-private address
                     //(Left(testIP,3) NEQ "10.")  AND   (Left(testIP,7) NEQ "172.16.")   AND   (Left(testIP,8) NEQ "192.168.")   
                 } catch  {
@@ -606,6 +723,28 @@ namespace BonCodeAJP13.ServerPackets
 
         }
 
+        /// <summary>
+        /// Return a string of parsed IIS headers. For Debug and Testing only.
+        /// </summary> 
+        private string GetHeaders(NameValueCollection httpHeaders)
+        {
+
+            string strReturn = "";
+
+
+            string keyName = "";
+            string keyValue = "";
+            for (int i = 0; i < httpHeaders.AllKeys.Length; i++)  //for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
+            {
+                keyName = httpHeaders.AllKeys[i];
+                keyValue = httpHeaders[keyName];
+                //only process if this key is not on the skip key list
+                strReturn = strReturn + "-- " + i + ". Key " + keyName + ": " + keyValue + "\r\n";
+            }
+
+            return strReturn + "\r\n";
+        }
+
 
         /// <summary>
         /// Return a correct case for the HTTP header. IIS upper cases all header names
@@ -628,6 +767,42 @@ namespace BonCodeAJP13.ServerPackets
             
 
             return retVal;
+        }
+
+
+        /// <summary>
+        /// generate the client fingerprint based on HTTP headers 
+        /// accepted by tomcat as is
+        /// </summary>
+        private string GetFingerprint(NameValueCollection httpHeaders)
+        {
+            string lstFPHeaders = "REMOTE_ADDR,HTTP_ACCEPT,HTTP_ACCEPT_CHARSET,HTTP_ACCEPT_ENCODING,HTTP_ACCEPT_LANGUAGE,HTTP_USER_AGENT,UA_CPU,REMOTE_HOST";
+            string[] aHeaders = lstFPHeaders.Split(new char[] {','});
+            string fpString = "";
+
+            for (int i = 0; i < aHeaders.Length; i++)
+            {
+                fpString = fpString + GetKeyValue(httpHeaders, aHeaders[i]);
+            }
+
+            return GetMD5Hash(fpString);
+        }
+
+        /// <summary>
+        /// Return a MD5 Hash of given text as base 64 string.
+        /// This may be used with fingertprint operation of client.              
+        /// </summary> 
+        private string GetMD5Hash(String sourceData)
+        {
+            byte[] tmpSource;
+            byte[] tmpHash;
+
+            tmpSource = ASCIIEncoding.ASCII.GetBytes(sourceData);
+            //Compute hash based on source string.
+            tmpHash = new MD5CryptoServiceProvider().ComputeHash(tmpSource);
+
+            return System.Convert.ToBase64String(tmpHash);
+           
         }
 
         #endregion

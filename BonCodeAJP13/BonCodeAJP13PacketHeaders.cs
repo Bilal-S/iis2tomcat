@@ -42,7 +42,8 @@ namespace BonCodeAJP13
             //declare translation hash tables
             private static Hashtable p_HTranslator = null;
             private static Hashtable p_ATranslator = null;
-            private static Hashtable p_MTranslator = null;
+            private static Hashtable p_MStringTranslator = null;
+            private static Hashtable p_MByteTranslator = null;
             private static Hashtable p_THeadTranslator = null;
         #endregion
 
@@ -55,7 +56,9 @@ namespace BonCodeAJP13
             {
                 PopulateHeaderTranslation();
                 PopulateAttributeTranslation();
-                PopulateMethodTranslation();
+                PopulateStringToByteMethodTranslation();
+                //has to be run after stringToByte
+                PopulateByteToStringMethodTranslation();
                 PopulateTomcatHeaders();
             }
 
@@ -104,9 +107,25 @@ namespace BonCodeAJP13
             {
                 byte retVal = BonCodeAJP13HTTPMethods.BONCODEAJP13_GET;
 
-                if (p_MTranslator.ContainsKey(methodKey))
+                if (p_MStringTranslator.ContainsKey(methodKey))
                 {
-                    retVal = (byte)p_MTranslator[methodKey];
+                    retVal = (byte)p_MStringTranslator[methodKey];
+                }
+
+                return retVal;
+            }
+
+            /// <summary>
+            /// Return a string representation for the Method byte key if known. 
+            /// Returns empty string if not known. 
+            /// </summary> 
+            public static string GetMethodString(byte methodKey)
+            {
+                string retVal = "";
+
+                if (p_MByteTranslator.ContainsKey(methodKey))
+                {
+                    retVal = (string)p_MByteTranslator[methodKey];
                 }
 
                 return retVal;
@@ -187,42 +206,61 @@ namespace BonCodeAJP13
             }
 
             /// <summary>
-            /// Populate the p_MTranslator table with correct data. Not all methods are supported by IIS, but all are included for completeness purposes
+            /// Populate the p_MStringTranslator table with correct data. Not all methods are supported by IIS, but all are included for completeness purposes
             /// </summary>  
-            private static void PopulateMethodTranslation()
+            private static void PopulateStringToByteMethodTranslation()
             {
-                if (p_MTranslator == null)
+                if (p_MStringTranslator == null)
                 {
-                    p_MTranslator = new Hashtable();
+                    p_MStringTranslator = new Hashtable();
 
-                    p_MTranslator.Add("OPTIONS", BonCodeAJP13HTTPMethods.BONCODEAJP13_OPTIONS);
-                    p_MTranslator.Add("GET", BonCodeAJP13HTTPMethods.BONCODEAJP13_GET);
-                    p_MTranslator.Add("HEAD", BonCodeAJP13HTTPMethods.BONCODEAJP13_HEAD);
-                    p_MTranslator.Add("POST", BonCodeAJP13HTTPMethods.BONCODEAJP13_POST);
-                    p_MTranslator.Add("PUT", BonCodeAJP13HTTPMethods.BONCODEAJP13_PUT);
-                    p_MTranslator.Add("DELETE", BonCodeAJP13HTTPMethods.BONCODEAJP13_DELETE);
-                    p_MTranslator.Add("TRACE", BonCodeAJP13HTTPMethods.BONCODEAJP13_TRACE);
-                    p_MTranslator.Add("PROPFIND", BonCodeAJP13HTTPMethods.BONCODEAJP13_PROPFIND);
-                    p_MTranslator.Add("PROPPATCH", BonCodeAJP13HTTPMethods.BONCODEAJP13_PROPPATCH);
-                    p_MTranslator.Add("MKCOL", BonCodeAJP13HTTPMethods.BONCODEAJP13_MKCOL);
-                    p_MTranslator.Add("COPY", BonCodeAJP13HTTPMethods.BONCODEAJP13_COPY);
-                    p_MTranslator.Add("MOVE", BonCodeAJP13HTTPMethods.BONCODEAJP13_MOVE);
-                    p_MTranslator.Add("LOCK", BonCodeAJP13HTTPMethods.BONCODEAJP13_LOCK);
-                    p_MTranslator.Add("UNLOCK", BonCodeAJP13HTTPMethods.BONCODEAJP13_UNLOCK);
-                    p_MTranslator.Add("ACL", BonCodeAJP13HTTPMethods.BONCODEAJP13_ACL);
-                    p_MTranslator.Add("REPORT", BonCodeAJP13HTTPMethods.BONCODEAJP13_REPORT);
-                    p_MTranslator.Add("VERSION_CONTROL", BonCodeAJP13HTTPMethods.BONCODEAJP13_VERSION_CONTROL);
-                    p_MTranslator.Add("CHECKIN", BonCodeAJP13HTTPMethods.BONCODEAJP13_CHECKIN);
-                    p_MTranslator.Add("CHECKOUT", BonCodeAJP13HTTPMethods.BONCODEAJP13_CHECKOUT);
-                    p_MTranslator.Add("UNCHECKOUT", BonCodeAJP13HTTPMethods.BONCODEAJP13_UNCHECKOUT);
-                    p_MTranslator.Add("SEARCH", BonCodeAJP13HTTPMethods.BONCODEAJP13_SEARCH);
-                    p_MTranslator.Add("MKWORKSPACE", BonCodeAJP13HTTPMethods.BONCODEAJP13_MKWORKSPACE);
-                    p_MTranslator.Add("UPDATE", BonCodeAJP13HTTPMethods.BONCODEAJP13_UPDATE);
-                    p_MTranslator.Add("LABEL", BonCodeAJP13HTTPMethods.BONCODEAJP13_LABEL);
-                    p_MTranslator.Add("MERGE", BonCodeAJP13HTTPMethods.BONCODEAJP13_MERGE);
-                    p_MTranslator.Add("BASELINE_CONTROL", BonCodeAJP13HTTPMethods.BONCODEAJP13_BASELINE_CONTROL);
-                    p_MTranslator.Add("MKACTIVITY", BonCodeAJP13HTTPMethods.BONCODEAJP13_MKACTIVITY);
+                    p_MStringTranslator.Add("OPTIONS", BonCodeAJP13HTTPMethods.BONCODEAJP13_OPTIONS);
+                    p_MStringTranslator.Add("GET", BonCodeAJP13HTTPMethods.BONCODEAJP13_GET);
+                    p_MStringTranslator.Add("HEAD", BonCodeAJP13HTTPMethods.BONCODEAJP13_HEAD);
+                    p_MStringTranslator.Add("POST", BonCodeAJP13HTTPMethods.BONCODEAJP13_POST);
+                    p_MStringTranslator.Add("PUT", BonCodeAJP13HTTPMethods.BONCODEAJP13_PUT);
+                    p_MStringTranslator.Add("DELETE", BonCodeAJP13HTTPMethods.BONCODEAJP13_DELETE);
+                    p_MStringTranslator.Add("TRACE", BonCodeAJP13HTTPMethods.BONCODEAJP13_TRACE);
+                    p_MStringTranslator.Add("PROPFIND", BonCodeAJP13HTTPMethods.BONCODEAJP13_PROPFIND);
+                    p_MStringTranslator.Add("PROPPATCH", BonCodeAJP13HTTPMethods.BONCODEAJP13_PROPPATCH);
+                    p_MStringTranslator.Add("MKCOL", BonCodeAJP13HTTPMethods.BONCODEAJP13_MKCOL);
+                    p_MStringTranslator.Add("COPY", BonCodeAJP13HTTPMethods.BONCODEAJP13_COPY);
+                    p_MStringTranslator.Add("MOVE", BonCodeAJP13HTTPMethods.BONCODEAJP13_MOVE);
+                    p_MStringTranslator.Add("LOCK", BonCodeAJP13HTTPMethods.BONCODEAJP13_LOCK);
+                    p_MStringTranslator.Add("UNLOCK", BonCodeAJP13HTTPMethods.BONCODEAJP13_UNLOCK);
+                    p_MStringTranslator.Add("ACL", BonCodeAJP13HTTPMethods.BONCODEAJP13_ACL);
+                    p_MStringTranslator.Add("REPORT", BonCodeAJP13HTTPMethods.BONCODEAJP13_REPORT);
+                    p_MStringTranslator.Add("VERSION_CONTROL", BonCodeAJP13HTTPMethods.BONCODEAJP13_VERSION_CONTROL);
+                    p_MStringTranslator.Add("CHECKIN", BonCodeAJP13HTTPMethods.BONCODEAJP13_CHECKIN);
+                    p_MStringTranslator.Add("CHECKOUT", BonCodeAJP13HTTPMethods.BONCODEAJP13_CHECKOUT);
+                    p_MStringTranslator.Add("UNCHECKOUT", BonCodeAJP13HTTPMethods.BONCODEAJP13_UNCHECKOUT);
+                    p_MStringTranslator.Add("SEARCH", BonCodeAJP13HTTPMethods.BONCODEAJP13_SEARCH);
+                    p_MStringTranslator.Add("MKWORKSPACE", BonCodeAJP13HTTPMethods.BONCODEAJP13_MKWORKSPACE);
+                    p_MStringTranslator.Add("UPDATE", BonCodeAJP13HTTPMethods.BONCODEAJP13_UPDATE);
+                    p_MStringTranslator.Add("LABEL", BonCodeAJP13HTTPMethods.BONCODEAJP13_LABEL);
+                    p_MStringTranslator.Add("MERGE", BonCodeAJP13HTTPMethods.BONCODEAJP13_MERGE);
+                    p_MStringTranslator.Add("BASELINE_CONTROL", BonCodeAJP13HTTPMethods.BONCODEAJP13_BASELINE_CONTROL);
+                    p_MStringTranslator.Add("MKACTIVITY", BonCodeAJP13HTTPMethods.BONCODEAJP13_MKACTIVITY);
 
+                }
+
+            }
+
+
+            /// <summary>
+            /// Populate the p_MbyteTranslator table with correct data. 
+            /// Not all methods are supported by IIS, but all are included for completeness purposes
+            /// </summary>  
+            private static void PopulateByteToStringMethodTranslation()
+            {
+                if (p_MStringTranslator != null && p_MByteTranslator == null)
+                {
+                    p_MByteTranslator = new Hashtable();
+                    //iterater through allready defined string translator hashtable and create the reverse keys 
+                    //for Byte translation
+                    foreach (string key in p_MStringTranslator.Keys) {
+                        p_MByteTranslator.Add(p_MStringTranslator[key], key);
+                    }
                 }
 
             }

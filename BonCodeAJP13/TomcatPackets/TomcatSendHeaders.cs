@@ -22,6 +22,7 @@
 
 
 using System.Collections.Specialized;
+using System;
 
 namespace BonCodeAJP13.TomcatPackets
 {
@@ -129,9 +130,63 @@ namespace BonCodeAJP13.TomcatPackets
             return System.Convert.ToInt16(retVal);
         }
 
-        
 
-        //no specific method for this class
+        /// <summary>
+        /// override to base class return header information about a packet.
+        /// we add this for logging, so we can print the headers we are sending to client
+        /// </summary>
+        public override string PrintPacketHeader()
+        {
+            string strPckHead = "";
+            string keyName = "";
+            string keyValue = "";
+            NameValueCollection tomcatHeaders = GetHeaders();
+
+            strPckHead =  p_ByteStore.Length.ToString() + " bytes";
+            //output headers if present
+            if (tomcatHeaders != null)
+            {
+                for (int i = 0; i < tomcatHeaders.AllKeys.Length; i++)  //for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
+                {
+                    keyName = tomcatHeaders.AllKeys[i];
+                    keyValue = tomcatHeaders[keyName];
+
+                    //check for repeated headers of the same type they are seperated by pipe+comma combination
+                    string[] sHeaders = keyValue.Split(new string[] { "|," }, StringSplitOptions.None);
+                    string finalKeyValue = "";
+                    if (sHeaders.Length > 1)
+                    {
+                        //check for multiple headers of same type returned, e.g. cookies                                
+                        for (int i2 = 0; i2 < sHeaders.Length; i2++)
+                        {
+
+                            if (i2 == sHeaders.Length - 1)
+                            {
+                                finalKeyValue = sHeaders[i2].Substring(0, sHeaders[i2].Length - 1); //last array element
+                            }
+                            else
+                            {
+                                finalKeyValue = sHeaders[i2]; //regular array element
+                            }
+                           
+                        }
+                    }
+
+                    else
+                    {
+                        //single header remove pipe character at the end   
+                        finalKeyValue = keyValue.Substring(0, keyValue.Length - 1);
+                    }
+
+                    strPckHead = strPckHead + "\r\n > " + keyName + " : " + finalKeyValue + "";
+                    
+                }
+            }
+
+            return strPckHead;
+        }
+
+        //only a test method here
         public string TestHeader()
         {
             return "Test Header " + p_PACKET_DESCRIPTION;

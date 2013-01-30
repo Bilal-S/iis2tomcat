@@ -98,7 +98,7 @@ namespace BonCodeIIS
             //System.Web.HttpContext.Current.Application.UnLock();
             
             //check execution
-            string executionFeedback = CheckExecution(context.Request.ServerVariables, context.Request.QueryString);
+            string executionFeedback = CheckExecution(context);
             bool blnProceed = true;
             bool isChunkedTransfer = false;
             int sourcePort = p_InstanceCount;  //init with count will override with port if later available
@@ -152,10 +152,12 @@ namespace BonCodeIIS
                         {
                             string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port..<br>Details:<br>" + e.Message + "<br><small><small><br>You can change this message by changing TomcatConnectErrorURL setting in setting file.</small></small>";
                             context.Response.Write(errMsg);
+                            PrintError(context, e.StackTrace);
                         }
                         blnProceed = false;
 
                     }
+
 
                     //determine whether we will need to remove the connection later
                     if (!p_isReusable)
@@ -175,7 +177,7 @@ namespace BonCodeIIS
                     {
                         KillConnection();
                         p_TcpClient = new TcpClient(BonCodeAJP13Settings.BONCODEAJP13_SERVER, BonCodeAJP13Settings.BONCODEAJP13_PORT);
-                    }
+                    }                    
 
                 }
 
@@ -252,7 +254,20 @@ namespace BonCodeIIS
                     }
 
                     //run connection (send and receive cycle)
-                    sconn.BeginConnection();
+                    
+                    try
+                    {
+                        sconn.BeginConnection();  
+                    }                   
+
+                    catch (Exception e)
+                    {
+                        //we have an error do the dump on screen since we are not logging but allso kill connection
+                        string errMsg = "Generic Connector Communication Error: <hr>Please check and adjust your setup..<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual).<br>Details:<br>" + e.StackTrace + "";
+                        context.Response.Write(errMsg);
+                        PrintError(context, e.StackTrace);
+                        KillConnection(); //remove TCP cache good after timeouts
+                    }
 
                     //write the response to browser (if not already flushed)
                     PrintFlush(sconn.ReceivedDataCollection);
@@ -262,6 +277,11 @@ namespace BonCodeIIS
                     {
                         KillConnection();
                     }
+
+                    //dispose the sconn explictily
+                    sconn = null;
+
+
                 }; // proceed is true
 
             }
@@ -273,6 +293,9 @@ namespace BonCodeIIS
             
 
         }
+
+       
+
 
         /// <summary>
         /// Return the mapping of or URi to physical server path, including virtual directories etc.
@@ -419,10 +442,11 @@ namespace BonCodeIIS
 
                     }
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    //TODO: add exception handler logging                    
+                    //display error                    
                     p_Context.Response.Write("Error in transfer of data from tomcat to browser.");
+                    PrintError(p_Context, e.StackTrace);
 
                 }
 
@@ -433,11 +457,10 @@ namespace BonCodeIIS
             {
                 p_Context.Response.Flush();
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred
-                //TODO: log this as Warning
-                bool errFlag = true;
+                //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred                
+                PrintError(p_Context, e.StackTrace);
             }
 
             p_FlushInProgress = false;
@@ -445,7 +468,7 @@ namespace BonCodeIIS
 
 
         /// <summary>
-        /// If we recognize certain headers that IIS supports we will write them into the response stream using IIS notation as well.        /// 
+        /// If we recognize certain headers that IIS supports we will write them into the response stream using IIS notation as well.        
         /// </summary> 
         private void IISNativeHeaders(string headerName, string headerValue) { 
             //switch blocked
@@ -487,11 +510,26 @@ namespace BonCodeIIS
         }
 
         /// <summary>
+        /// Determine if local call and print error on screen.
+        /// TODO: This will be extended in the future to log errors to file.
+        /// </summary>
+        private void PrintError(HttpContext context,String strErr)
+        {
+            if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR"))) {
+                context.Response.Write("<br><pre>" + strErr + "</pre>");
+            }
+        }
+
+
+        /// <summary>
         /// Logic that checks whether a request should be run, this is before we pass it to tomcat.
         /// all custom logic should be placed into this method
         /// </summary>
-        private string CheckExecution(NameValueCollection httpHeaders, NameValueCollection queryParams)
+        private string CheckExecution(HttpContext context)
         {
+            
+            NameValueCollection httpHeaders = context.Request.ServerVariables;
+            NameValueCollection queryParams = context.Request.QueryString;
             string retVal = "";
             try
             {
@@ -499,10 +537,18 @@ namespace BonCodeIIS
                 //----------------------------------
                 if (!BonCodeAJP13Settings.BONCODEAJP13_ENABLE_REMOTE_MANAGER)
                 {
-                    string uriPath = GetKeyValue(httpHeaders, "SCRIPT_NAME");
+                   
+                    string uriPath = GetKeyValue(httpHeaders, "SCRIPT_NAME").ToLowerInvariant();
                     //not local call
                     if (uriPath != null && !IsLocalIP(GetKeyValue(httpHeaders, "REMOTE_ADDR")))
                     {
+
+                        //check whether we have funky characters in URL this indicates a canonicalization attempt to obfuscate call
+                        if (context.Request.Path.IndexOf('\\') >= 0)
+                        {
+                            retVal = "Access from remote not allowed (0). Use standard Url format.";
+                        };
+
                         //determine whether we are trying to access an admin URL
                         for (int i = 0; i < BonCodeAJP13Settings.BONCODEAJP13_MANAGER_URLS.Length; i++)
                         {
@@ -565,7 +611,8 @@ namespace BonCodeIIS
             }
             catch (Exception)
             {
-                //do nothing
+                //mark exception
+                retVal += ":exception";
             }
 
 

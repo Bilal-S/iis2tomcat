@@ -74,5 +74,8 @@
     <Setting Name="EnableAdobeMode" Description="Whether the connector will change behavior to support Adobe changes to AJP and adjust configuration options for best interchange." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="EnableClientFingerPrint" Description="Whether an automatically generated fingerprint HTTP header (xajp-clientfingerprint) is added to the stream." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" GenerateDefaultValueInCode="false" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -25,6 +25,7 @@ using System.IO;
 using System.Threading;
 
 
+
 namespace BonCodeAJP13
 {
     /// <summary>
@@ -53,7 +54,7 @@ namespace BonCodeAJP13
         /// <summary>
         /// Log an Exception message to the log file with optional string
         /// </summary>
-        public void LogException(Exception e, string message = "", int onlyAboveLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
+        public void LogException(Exception e, string message = "", int minLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS)
         {
             //allways log exceptions if logging is enabled.
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG )
@@ -62,8 +63,9 @@ namespace BonCodeAJP13
                 using (StreamWriter logStream = File.AppendText(p_FileName))
                 {
 
-                    logStream.WriteLine("------------------------------------------------------------------------");
-                    logStream.WriteLine("Error at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+                    //logStream.WriteLine("------------------------------------------------------------------------");
+                    logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
+                    //logStream.WriteLine("Error at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
                     logStream.WriteLine(message);
                     logStream.WriteLine(e.Message);
                     if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
@@ -80,17 +82,18 @@ namespace BonCodeAJP13
 
         /// <summary>
         /// Log string message
-        /// Either onlyAboveLogLevel or BONCODEAJP13_LOG_LEVEL need to be met
+        /// Either minLogLevel or BONCODEAJP13_LOG_LEVEL need to be met
         /// </summary>
-        public void LogMessage(string message, int onlyAboveLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
+        public void LogMessage(string message, int minLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS)
         {
-            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > onlyAboveLogLevel)
+            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= minLogLevel)
             {
                 p_Mut.WaitOne();
                 using (StreamWriter logStream = File.AppendText(p_FileName))
                 {
-                    logStream.WriteLine("------------------------------------------------------------------------");
-                    logStream.WriteLine(message + "     at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
+                    //logStream.WriteLine("------------------------------------------------------------------------");
+                    //logStream.WriteLine(message + "     at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
+                    logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + message);
                     logStream.Flush();
                     logStream.Close();
                 }
@@ -101,17 +104,19 @@ namespace BonCodeAJP13
         /// <summary>
         /// Log message and type designation
         /// </summary>
-        public void LogMessageAndType(string message, string messageType, int onlyAboveLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
+        public void LogMessageAndType(string message, string messageType, int minLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS)
         {
-            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > onlyAboveLogLevel)
+            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= minLogLevel)
             {
                 p_Mut.WaitOne();
                 using (StreamWriter logStream = File.AppendText(p_FileName))
                 {
                     //logStream.WriteLine(" ");
-                    logStream.WriteLine("------------------------------------------------------------------------");                    
-                    logStream.WriteLine(messageType + " at:  " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
-                    logStream.WriteLine(message);
+                    //logStream.WriteLine("------------------------------------------------------------------------");                    
+                    //logStream.WriteLine(messageType + " at:  " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
+                    //logStream.WriteLine(message);
+                    logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + messageType + " " + message);
+
                     logStream.Flush();
                     logStream.Close();
                 }
@@ -123,12 +128,13 @@ namespace BonCodeAJP13
 
         /// <summary>
         /// Log one packet by calling its PrintPacket method. Only if BONCODEAJP13_LOG_LEVEL >= 1
-        /// if logAllways is set packet will be logged regardless of log level
+        /// if logAllways is set packet will be logged regardless of log level.
+        /// Packet logging only occurs if we have exception, Log Headers or Log Debug
         /// </summary>
-        public void LogPacket(BonCodeAJP13Packet packet, bool logAllways = false, int onlyAboveLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
+        public void LogPacket(BonCodeAJP13Packet packet, bool logAllways = false, int minLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS)
         {
             //only log packets if logging level allows
-            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > onlyAboveLogLevel || logAllways)
+            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= minLogLevel || logAllways)
             {
                 p_Mut.WaitOne();
                 using (StreamWriter logStream = File.AppendText(p_FileName))
@@ -136,16 +142,19 @@ namespace BonCodeAJP13
                     
                     if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
                     {
-                        logStream.WriteLine("-- Packet Info:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
-                        logStream.WriteLine(packet.PrintPacketHeader());
-                        logStream.WriteLine("");
+                        //logStream.WriteLine("-- Packet Info:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
+                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
+
+                        //logStream.WriteLine(packet.PrintPacketHeader());
+                        //logStream.WriteLine("");
                         logStream.Flush();
                         logStream.Close();
                     };
                     //logs full packets. Log files may grow big in this case
                     if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
                     {
-                        logStream.WriteLine("-- Packet Info:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
+                        //logStream.WriteLine("-- Packet Data:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
+                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
                         logStream.WriteLine(packet.PrintPacket());
                         logStream.WriteLine("");
                         logStream.Flush();
@@ -162,11 +171,11 @@ namespace BonCodeAJP13
         /// Log a collection of packets by calling their PrintPacket methods
         /// Requires BONCODEAJP13_LOG_LEVEL >= 2
         /// </summary>
-        public void LogPackets(BonCodeAJP13PacketCollection packets, bool logAllways = false, int onlyAboveLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
+        public void LogPackets(BonCodeAJP13PacketCollection packets, bool logAllways = false, int minLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS)
         {
             foreach (BonCodeAJP13Packet packet in packets)
             {
-                this.LogPacket(packet,logAllways,onlyAboveLogLevel);
+                this.LogPacket(packet,logAllways,minLogLevel);
             }
         }
 

@@ -163,18 +163,47 @@ Version 1.0.9 Updates:
 * Add: retranslate header names and cases from IIS standard to original client supplied (RAW) format when possible
 
 
-Version 1.0.10 Updates Planning:
-* Upd: Logging format
-* Upd: Use RAW IIS Headers as baseline to mimic ISAPI connector behavior
-* Add: Automatic Log Cycle
-* Add: Strip prefix from inbound URL if a prefix is specified to be added
+Version 1.0.10 Updates:
+* Fix: Handle exception thrown when required protocol information is not supplied by client
+* Upd: Logging format changes. Reschuffled log levels. Added HTTP Headers explicit logging
+* Upd: Update to Manuals
+* Add: Do not add prefix to inbound Uri if a prefix is specified to be added is already at the beginning of Uri
+
+Version 1.0.11 Updates:
+* Fix: IIS request timeout before tomcat timeout would leave data in tcp stream cache that would be displayed in next connection when using connection pool
+* Fix: Exposing ColdFusion 10 Webservices calls (cfc remoting) caused packet order error and IIS exception
+* Add: Added setting (EnableClientFingerPrint) for simple client fingerprinting calculations, result in HTTP header xajp-clientfingerprint
+
+Version 1.0.12 Updates:
+* Fix: installer iteration of web sites would duplicate site names
+* Add: Support Windows 8 / Windows Server 2012
+* Add: Support for .net 4 / .net 4.5
+* Add: installer detect if .net framework 4/4.5 is installed and skip .net 3.5
+* Add: installer detect if Windows 8 / Server 12: install .net 4.5 feature/extensibility/asp.net
+* Add: installer add default documents on IIS7/IIS8 for selected handlers  (index.jsp/index.cfm)
+* Add: installer expanded uninstall to remove additional configuration and features
+
+Version 1.0.13 Updates:
+* Add: secure Adobe CFIDE admin paths when setting EnableRemoteAdmin is set to False
+
+Version 1.0.14 Updates:
+* Add: display more error details when processing call on localhost vs remote
+* Add: installer display warning if there is an installer.settings file and the setup is started manually
+
+Version 1.0.15 Updates Planning:
+* Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
+* Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
 * Add: installer add mapping for *.cfchart / *.cfres / *.cfr
 
 Version 2.0 Planning:
 * Upd: move to .net 4.0
+* Add: Log4Net
+* Add: Automatic Log Cycle
 * Add: add default documents for the chosen handlers during install (currently manual)
 * Add: support Windows 8/ Server 2012 with installer (currently manual config of IIS is still needed)
 * Add: Load Balancing 
 * Upd: Install Option Selection Default. if site-by-site is selected it will remain default.
 * Fix: Uninstall process starts removing of software before fully receiving OK from user requiring a reinstall if cancelled.
 * Add: Installer unblock DLL script (needed for Windows8)
+* Add: Installer check web pools and ensure that they will work with connector for given site. 
+* Add: Installer option to change per site web application pool to match what connector is needing

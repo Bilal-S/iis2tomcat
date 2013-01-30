@@ -380,5 +380,19 @@ namespace BonCodeAJP13.Properties {
                 return ((bool)(this["EnableAdobeMode"]));
             }
         }
+        
+        /// <summary>
+        /// Whether an automatically generated fingerprint HTTP header (xajp-clientfingerprint) is added to the stream.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("Whether an automatically generated fingerprint HTTP header (xajp-clientfingerprin" +
+            "t) is added to the stream.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        public bool EnableClientFingerPrint {
+            get {
+                return ((bool)(this["EnableClientFingerPrint"]));
+            }
+        }
     }
 }

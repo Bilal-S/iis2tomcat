@@ -234,7 +234,7 @@ namespace BonCodeAJP13
 
         //protect remote execution of manager for tomcat and railo using these signatures
         public static string[] BONCODEAJP13_MANAGER_URLS = new string[] { "/manager/","/host-manager" }; //these cannot be at the start of the URi
-        public static string[] BONCODEAJP13_MANAGER_FLEXURLS = new string[] { "/railo-context/admin/","/bluedragon/administrator/" }; //these cannot be anywhere in the URi path
+        public static string[] BONCODEAJP13_MANAGER_FLEXURLS = new string[] { "/railo-context/admin/", "/bluedragon/administrator/", "/cfide/administrator", "/cfide/adminapi", "/cfide/componentutils" }; //these cannot be anywhere in the URi path
 
         //enable HeaderDataSupport. Will send non-standard data in header to support cfml operations -- currently adds X-Tomcat-DocRoot
         public static bool BONCODEAJP13_HEADER_SUPPORT = Properties.Settings.Default.EnableHeaderDataSupport; //false
@@ -287,6 +287,9 @@ namespace BonCodeAJP13
         public static int MAX_BONCODEAJP13_PACKET_LENGTH = BONCODEAJP13_ADOBE_SUPPORT ? 65536 : Properties.Settings.Default.PacketSize; //8192
         public static int MAX_BONCODEAJP13_USERDATA_LENGTH = MAX_BONCODEAJP13_PACKET_LENGTH - 6;
 
+        //fingerprint
+        public static bool BONCODEAJP13_ENABLE_CLIENTFINGERPRINT = Properties.Settings.Default.EnableClientFingerPrint; // false
+
     }  
 
 
@@ -303,7 +306,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.9";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.14";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;
@@ -327,14 +330,15 @@ namespace BonCodeAJP13
     }   
 
     /// <summary>
-    /// Log Level enumarations (0-3) 
+    /// Log Level enumarations (0-4) 
     /// </summary>
     public struct BonCodeAJP13LogLevels
     {
         public const int BONCODEAJP13_NO_LOG = 0;
-        public const int BONCODEAJP13_LOG_BASIC = 1;
-        public const int BONCODEAJP13_LOG_HEADERS = 2;
-        public const int BONCODEAJP13_LOG_DEBUG = 3;
+        public const int BONCODEAJP13_LOG_ERRORS = 1;
+        public const int BONCODEAJP13_LOG_BASIC = 2;
+        public const int BONCODEAJP13_LOG_HEADERS = 3;
+        public const int BONCODEAJP13_LOG_DEBUG = 4;
     }
 
     

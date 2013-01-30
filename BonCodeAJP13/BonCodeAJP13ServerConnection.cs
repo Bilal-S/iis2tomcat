@@ -439,6 +439,15 @@ namespace BonCodeAJP13
                 if (p_Logger != null) p_Logger.LogException(e, "TCP Client level -- Server/Port:" + p_Server + "/" + p_Port.ToString());
                 ConnectionError();
                 string errMsg = "Connection to Tomcat has been closed. Tomcat may be restarting. Please retry later.";
+                if (p_Logger != null)
+                {
+                    errMsg = errMsg + "<br><small>Administrator: please check your log file for detail on this error if needed.</small>";
+                }
+                else
+                {
+                    errMsg = errMsg + "<br><small>Administrator: please enable logging with log level 1 or greater for detail problem capture if needed.</small>";
+                }
+
                 if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_TCPCLIENT_ERRORMSG.Length > 1) errMsg = BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_TCPCLIENT_ERRORMSG;
                 p_PacketsReceived.Add(new TomcatSendBodyChunk(errMsg));
                 return;
@@ -480,7 +489,7 @@ namespace BonCodeAJP13
                 return;
             }
 
-            if (p_Logger != null) p_Logger.LogMessage(" New Connection to tomcat : " + p_TCPClient.Client.RemoteEndPoint.ToString() + " ID:" + p_ThisConnectionID);
+            if (p_Logger != null) p_Logger.LogMessage(" New Connection to tomcat : " + p_TCPClient.Client.RemoteEndPoint.ToString() + " ID:" + p_ThisConnectionID,BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
 
 
             //get stream set timeouts again (default 30 minutes)
@@ -512,7 +521,7 @@ namespace BonCodeAJP13
             int numOfBytesReceived = 0;
             byte[] receivedPacketBuffer = new byte[BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH];
             byte[] notProcessedBytes = null;
-            int sendPacketCount = 0;
+            int sendPacketCount = 0;           
             p_IsLastPacket = false;
             int listenAfterPacket = 2; //this is standard behavior, we sent first two packets for posts then listen
 
@@ -525,6 +534,7 @@ namespace BonCodeAJP13
             //send packages. If multiple forward requests (i.e. form data or files) there is a different behavior expected
             if (p_PacketsToSend.Count > 1)
             {
+                bool delayWrite = false;
                 //TODO: move this loop to a function by itself so we can reuse it.
                 foreach (Object oIterate in p_PacketsToSend)
                 {
@@ -534,8 +544,15 @@ namespace BonCodeAJP13
                         sendPacketCount++;
                         BonCodeAJP13Packet sendPacket = oIterate as BonCodeAJP13Packet; //only objects derived from this class should be in the collection
 
-                        //send first packet immediatly (most likely a post)
-                        p_NetworkStream.Write(sendPacket.GetDataBytes(), 0, sendPacket.PacketLength);
+                        //send first packet immediatly (most likely a post), unless there is a delay write indicator (will be set during analysis)
+                        if (!delayWrite)
+                        {
+                            p_NetworkStream.Write(sendPacket.GetDataBytes(), 0, sendPacket.PacketLength);
+                        }
+                        else
+                        {
+                            delayWrite = false;
+                        }
 
                         //log packet
                         if (p_Logger != null) p_Logger.LogPacket(sendPacket, false, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS);
@@ -543,12 +560,33 @@ namespace BonCodeAJP13
                         //after the second packet (first packet for Adobe) in a packet collection we have to listen and receive a TomcatGetBodyChunk
                         if (sendPacketCount >= listenAfterPacket)
                         {
-                            numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
-                            notProcessedBytes = AnalyzePackage(receivedPacketBuffer, true); //no flush processing during sending of data
-                            //we expect a 7 byte response except for the last package record, if not record a warning                        
-                            if (sendPacketCount != p_PacketsToSend.Count && numOfBytesReceived > 7)
+                            bool subRoutineReadInProgress = true;
+                            int sanityCheck = 0;
+                            while (subRoutineReadInProgress)
                             {
-                                if (p_Logger != null) p_Logger.LogMessageAndType("Incorrect response received from Tomcat", "warning", 1);
+                                sanityCheck++;
+                                numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+                                notProcessedBytes = AnalyzePackage(ref delayWrite, receivedPacketBuffer, true); //no flush processing during sending of data
+                                //we expect a 7 byte response except for the last package record, if not record a warning                        
+                                if (sendPacketCount != p_PacketsToSend.Count && numOfBytesReceived > 7)
+                                {
+                                    if (p_Logger != null) p_Logger.LogMessageAndType("Incorrect response received from Tomcat", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                                }
+                                //check whether we are finished with subroutine
+                                if (delayWrite)
+                                {
+                                    delayWrite = false; // assume that we will exit with next loop unless Analyze package resets this to true;
+                                }
+                                else
+                                {
+                                    subRoutineReadInProgress = false;
+                                }
+                                //in case
+                                if (sanityCheck > 500)
+                                {
+                                    if (p_Logger != null) p_Logger.LogMessageAndType("SubRoutine Communication Process suspicious iterations (>500). This indicates problems with communication to tomcat", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                                    subRoutineReadInProgress = false;
+                                }
                             }
 
                         }
@@ -732,7 +770,7 @@ namespace BonCodeAJP13
         /// </summary>
         private void ConnectionError()
         {
-            if (p_Logger != null) p_Logger.LogMessage("One Connection raised an error", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            if (p_Logger != null) p_Logger.LogMessage("One Connection raised an error", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             //attempt to close stream
             try
             {
@@ -741,7 +779,7 @@ namespace BonCodeAJP13
             catch (Exception e)
             {
                 //log exception
-                if (p_Logger != null) p_Logger.LogException(e, "Stream Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                if (p_Logger != null) p_Logger.LogException(e, "Stream Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             }
             //attempt to close client
             try
@@ -751,7 +789,7 @@ namespace BonCodeAJP13
             catch (Exception e)
             {
                 //log exception
-                if (p_Logger != null) p_Logger.LogException(e, "TcpClient Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                if (p_Logger != null) p_Logger.LogException(e, "TcpClient Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             }
             p_ConnectionsID--;
             
@@ -759,7 +797,7 @@ namespace BonCodeAJP13
 
         private void ConnectionError(string message, string messageType)
         {
-            if (p_Logger != null) p_Logger.LogMessageAndType(message, messageType);
+            if (p_Logger != null) p_Logger.LogMessageAndType(message, messageType, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             //attempt to close stream
             try
             {
@@ -768,7 +806,7 @@ namespace BonCodeAJP13
             catch (Exception e)
             {
                 //log exception
-                if (p_Logger != null) p_Logger.LogException(e, "Stream Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                if (p_Logger != null) p_Logger.LogException(e, "Stream Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             }
             //attempt to close client
             try
@@ -778,7 +816,7 @@ namespace BonCodeAJP13
             catch (Exception e)
             {
                 //log exception
-                if (p_Logger != null) p_Logger.LogException(e, "TcpClient Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                if (p_Logger != null) p_Logger.LogException(e, "TcpClient Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             }
             p_ConnectionsID--;
            
@@ -787,19 +825,22 @@ namespace BonCodeAJP13
 
         #region AnalysePackages
 
+
         /// <summary>
-        /// Review received bytes and put them into the package container
+        /// Primary Signature for Analyzing Package. Review received bytes and put them into the package container.
+        /// Added delayWriteIndicator in case write occured in this context we want to delay writing for POST.
         /// </summary>
-        private byte[] AnalyzePackage(byte[] receiveBuffer,bool skipFlush = false,int iOffset=0)
+        private byte[] AnalyzePackage(ref bool delayWriteIndicator, byte[] receiveBuffer, bool skipFlush = false, int iOffset = 0)
         {
             //the packages received by tomcat have to start with the correct package signature start bytes (41 42 or AB)
             int iStart = 0 + iOffset; //offset determines where we start in this package
-            byte[] searchFor = new byte[2] {0x41, 0x42};
+            byte[] searchFor = new byte[2] { 0x41, 0x42 };
             int packetLength = 0;
-            byte[] unalyzedBytes = null ;
+            byte[] unalyzedBytes = null;
             int iSafety = 0; //safety check for exit condition (with standard packets and a min packet size of 4 bytes max theoretical packets to be analyze is 8196/4)
 
-            while (iStart >= 0 && iStart <= receiveBuffer.Length -1 && iSafety <= 2050) {
+            while (iStart >= 0 && iStart <= receiveBuffer.Length - 1 && iSafety <= 2050)
+            {
                 iSafety++;
 
                 //find packet start bytes (41 42 or AB)
@@ -820,7 +861,7 @@ namespace BonCodeAJP13
                     if (packetLength + iStart + 4 <= receiveBuffer.Length)
                     {
                         //TODO: check whether packet length is beyond maximum and throw error
-                        int packetType = (int)receiveBuffer[iStart+4];
+                        int packetType = (int)receiveBuffer[iStart + 4];
                         byte[] userData = new byte[packetLength];
                         string adobePath = "";
                         string requestPath = "";
@@ -828,7 +869,7 @@ namespace BonCodeAJP13
                         //we skip 4-bytes:magic (AB) and packet length markers when determining user data
                         Array.Copy(receiveBuffer, iStart + 4, userData, 0, packetLength);
 
-                        
+
                         //Detect Correct packet Type and create instance of store
                         switch (packetType)
                         {
@@ -837,7 +878,7 @@ namespace BonCodeAJP13
                                 //if this command is encountered when only one GET package was previously send (no multi-packets) we need to send a terminator body package
                                 if (p_PacketsToSend.Count == 1)
                                 {
-                                    p_SendTermPacket=true;                                    
+                                    p_SendTermPacket = true;
                                 }
 
                                 //p_NetworkStream.Write(sendPacket.GetDataBytes(), 0, sendPacket.PacketLength);
@@ -846,7 +887,7 @@ namespace BonCodeAJP13
                                 p_PacketsReceived.Add(new TomcatEndResponse(userData));
                                 //this is the termination indicator we need to stop processing from here on. This can happen 
                                 //when we post data as well. Tomcat can indicate a connection stop and we need to stop processing as well.
-                                
+
                                 break;
                             case BonCodeAJP13TomcatPacketType.TOMCAT_SENDHEADERS:
                                 p_PacketsReceived.Add(new TomcatSendHeaders(userData));
@@ -868,21 +909,22 @@ namespace BonCodeAJP13
                                 adobePath = ServerPath(requestPath); //System.Web.HttpContext.Current.Server.MapPath("/yeah") ;//BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath;                                
                                 if (requestPath == "/index.htm")
                                 {
-                                    adobePath = BonCodeAJP13Settings.BonCodeAjp13_DocRoot + "index.htm";                
+                                    adobePath = BonCodeAJP13Settings.BonCodeAjp13_DocRoot + "index.htm";
                                 };
                                 BonCodeFilePathPacket pathResponse = new BonCodeFilePathPacket(adobePath);
                                 p_NetworkStream.Write(pathResponse.GetDataBytes(), 0, pathResponse.PacketLength);
                                 if (p_Logger != null) p_Logger.LogPacket(pathResponse);
+                                delayWriteIndicator = true; //prevent main process from writing to network stream
                                 break;
                             default:
                                 //we don't know this type of package; add to collection anyway and log it, we will not raise error but continue processing                               
                                 p_PacketsReceived.Add(new TomcatReturn(userData));
                                 if (p_Logger != null)
                                 {
-                                    p_Logger.LogMessage("Unknown Packet Type Received, see next log entry:", 1);
+                                    p_Logger.LogMessage("Unknown Packet Type Received, see next log entry:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
                                     p_Logger.LogPacket(p_PacketsReceived[p_PacketsReceived.Count - 1], true);
                                 };
-                              
+
                                 break;
                         }
 
@@ -895,7 +937,7 @@ namespace BonCodeAJP13
 
                         //detect end package
                         if (packetType == BonCodeAJP13TomcatPacketType.TOMCAT_ENDRESPONSE)
-                        {                            
+                        {
                             p_IsLastPacket = true;
                             p_IsFlush = false;
                         }
@@ -918,11 +960,11 @@ namespace BonCodeAJP13
                                 }
                             }
                             */
-                           
+
                         }
                     }
-                    else 
-                    { 
+                    else
+                    {
                         //we need to read more data before we can process. For now mark these bytes as unanalyzed and return to stream reader
                         unalyzedBytes = new byte[receiveBuffer.Length - iStart];
                         Array.Copy(receiveBuffer, iStart, unalyzedBytes, 0, receiveBuffer.Length - iStart);
@@ -942,7 +984,7 @@ namespace BonCodeAJP13
 
 
             //flush processing
-            if (p_IsFlush )
+            if (p_IsFlush)
             {
                 //do what is needed to flush data so far
                 ProcessFlush();
@@ -952,6 +994,18 @@ namespace BonCodeAJP13
             }
 
             return unalyzedBytes;
+        }
+
+        /// <summary>
+        /// Alternate Signature, drop reference needed. Review received bytes and put them into the package container
+        /// This signature is maintained so we don't have to change existing code.
+        /// </summary>
+        private byte[] AnalyzePackage(byte[] receiveBuffer,bool skipFlush = false,int iOffset=0)
+        {
+            //call primary signature and return bytes while dropping delay write. 
+            //this keeps t
+            bool delayWrite = false;
+            return AnalyzePackage(ref delayWrite, receiveBuffer, skipFlush, iOffset);
 
         }
 
