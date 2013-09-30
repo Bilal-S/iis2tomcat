@@ -403,7 +403,7 @@ namespace BonCodeAJP13.Properties {
         [global::System.Configuration.SettingsDescriptionAttribute("The name of the log file to use. This will be appended to the LogDir setting. Def" +
             "ault is BonCodeAJP13ConnectionLog.txt")]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("BonCodeAJP13ConnectionLog.txt")]
+        [global::System.Configuration.DefaultSettingValueAttribute("BonCodeAJP13ConnectionLog-")]
         public string LogFile {
             get {
                 return ((string)(this["LogFile"]));
