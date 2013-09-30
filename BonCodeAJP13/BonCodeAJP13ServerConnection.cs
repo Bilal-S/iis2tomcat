@@ -305,8 +305,8 @@ namespace BonCodeAJP13
         {
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
             {
-                //default log file name is BonCodeAJP13ConnectionLog.txt in directory of DLL or Windows 
-                p_Logger = new BonCodeAJP13Logger(BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE, p_ConnectionMutex);
+                //default log file name is BonCodeAJP13ConnectionLog-{yyyyMMdd}.log in directory of DLL or Windows 
+                p_Logger = new BonCodeAJP13Logger(BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE + DateTime.Now.ToString("yyyyMMdd") + ".log", p_ConnectionMutex);
             }
         }
 

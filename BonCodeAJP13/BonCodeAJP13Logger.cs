@@ -49,6 +49,14 @@ namespace BonCodeAJP13
                 throw new ArgumentException("File Name cannot be empty");
             //finalize file translatedPath to be in the same directory as dll
             p_FileName = GetLogDir() + "\\" + p_FileName;
+
+            if (!File.Exists(p_FileName))
+            {   // log version to new file
+                using (StreamWriter logStream = File.AppendText(p_FileName))
+                {
+                    logStream.WriteLine(DateTime.Now.ToShortDateString() + " " + DateTime.Now.ToLongTimeString() + " BonCode AJP Connenctor version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+                }
+            }
         }
 
         /// <summary>
