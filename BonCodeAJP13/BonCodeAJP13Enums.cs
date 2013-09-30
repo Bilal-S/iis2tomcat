@@ -220,8 +220,10 @@ namespace BonCodeAJP13
 
         // Log level. 0=none, 1=Basic (startup/shutdown/error), 2=Headers, 3=Debug and packet Contents
         public static int BONCODEAJP13_LOG_LEVEL = Properties.Settings.Default.LogLevel; // 0;
-        // Log dir. If blank we will attempt to use internet cache dir. IMPORTANT: I_USR user will need read/write rights in this directory
+        // Log dir. If blank we will attempt to use dll location dir. IMPORTANT: I_USR user will need read/write rights in this directory
         public static string BONCODEAJP13_LOG_DIR = Properties.Settings.Default.LogDir; // Empty String;
+        // Log File. If blank we will attempt to use "BonCodeAJP13ConnectionLog.txt"  IMPORTANT: I_USR user will need read/write rights in this directory
+        public static string BONCODEAJP13_LOG_FILE = Properties.Settings.Default.LogFile; // BonCodeAJP13ConnectionLog.txt;
 
         //remote administration (enabled by default)
         public static bool BONCODEAJP13_ENABLE_REMOTE_MANAGER = Properties.Settings.Default.EnableRemoteAdmin; // true
@@ -232,8 +234,8 @@ namespace BonCodeAJP13
         //if the received content type contains any of this in declaration then we will handle content as text, otherwise as binary data
         public static string[] BONCODEAJP13_TEXT_MARK = new string[] { "text", "xml", "html", "plain" };
 
-        //protect remote execution of manager for tomcat and railo using these signatures
-        public static string[] BONCODEAJP13_MANAGER_URLS = new string[] { "/manager/","/host-manager" }; //these cannot be at the start of the URi
+        //protect remote execution of manager for tomcat, railo, and others using these signatures
+        public static string[] BONCODEAJP13_MANAGER_URLS = new string[] { "/manager/","/host-manager","/web-inf", "/meta-inf" }; //these cannot be at the start of the URi
         public static string[] BONCODEAJP13_MANAGER_FLEXURLS = new string[] { "/railo-context/admin/", "/bluedragon/administrator/", "/cfide/administrator", "/cfide/adminapi", "/cfide/componentutils" }; //these cannot be anywhere in the URi path
 
         //enable HeaderDataSupport. Will send non-standard data in header to support cfml operations -- currently adds X-Tomcat-DocRoot
@@ -284,7 +286,8 @@ namespace BonCodeAJP13
         public static string BONCODEAJP13_PATH_PREFIX = Properties.Settings.Default.PathPrefix; //blank
 
         //packet size. Needs to corredpond with Apache Tomcat packetSize. Default changes based on Adobe Support
-        public static int MAX_BONCODEAJP13_PACKET_LENGTH = BONCODEAJP13_ADOBE_SUPPORT ? 65536 : Properties.Settings.Default.PacketSize; //8192
+        //public static int MAX_BONCODEAJP13_PACKET_LENGTH = BONCODEAJP13_ADOBE_SUPPORT ? 65536 : Properties.Settings.Default.PacketSize; //8192
+        public static int MAX_BONCODEAJP13_PACKET_LENGTH =  Properties.Settings.Default.PacketSize; //8192
         public static int MAX_BONCODEAJP13_USERDATA_LENGTH = MAX_BONCODEAJP13_PACKET_LENGTH - 6;
 
         //fingerprint
@@ -306,7 +309,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.14";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.16";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;

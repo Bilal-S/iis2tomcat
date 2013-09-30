@@ -111,7 +111,7 @@ namespace BonCodeAJP13
         public BonCodeAJP13Packet(byte[] buffer)
         {
 
-            if (buffer.Length >= BonCodeAJP13Consts.MIN_BONCODEAJP13_PACKET_LENGTH && buffer.Length <= BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH)
+            if (buffer != null && buffer.Length >= BonCodeAJP13Consts.MIN_BONCODEAJP13_PACKET_LENGTH && buffer.Length <= BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH)
             {
                 try
                 {
@@ -122,7 +122,7 @@ namespace BonCodeAJP13
             else
             {
                 // throw an exeption to mark reason
-                throw new Exception("Invalid BonCodeAJP13 Packet received. Wrong byte length.");
+                throw new Exception("Invalid BonCodeAJP13 Packet received. Wrong byte length or null buffer.");
             }
 
         }
@@ -133,22 +133,30 @@ namespace BonCodeAJP13
         /// </summary>
         public BonCodeAJP13Packet(string content)
         {
-            System.Text.UTF8Encoding encoder = new System.Text.UTF8Encoding();
-
-            byte[] buffer = encoder.GetBytes(content);
-
-            if (buffer.Length >= BonCodeAJP13Consts.MIN_BONCODEAJP13_PACKET_LENGTH && buffer.Length <= BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH)
+            if (content != null)
             {
-                try
+                System.Text.UTF8Encoding encoder = new System.Text.UTF8Encoding();
+
+                byte[] buffer = encoder.GetBytes(content);
+
+                if (buffer.Length >= BonCodeAJP13Consts.MIN_BONCODEAJP13_PACKET_LENGTH && buffer.Length <= BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH)
                 {
-                    p_UserDataLength = System.Convert.ToUInt16(buffer.Length - 4);
+                    try
+                    {
+                        p_UserDataLength = System.Convert.ToUInt16(buffer.Length - 4);
+                    }
+                    catch { }
                 }
-                catch { }
+                else
+                {
+                    // throw an exeption to mark reason
+                    throw new Exception("Invalid BonCodeAJP13 Packet received. Wrong byte length.");
+                }
             }
             else
             {
                 // throw an exeption to mark reason
-                throw new Exception("Invalid BonCodeAJP13 Packet received. Wrong byte length.");
+                throw new Exception("No content. Invalid BonCodeAJP13 Packet received. Zero byte length.");
             }
             
 
@@ -501,19 +509,19 @@ namespace BonCodeAJP13
 
             if (data != null && pos > -1 )
             {
-                byte[] valueData = new byte[value.Length + 3]; // need space for character counter at the beginning of array and termination at end
-                SetUInt16(valueData, (UInt16)value.Length, 0); //first two bytes set the length of the string
                 // ASCIIEncoding encodingLib = new System.Text.ASCIIEncoding();
                 UTF8Encoding encodingLib = new System.Text.UTF8Encoding();
+                int valueByteSize = encodingLib.GetByteCount(value);
+                byte[] valueData = new byte[valueByteSize + 3]; // need space for character counter at the beginning of array and termination at end
+                SetUInt16(valueData, (UInt16)valueByteSize, 0); //first two bytes set the length of the string
 
-
-                byte[] temp = new byte[value.Length];
+                byte[] temp = new byte[valueByteSize];
                 temp = encodingLib.GetBytes(value);
 
                 Array.Copy(temp, 0, valueData, 2, temp.Length);
                 //the last byte of valueData is allways zero based on our initial declaration. This indicates the terminator byte as well. Copy this to the main byte array
                 Array.Copy(valueData, 0, data, pos, valueData.Length);
-                return pos + value.Length + 3; //we added three more characters/bytes than passed in
+                return pos + valueByteSize + 3; //we added three more characters/bytes than passed in
             }
             else
             {

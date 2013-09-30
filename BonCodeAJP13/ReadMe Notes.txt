@@ -104,7 +104,7 @@ Version 0.9.2.8 Updates :
 * Add: assembly signing and strong name support so that library files can be deployed in Global Assembly Cache
 
 Version 0.9.2.9 Updates:
-* Add: setting to show suppressed headers (AllowEmptyHeaders). The connectors skips headers that do not have data to speed processing. Set to true to send empty headers as well.
+* Add: setting to show suppressed headers (AllowEmptyHeaders). The connector skips headers that do not have data to speed processing. Set to true to send empty headers as well.
 * Add: setting to send path info in alternate http header (PathInfoHeader). This is to bypass tomcat bug with AJP path-info transfer.
 * Fix: Remove default for ResolveRemoteAddrFrom (HTTP_X_FORWARDED_FOR). Will now need to be explicitly set to be enabled.
 
@@ -112,7 +112,6 @@ Version 1.0 Updates:
 * Add: installer deploy in GAC mode
 * Add: installer accept setting file for silent deployment
 * Add: installer configure tomcat server.xml if on same server
-
 
 Version 1.0.1 Updates:
 * Add: installer option for header data support 
@@ -142,10 +141,10 @@ Version 1.0.5 Updates:
 Version 1.0.6 Updates:
 * Add: setting file location in version identification. Also identify whether defaults are used or setting file data.
 * Add: auto-correction for Path-Info (xajp-path-info) to RFC3875 standard
-* Upd: access to administrator when deployed as war is not allowed when disable remote access is selected
+* Upd: Accesses to administrator when deployed as war is not allowed when “disable remote access” is selected
 
 Version 1.0.7 Updates:
-* Fix: Non default large PacketSizes (over 32KB) would cause arythmetic errors
+* Fix: Non default large PacketSizes (over 32KB) would cause arithmetic errors
 * Fix: Adobe ColdFusion 10 release version adjustments
 * Upd: Update Manuals
 
@@ -165,7 +164,7 @@ Version 1.0.9 Updates:
 
 Version 1.0.10 Updates:
 * Fix: Handle exception thrown when required protocol information is not supplied by client
-* Upd: Logging format changes. Reschuffled log levels. Added HTTP Headers explicit logging
+* Upd: Logging format changes. Reshuffled  log levels. Added HTTP Headers explicit logging (3)
 * Upd: Update to Manuals
 * Add: Do not add prefix to inbound Uri if a prefix is specified to be added is already at the beginning of Uri
 
@@ -188,22 +187,19 @@ Version 1.0.13 Updates:
 
 Version 1.0.14 Updates:
 * Add: display more error details when processing call on localhost vs remote
-* Add: installer display warning if there is an installer.settings file and the setup is started manually
+* Add: installer display warning if there is an installer.settings file and the setup is started interactively by user
+* Fix: UTF-8 headers in URi would not transfer correctly
+* Add: error handling when ColdFusion 10 tomcat instance sents zero byte packages
+* Add: detect log file contention when multiple connector instances are running
+* Add: Setting LogFile to specify a different log file name from default
 
-Version 1.0.15 Updates Planning:
-* Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
-* Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
-* Add: installer add mapping for *.cfchart / *.cfres / *.cfr
+Version 1.0.15 Updates:
+* Upd: For CF10 remove packet size setting from AdobeMode operation. Use default tomcat packet size.
+* Fix: SSL Key size transfer in HTTP Attributes used wrong data type
+* Fix: Handle Tomcat bug that would result in packets being sent after tomcat already had declared end of transmission (EndResponse)
+* Add: Workaround for Tomcat Bug that would introduce null data
 
-Version 2.0 Planning:
-* Upd: move to .net 4.0
-* Add: Log4Net
-* Add: Automatic Log Cycle
-* Add: add default documents for the chosen handlers during install (currently manual)
-* Add: support Windows 8/ Server 2012 with installer (currently manual config of IIS is still needed)
-* Add: Load Balancing 
-* Upd: Install Option Selection Default. if site-by-site is selected it will remain default.
-* Fix: Uninstall process starts removing of software before fully receiving OK from user requiring a reinstall if cancelled.
-* Add: Installer unblock DLL script (needed for Windows8)
-* Add: Installer check web pools and ensure that they will work with connector for given site. 
-* Add: Installer option to change per site web application pool to match what connector is needing
+Version 1.0.16 Updates:
+* Add: Block access to WEB-INF and META-INF path on any site when remote access to Admin is disabled
+* Add: installer block WEB-INF and META-INF access automatically using IIS facilities for all websites
+

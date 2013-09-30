@@ -59,24 +59,31 @@ namespace BonCodeAJP13
             //allways log exceptions if logging is enabled.
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG )
             {
-                p_Mut.WaitOne();
-                using (StreamWriter logStream = File.AppendText(p_FileName))
+                try
                 {
-
-                    //logStream.WriteLine("------------------------------------------------------------------------");
-                    logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
-                    //logStream.WriteLine("Error at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
-                    logStream.WriteLine(message);
-                    logStream.WriteLine(e.Message);
-                    if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
+                    p_Mut.WaitOne();
+                    using (StreamWriter logStream = File.AppendText(p_FileName))
                     {
-                        logStream.WriteLine(e.StackTrace);
-                    }
-                    logStream.Flush();
-                    logStream.Close();
 
+                        //logStream.WriteLine("------------------------------------------------------------------------");
+                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
+                        //logStream.WriteLine("Error at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+                        logStream.WriteLine(message);
+                        logStream.WriteLine(e.Message);
+                        if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
+                        {
+                            logStream.WriteLine(e.StackTrace);
+                        }
+                        logStream.Flush();
+                        logStream.Close();
+
+                    }
+                    p_Mut.ReleaseMutex();
                 }
-                p_Mut.ReleaseMutex();
+                catch (Exception fileException)
+                { 
+                    //don't like empty catches but if we cannot log, let's not throw more errors
+                }
             }
         }
 
@@ -88,16 +95,23 @@ namespace BonCodeAJP13
         {
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= minLogLevel)
             {
-                p_Mut.WaitOne();
-                using (StreamWriter logStream = File.AppendText(p_FileName))
+                try {
+                    p_Mut.WaitOne();
+                    using (StreamWriter logStream = File.AppendText(p_FileName))
+                    {
+                        //logStream.WriteLine("------------------------------------------------------------------------");
+                        //logStream.WriteLine(message + "     at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
+                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + message);
+                        logStream.Flush();
+                        logStream.Close();
+                    }
+                    p_Mut.ReleaseMutex();
+                }   
+                catch (Exception fileException)                
                 {
-                    //logStream.WriteLine("------------------------------------------------------------------------");
-                    //logStream.WriteLine(message + "     at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
-                    logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + message);
-                    logStream.Flush();
-                    logStream.Close();
+                    //don't like empty catches but if we cannot log, let's not throw more errors
                 }
-                p_Mut.ReleaseMutex();
+
             }
         }
 
@@ -108,19 +122,25 @@ namespace BonCodeAJP13
         {
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= minLogLevel)
             {
-                p_Mut.WaitOne();
-                using (StreamWriter logStream = File.AppendText(p_FileName))
-                {
-                    //logStream.WriteLine(" ");
-                    //logStream.WriteLine("------------------------------------------------------------------------");                    
-                    //logStream.WriteLine(messageType + " at:  " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
-                    //logStream.WriteLine(message);
-                    logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + messageType + " " + message);
+                try {
+                    p_Mut.WaitOne();
+                    using (StreamWriter logStream = File.AppendText(p_FileName))
+                    {
+                        //logStream.WriteLine(" ");
+                        //logStream.WriteLine("------------------------------------------------------------------------");                    
+                        //logStream.WriteLine(messageType + " at:  " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
+                        //logStream.WriteLine(message);
+                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + messageType + " " + message);
 
-                    logStream.Flush();
-                    logStream.Close();
+                        logStream.Flush();
+                        logStream.Close();
+                    }
+                    p_Mut.ReleaseMutex();
                 }
-                p_Mut.ReleaseMutex();
+                catch (Exception fileException)
+                {
+                    //don't like empty catches but if we cannot log, let's not throw more errors
+                }
             }
 
         }
@@ -136,33 +156,41 @@ namespace BonCodeAJP13
             //only log packets if logging level allows
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= minLogLevel || logAllways)
             {
-                p_Mut.WaitOne();
-                using (StreamWriter logStream = File.AppendText(p_FileName))
-                {
-                    
-                    if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
-                    {
-                        //logStream.WriteLine("-- Packet Info:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
-                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
+                try {
 
-                        //logStream.WriteLine(packet.PrintPacketHeader());
-                        //logStream.WriteLine("");
-                        logStream.Flush();
-                        logStream.Close();
-                    };
-                    //logs full packets. Log files may grow big in this case
-                    if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
+                    p_Mut.WaitOne();
+                    using (StreamWriter logStream = File.AppendText(p_FileName))
                     {
-                        //logStream.WriteLine("-- Packet Data:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
-                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
-                        logStream.WriteLine(packet.PrintPacket());
-                        logStream.WriteLine("");
-                        logStream.Flush();
-                        logStream.Close();
-                    };                    
+                    
+                        if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
+                        {
+                            //logStream.WriteLine("-- Packet Info:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
+                            logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
+
+                            //logStream.WriteLine(packet.PrintPacketHeader());
+                            //logStream.WriteLine("");
+                            logStream.Flush();
+                            logStream.Close();
+                        };
+                        //logs full packets. Log files may grow big in this case
+                        if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
+                        {
+                            //logStream.WriteLine("-- Packet Data:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
+                            logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
+                            logStream.WriteLine(packet.PrintPacket());
+                            logStream.WriteLine("");
+                            logStream.Flush();
+                            logStream.Close();
+                        };                    
+
+                    }
+                    p_Mut.ReleaseMutex();
 
                 }
-                p_Mut.ReleaseMutex();
+                catch (Exception fileException)
+                {
+                    //don't like empty catches but if we cannot log, let's not throw more errors
+                }
             }
 
         }

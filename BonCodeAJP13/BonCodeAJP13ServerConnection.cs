@@ -305,7 +305,8 @@ namespace BonCodeAJP13
         {
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
             {
-                p_Logger = new BonCodeAJP13Logger("BonCodeAJP13ConnectionLog.txt", p_ConnectionMutex);
+                //default log file name is BonCodeAJP13ConnectionLog.txt in directory of DLL or Windows 
+                p_Logger = new BonCodeAJP13Logger(BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE, p_ConnectionMutex);
             }
         }
 
@@ -696,7 +697,18 @@ namespace BonCodeAJP13
 
                 }
                     
+                //check error condition that tomcat produces sometimes where additional data is sent after end_transmission has been indicated                
+                int sanityCheck = 0;
+                while (p_NetworkStream.DataAvailable && sanityCheck < 100)
+                {
+                    //we need to clear the tcp pipe so the next request does not pick up data we will do this up to 2050 times and write warning
+                    numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+                    sanityCheck++;
+                }
                 
+                
+
+
             }
 
             catch (System.IO.IOException ex)
@@ -869,6 +881,7 @@ namespace BonCodeAJP13
                         //we skip 4-bytes:magic (AB) and packet length markers when determining user data
                         Array.Copy(receiveBuffer, iStart + 4, userData, 0, packetLength);
 
+                        
 
                         //Detect Correct packet Type and create instance of store
                         switch (packetType)
@@ -896,7 +909,16 @@ namespace BonCodeAJP13
                                 p_PacketsReceived.Add(new TomcatCPongReply(userData));
                                 break;
                             case BonCodeAJP13TomcatPacketType.TOMCAT_SENDBODYCHUNK:
-                                p_PacketsReceived.Add(new TomcatSendBodyChunk(userData));
+                                //only add user data if there is something so we don't create null packets (this condition may not occur)
+                                if (userData.Length > 0)
+                                {
+                                    p_PacketsReceived.Add(new TomcatSendBodyChunk(userData));
+                                }
+                                else
+                                {
+                                    //warning
+                                    if (p_Logger != null) p_Logger.LogMessage("Received empty user packet in TOMCAT_SENDBODYCHUNK, skipping.", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG);
+                                }
                                 break;
 
                             case BonCodeAJP13TomcatPacketType.TOMCAT_CFPATHREQUEST:

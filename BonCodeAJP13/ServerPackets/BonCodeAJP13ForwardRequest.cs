@@ -28,6 +28,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
+
 namespace BonCodeAJP13.ServerPackets
 {
     /// <summary>
@@ -346,7 +347,7 @@ namespace BonCodeAJP13.ServerPackets
             pos = SetByte(aUserData, BonCodeAJP13ServerPacketType.SERVER_FORWARD_REQUEST, pos); // all have to start with this            
             pos = SetByte(aUserData, method, pos);  //method: e.g. we have clicked on URL
             pos = SetString(aUserData, protocol, pos); //protocol
-            pos = SetString(aUserData, req_uri, pos); //uri
+            pos = SetString(aUserData, req_uri, pos); //uri any call to SetString will UTF8 encode by default            
             pos = SetString(aUserData, remote_addr, pos); //remote addr
             pos = SetString(aUserData, remote_host, pos); //remote host
             pos = SetString(aUserData, server_name, pos); //server name
@@ -446,7 +447,14 @@ namespace BonCodeAJP13.ServerPackets
                     if (expectedPacketSize < BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH)
                     {
                         pos = SetByte(aUserData, attributeByte, pos); //attribute marker
-                        pos = SetString(aUserData, keyValue, pos); //attribute value                    
+                        if (attributeByte == 0x0B)  //the SSL Key Size attribute is the only one currently that needs to be sent as Uint
+                        {
+                            pos = SetUInt16(aUserData, System.Convert.ToUInt16(keyValue), pos); //attribute value as int (high/low)
+                        }
+                        else
+                        {
+                            pos = SetString(aUserData, keyValue, pos); //attribute value as string
+                        }
                     }
                     else
                     {

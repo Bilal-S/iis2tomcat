@@ -102,7 +102,7 @@ namespace BonCodeIIS
             bool blnProceed = true;
             bool isChunkedTransfer = false;
             int sourcePort = p_InstanceCount;  //init with count will override with port if later available
-
+            
             /* debug: dump headers
             string strOut = GetHeaders(context.Request.ServerVariables);
             context.Response.Write(strOut);
@@ -207,6 +207,7 @@ namespace BonCodeIIS
                     
                     BonCodeAJP13ForwardRequest FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables,context.Request.PathInfo,sourcePort);
                     sconn.AddPacketToSendQueue(FR);
+                    
    
 
                     //determine if extra ForwardRequests are needed. 
