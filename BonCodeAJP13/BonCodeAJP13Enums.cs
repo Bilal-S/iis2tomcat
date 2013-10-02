@@ -309,7 +309,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.16";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.17";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;

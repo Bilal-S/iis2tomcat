@@ -237,7 +237,8 @@ namespace BonCodeAJP13.ServerPackets
             if (sslCheck == "on") {
                 is_ssl = true;
             }
-         
+
+//            BonCodeAJP13Logger.LogDebug(String.Format("{0} {1} {2} {3} {4} {5} [{6}]", this.ConnectionId, remote_addr, GetKeyValue(httpHeaders, "REQUEST_METHOD"), server_name, req_uri, GetKeyValue(httpHeaders, "QUERY_STRING"), GetKeyValue(httpHeaders, "HTTP_USER_AGENT")));
 
             //call alternate method to complete writing of forward request packet. Final data will be stored in in p_ByteStore instance var
             try
