@@ -36,6 +36,9 @@ namespace BonCodeAJP13
         private Mutex p_Mut;
         private string p_FileName;
 
+        private static String filenameDateFormat = "yyyyMMdd";
+        private static String timestampFormat = "yyyy-MM-dd HH:mm:ss ";
+
         /// <summary>
         /// Initialize the Logger with the File Name and Mutex to guard the access of this file.
         /// </summary>
@@ -49,6 +52,14 @@ namespace BonCodeAJP13
                 throw new ArgumentException("File Name cannot be empty");
             //finalize file translatedPath to be in the same directory as dll
             p_FileName = GetLogDir() + "\\" + p_FileName;
+
+            if (!File.Exists(p_FileName))
+            {   // log version to new file
+                using (StreamWriter logStream = File.AppendText(p_FileName))
+                {
+                    logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + "BonCode AJP Connenctor version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+                }
+            }
         }
 
         /// <summary>
@@ -66,7 +77,7 @@ namespace BonCodeAJP13
                     {
 
                         //logStream.WriteLine("------------------------------------------------------------------------");
-                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
+                        logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
                         //logStream.WriteLine("Error at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
                         logStream.WriteLine(message);
                         logStream.WriteLine(e.Message);
@@ -101,7 +112,7 @@ namespace BonCodeAJP13
                     {
                         //logStream.WriteLine("------------------------------------------------------------------------");
                         //logStream.WriteLine(message + "     at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
-                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + message);
+                        logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + message);
                         logStream.Flush();
                         logStream.Close();
                     }
@@ -130,7 +141,7 @@ namespace BonCodeAJP13
                         //logStream.WriteLine("------------------------------------------------------------------------");                    
                         //logStream.WriteLine(messageType + " at:  " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
                         //logStream.WriteLine(message);
-                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + messageType + " " + message);
+                        logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + messageType + " " + message);
 
                         logStream.Flush();
                         logStream.Close();
@@ -165,7 +176,7 @@ namespace BonCodeAJP13
                         if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
                         {
                             //logStream.WriteLine("-- Packet Info:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
-                            logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
+                            logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + packet.ToString() + " " + packet.PrintPacketHeader());
 
                             //logStream.WriteLine(packet.PrintPacketHeader());
                             //logStream.WriteLine("");
@@ -176,7 +187,7 @@ namespace BonCodeAJP13
                         if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
                         {
                             //logStream.WriteLine("-- Packet Data:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
-                            logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
+                            logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + packet.ToString() + " " + packet.PrintPacketHeader());
                             logStream.WriteLine(packet.PrintPacket());
                             logStream.WriteLine("");
                             logStream.Flush();
@@ -194,6 +205,26 @@ namespace BonCodeAJP13
             }
 
         }
+
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        public static void LogDebug(String message, String filename="debug-")
+        {
+            
+            try
+            {
+                filename = GetLogDir() + "\\" + filename + DateTime.Now.ToString(filenameDateFormat) + ".log";
+
+                using (StreamWriter logStream = File.AppendText(filename))
+                {
+                    logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + message);
+                    logStream.Flush();
+                    logStream.Close();
+                }
+            }
+            catch (Exception ex) {}
+        }
+
 
         /// <summary>
         /// Log a collection of packets by calling their PrintPacket methods

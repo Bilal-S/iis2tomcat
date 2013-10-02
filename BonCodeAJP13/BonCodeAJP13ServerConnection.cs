@@ -54,7 +54,7 @@ namespace BonCodeAJP13
     /// <summary>
     /// Delegate of function that will iterate through collection of packets and process for browser. Actual implementation will be passed in.
     /// </summary>
-    public delegate void FlushPacketsCollectionDelegate(BonCodeAJP13PacketCollection collection);
+    public delegate void FlushPacketsCollectionDelegate(BonCodeAJP13PacketCollection collection, HttpContext context);
     /// <summary>
     /// Delegate function indicating whether data is being pushed to browser
     /// </summary>
@@ -305,8 +305,8 @@ namespace BonCodeAJP13
         {
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
             {
-                //default log file name is BonCodeAJP13ConnectionLog.txt in directory of DLL or Windows 
-                p_Logger = new BonCodeAJP13Logger(BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE, p_ConnectionMutex);
+                //default log file name is BonCodeAJP13ConnectionLog-{yyyyMMdd}.log in directory of DLL or Windows 
+                p_Logger = new BonCodeAJP13Logger(BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE + DateTime.Now.ToString("yyyyMMdd") + ".log", p_ConnectionMutex);
             }
         }
 
@@ -368,7 +368,7 @@ namespace BonCodeAJP13
                 }
 
                 //pass on the packets received to delegate function for processing
-                p_FpDelegate(p_PacketsReceived);
+                p_FpDelegate(p_PacketsReceived, null);
                 //Delete all packets processed so far
                 p_PacketsReceived.Clear();
 
