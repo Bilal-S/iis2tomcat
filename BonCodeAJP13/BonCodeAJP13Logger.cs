@@ -209,15 +209,15 @@ namespace BonCodeAJP13
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         public static void LogDebug(String message, String filename="debug-")
-        {
-            
+        {            
             try
             {
                 filename = GetLogDir() + "\\" + filename + DateTime.Now.ToString(filenameDateFormat) + ".log";
 
                 using (StreamWriter logStream = File.AppendText(filename))
                 {
-                    logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + message);
+                  //logStream.WriteLine(DateTime.Now.ToString(timestampFormat) + " [" + Thread.CurrentThread.ManagedThreadId + "] " + message);
+                    logStream.WriteLine(String.Format("{0}[T-{1}] {2}", DateTime.Now.ToString(timestampFormat), Thread.CurrentThread.ManagedThreadId, message));
                     logStream.Flush();
                     logStream.Close();
                 }

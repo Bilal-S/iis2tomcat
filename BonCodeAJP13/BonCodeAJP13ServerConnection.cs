@@ -206,6 +206,7 @@ namespace BonCodeAJP13
             get { return p_PacketsReceived; }
         }
 
+
         #endregion
 
         #region Constructor
@@ -490,7 +491,7 @@ namespace BonCodeAJP13
                 return;
             }
 
-            if (p_Logger != null) p_Logger.LogMessage(" New Connection to tomcat : " + p_TCPClient.Client.RemoteEndPoint.ToString() + " ID:" + p_ThisConnectionID,BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            if (p_Logger != null) p_Logger.LogMessage(String.Format( "New Connection to tomcat: {0} ID: {1} [T-{2}]", p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
 
 
             //get stream set timeouts again (default 30 minutes)
