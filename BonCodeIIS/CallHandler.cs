@@ -37,7 +37,7 @@ namespace BonCodeIIS
     {
         
         //instance variables
-        private HttpContext p_Context;
+//      private HttpContext p_Context;
         private TcpClient p_TcpClient = null;
         private static int p_InstanceCount =0;
         private static bool p_isReusable = true;
@@ -90,6 +90,7 @@ namespace BonCodeIIS
         /// <summary>
         /// Main process hook for IIS invocation.
         /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         public void ProcessRequest(HttpContext context)
         {
             //TODO: application scope move: need to see whether config data is better saved in app scope after initial reading. Would need a reset mechanism if cached this way
@@ -132,7 +133,7 @@ namespace BonCodeIIS
                 };
 
                 //assign reference to context to an instance handler
-                p_Context = context;
+//                p_Context = context;
                 long streamLen = context.Request.InputStream.Length;
                 //create TcpClient to pass to AJP13 processor, this will re-use connection until this instance is destroyed
                 if (p_TcpClient == null)
@@ -271,7 +272,7 @@ namespace BonCodeIIS
                     }
 
                     //write the response to browser (if not already flushed)
-                    PrintFlush(sconn.ReceivedDataCollection);
+                    PrintFlush(sconn.ReceivedDataCollection, context);
 
                     //kill connections if we are not reusing connections
                     if (p_FlagKillConnection)
@@ -318,7 +319,7 @@ namespace BonCodeIIS
         /// Function to be passed as delegate to BonCodeAJP13 process
         /// Will pass packet collection content to user browser and flush
         /// </summary>        
-        void PrintFlush(BonCodeAJP13PacketCollection flushCollection)
+        void PrintFlush(BonCodeAJP13PacketCollection flushCollection, HttpContext context)
         {
             p_FlushInProgress = true;
             
@@ -366,7 +367,7 @@ namespace BonCodeIIS
                                     {
                                         tempValue = sHeaders[i2]; //regular array element
                                     }
-                                    p_Context.Response.AddHeader(keyName, tempValue);
+                                    context.Response.AddHeader(keyName, tempValue);
                                 }
                             }
                            
@@ -375,7 +376,7 @@ namespace BonCodeIIS
                             {
                                 //single header remove pipe character at the end   
                                 tempValue = keyValue.Substring(0, keyValue.Length - 1);
-                                p_Context.Response.AddHeader(keyName, tempValue);
+                                context.Response.AddHeader(keyName, tempValue);
 
                             }
 
@@ -389,7 +390,7 @@ namespace BonCodeIIS
                                 }
                                 else
                                 {
-                                    isBinary = TestBinary(keyValue);
+                                    isBinary = TestBinary(keyValue, context);
                                 }                              
 
                             }
@@ -409,13 +410,13 @@ namespace BonCodeIIS
 
 
                             //check whether we can represent a given header in native IIS Response context
-                            IISNativeHeaders(keyName, tempValue);
+                            IISNativeHeaders(keyName, tempValue, context);
 
 
                         }
                         //set response status code
-                        if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)  
-                            p_Context.Response.StatusCode = tcshPackage.GetStatus();
+                        if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
+                            context.Response.StatusCode = tcshPackage.GetStatus();
 
                     }
                     else if (flushPacket is TomcatEndResponse)
@@ -425,7 +426,7 @@ namespace BonCodeIIS
                         if (contentLength > 0 && transferredBytes < contentLength)
                         {
                             string fillEmpty = new string(' ', System.Convert.ToInt32(contentLength - transferredBytes));
-                            p_Context.Response.Write(fillEmpty);
+                            context.Response.Write(fillEmpty);
 
                         }
 
@@ -439,15 +440,15 @@ namespace BonCodeIIS
                     {
                         transferredBytes = transferredBytes + flushPacket.Length;
                         if (flushPacket.Length > 0)
-                            p_Context.Response.BinaryWrite(flushPacket.GetUserDataBytes());
+                            context.Response.BinaryWrite(flushPacket.GetUserDataBytes());
 
                     }
                 }
                 catch (Exception e)
                 {
                     //display error                    
-                    p_Context.Response.Write("Error in transfer of data from tomcat to browser.");
-                    PrintError(p_Context, e.StackTrace);
+                    context.Response.Write("Error in transfer of data from tomcat to browser.");
+                    PrintError(context, e.StackTrace);
 
                 }
 
@@ -456,12 +457,12 @@ namespace BonCodeIIS
             //attempt to flush now
             try
             {
-                p_Context.Response.Flush();
+                context.Response.Flush();
             }
             catch (Exception e)
             {
                 //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred                
-                PrintError(p_Context, e.StackTrace);
+                PrintError(context, e.StackTrace);
             }
 
             p_FlushInProgress = false;
@@ -471,12 +472,12 @@ namespace BonCodeIIS
         /// <summary>
         /// If we recognize certain headers that IIS supports we will write them into the response stream using IIS notation as well.        
         /// </summary> 
-        private void IISNativeHeaders(string headerName, string headerValue) { 
+        private void IISNativeHeaders(string headerName, string headerValue, HttpContext context) { 
             //switch blocked
             switch (headerName)
             {
                 case "Location": case "Content-Location":
-                    p_Context.Response.Redirect(headerValue);
+                    context.Response.Redirect(headerValue);
                     break;               
                     
             }
@@ -489,11 +490,11 @@ namespace BonCodeIIS
         /// Returns true if binary, false if text.
         /// DEPRICATED: WE ALWAYS ASSUME BINARY AND DO NOT CHANGE ENCODING
         /// </summary>           
-        private bool TestBinary(string contentType)
+        private bool TestBinary(string contentType, HttpContext context)
         {
             bool retVal = true;
             //if we have compression we do not need to evaluate further, assume binary
-            if (!p_Context.Response.ContentEncoding.EncodingName.Contains("gzip"))
+            if (!context.Response.ContentEncoding.EncodingName.Contains("gzip"))
             {
                 contentType = contentType.ToLower();
                 for (int i = 0; i < BonCodeAJP13Settings.BONCODEAJP13_TEXT_MARK.Length; i++)
