@@ -1,8 +1,0 @@
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\bin\Release\app.config
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\bin\Release\BonCodeIIS.dll
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\bin\Release\BonCodeIIS.pdb
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\bin\Release\BonCodeAJP13.dll
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\bin\Release\BonCodeAJP13.pdb
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Release\ResolveAssemblyReference.cache
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Release\BonCodeIIS.dll
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\BonCodeIIS\obj\Release\BonCodeIIS.pdb
