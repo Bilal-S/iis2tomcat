@@ -293,6 +293,9 @@ namespace BonCodeAJP13
         //fingerprint
         public static bool BONCODEAJP13_ENABLE_CLIENTFINGERPRINT = Properties.Settings.Default.EnableClientFingerPrint; // false
 
+        //error status code
+        public static int BONCODEAJP13_ERROR_STATUSCODE = Properties.Settings.Default.ErrorStatusCode;
+
     }  
 
 

@@ -152,8 +152,7 @@ namespace BonCodeIIS
                         else
                         {
                             string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port..<br>Details:<br>" + e.Message + "<br><small><small><br>You can change this message by changing TomcatConnectErrorURL setting in setting file.</small></small>";
-                            context.Response.Write(errMsg);
-                            PrintError(context, e.StackTrace);
+                            PrintError(context, errMsg, e.StackTrace);
                         }
                         blnProceed = false;
 
@@ -265,9 +264,8 @@ namespace BonCodeIIS
                     catch (Exception e)
                     {
                         //we have an error do the dump on screen since we are not logging but allso kill connection
-                        string errMsg = "Generic Connector Communication Error: <hr>Please check and adjust your setup..<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual).<br>Details:<br>" + e.StackTrace + "";
-                        context.Response.Write(errMsg);
-                        PrintError(context, e.StackTrace);
+                        string errMsg = "Generic Connector Communication Error: <hr>Please check and adjust your setup..<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual).";
+                        PrintError(context, errMsg, e.StackTrace);
                         KillConnection(); //remove TCP cache good after timeouts
                     }
 
@@ -446,9 +444,9 @@ namespace BonCodeIIS
                 }
                 catch (Exception e)
                 {
-                    //display error                    
-                    context.Response.Write("Error in transfer of data from tomcat to browser.");
-                    PrintError(context, e.StackTrace);
+                    //display error    
+                    String errMsg = "Error in transfer of data from tomcat to browser.";
+                    PrintError(context, errMsg, e.StackTrace);
 
                 }
 
@@ -462,7 +460,7 @@ namespace BonCodeIIS
             catch (Exception e)
             {
                 //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred                
-                PrintError(context, e.StackTrace);
+                PrintError(context, "", e.StackTrace);
             }
 
             p_FlushInProgress = false;
@@ -515,10 +513,12 @@ namespace BonCodeIIS
         /// Determine if local call and print error on screen.
         /// TODO: This will be extended in the future to log errors to file.
         /// </summary>
-        private void PrintError(HttpContext context,String strErr)
+        private void PrintError(HttpContext context, String strMsg, String strStacktrace)
         {
+            context.Response.StatusCode = BonCodeAJP13Settings.BONCODEAJP13_ERROR_STATUSCODE;
+            context.Response.Write(strMsg);
             if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR"))) {
-                context.Response.Write("<br><pre>" + strErr + "</pre>");
+                context.Response.Write("<br><pre>" + strStacktrace + "</pre>");
             }
         }
 
