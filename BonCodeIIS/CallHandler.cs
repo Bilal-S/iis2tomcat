@@ -515,6 +515,7 @@ namespace BonCodeIIS
         /// </summary>
         private void PrintError(HttpContext context, String strMsg, String strStacktrace)
         {
+            context.Response.StatusCode = 500;
             context.Response.Write(strMsg);
             if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR"))) {
                 context.Response.Write("<br><pre>" + strStacktrace + "</pre>");
