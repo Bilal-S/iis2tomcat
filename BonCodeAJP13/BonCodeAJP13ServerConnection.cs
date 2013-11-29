@@ -783,6 +783,8 @@ namespace BonCodeAJP13
         /// </summary>
         private void ConnectionError()
         {
+            p_PacketsReceived.Add(new TomcatSendBodyChunk("<!-- tomcat-iis-connection-error -->"));
+
             if (p_Logger != null) p_Logger.LogMessage("One Connection raised an error", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             //attempt to close stream
             try
@@ -810,6 +812,8 @@ namespace BonCodeAJP13
 
         private void ConnectionError(string message, string messageType)
         {
+            p_PacketsReceived.Add(new TomcatSendBodyChunk("<!-- tomcat-iis-connection-error -->"));
+
             if (p_Logger != null) p_Logger.LogMessageAndType(message, messageType, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             //attempt to close stream
             try

@@ -436,9 +436,16 @@ namespace BonCodeIIS
 
                     else if (flushPacket is TomcatSendBodyChunk)
                     {
-                        transferredBytes = transferredBytes + flushPacket.Length;
-                        if (flushPacket.Length > 0)
-                            context.Response.BinaryWrite(flushPacket.GetUserDataBytes());
+                        if (flushPacket.Length > 0) 
+                        {
+                            transferredBytes = transferredBytes + flushPacket.Length;
+
+                            if (flushPacket.GetDataString().Contains( "<!-- tomcat-iis-connection-error -->" ) )
+                                context.Response.StatusCode = BonCodeAJP13Settings.BONCODEAJP13_ERROR_STATUSCODE;
+                            else
+                                context.Response.BinaryWrite(flushPacket.GetUserDataBytes());
+                        }
+                            
 
                     }
                 }
