@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
  *  Apache License, Version 2.0
@@ -152,7 +152,7 @@ namespace BonCodeIIS
                         else
                         {
                             string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port..<br>Details:<br>" + e.Message + "<br><small><small><br>You can change this message by changing TomcatConnectErrorURL setting in setting file.</small></small>";
-                            PrintError(context, errMsg, e.StackTrace);
+                            PrintError(context, errMsg, e.StackTrace, true);
                         }
                         blnProceed = false;
 
@@ -265,7 +265,7 @@ namespace BonCodeIIS
                     {
                         //we have an error do the dump on screen since we are not logging but allso kill connection
                         string errMsg = "Generic Connector Communication Error: <hr>Please check and adjust your setup..<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual).";
-                        PrintError(context, errMsg, e.StackTrace);
+                        PrintError(context, errMsg, e.StackTrace, true);
                         KillConnection(); //remove TCP cache good after timeouts
                     }
 
@@ -453,7 +453,7 @@ namespace BonCodeIIS
                 {
                     //display error    
                     String errMsg = "Error in transfer of data from tomcat to browser.";
-                    PrintError(context, errMsg, e.StackTrace);
+                    PrintError(context, errMsg, e.StackTrace,false);
 
                 }
 
@@ -467,7 +467,7 @@ namespace BonCodeIIS
             catch (Exception e)
             {
                 //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred                
-                PrintError(context, "", e.StackTrace);
+                PrintError(context, "", e.StackTrace, false);
             }
 
             p_FlushInProgress = false;
@@ -520,9 +520,11 @@ namespace BonCodeIIS
         /// Determine if local call and print error on screen.
         /// TODO: This will be extended in the future to log errors to file.
         /// </summary>
-        private void PrintError(HttpContext context, String strMsg, String strStacktrace)
+        private void PrintError(HttpContext context, String strMsg, String strStacktrace, Boolean setStatusCode)
         {
-            context.Response.StatusCode = BonCodeAJP13Settings.BONCODEAJP13_ERROR_STATUSCODE;
+            if (setStatusCode)
+                context.Response.StatusCode = BonCodeAJP13Settings.BONCODEAJP13_ERROR_STATUSCODE;
+
             context.Response.Write(strMsg);
             if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR"))) {
                 context.Response.Write("<br><pre>" + strStacktrace + "</pre>");
