@@ -522,7 +522,11 @@ namespace BonCodeIIS
         /// </summary>
         private void PrintError(HttpContext context, String strMsg, String strStacktrace)
         {
-            context.Response.StatusCode = BonCodeAJP13Settings.BONCODEAJP13_ERROR_STATUSCODE;
+            if (strMsg.Length > 0 && context.Response.StatusCode >= 200 && context.Response.StatusCode < 300)
+            {
+                context.Response.StatusCode = BonCodeAJP13Settings.BONCODEAJP13_ERROR_STATUSCODE;
+            }
+
             context.Response.Write(strMsg);
             if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR"))) {
                 context.Response.Write("<br><pre>" + strStacktrace + "</pre>");
