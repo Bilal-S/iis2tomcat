@@ -309,7 +309,7 @@ namespace BonCodeAJP13.ServerPackets
             int packetFillBytes = 14; //bytes used to complete package
             int expectedPacketSize = 0;
 
-
+            FixNullEmptyHeaders(httpHeaders);
             NameValueCollection goodHeaders = CheckHeaders(httpHeaders); //determine headers to be transferred
             num_headers = goodHeaders.AllKeys.Length; 
             PopulateRawHeaders(httpHeaders["ALL_RAW"]); //we use this to do retranslate the spelling (case) of header names
@@ -523,6 +523,20 @@ namespace BonCodeAJP13.ServerPackets
 
 
             //BonCodeAJP13Logger.LogDebug(String.Format("FR521 {0} http{1}://{2}{3} {4} P-{5} [{6}]", remote_addr, is_ssl ? "s" : "", server_name, req_uri, GetKeyValue(httpHeaders, "QUERY_STRING"), sourcePort, PacketID));
+        }
+
+        /// <summary>
+        /// Takes any headers with a null value and sets their value to an empty string, avoiding the need for later null checking in multiple places
+        /// </summary>
+        private void FixNullEmptyHeaders(NameValueCollection httpHeaders)
+        {
+            for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
+            {
+                if (httpHeaders[httpHeaders.AllKeys[i]] == null)
+                {
+                    httpHeaders[httpHeaders.AllKeys[i]] = "";
+                }
+            }
         }
 
 
