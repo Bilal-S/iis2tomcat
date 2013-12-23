@@ -1,9 +1,0 @@
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\app.config
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\ConsoleTCPIP.exe.config
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\ConsoleTCPIP.exe
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\ConsoleTCPIP.pdb
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\BonCodeAJP13.dll
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\bin\Release\BonCodeAJP13.pdb
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\obj\Release\ResolveAssemblyReference.cache
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\obj\Release\ConsoleTCPIP.exe
-C:\Users\Bilal.COLUMBIA\Documents\Visual Studio 2010\Projects\ConsoleTCPIP\ConsoleTCPIP\obj\Release\ConsoleTCPIP.pdb
