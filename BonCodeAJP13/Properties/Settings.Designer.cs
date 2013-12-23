@@ -304,6 +304,22 @@ namespace BonCodeAJP13.Properties {
                 return ((bool)(this["EnableHTTPStatusCodes"]));
             }
         }
+
+        /// <summary>
+        /// Status code that is returned to IIS on connection failure, e.g. 500. Default: 200
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("Status code that is returned to IIS on connection failure, e.g. 500. Default: 200")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        public int ErrorStatusCode
+        {
+            get
+            {
+                return ((int)(this["ErrorStatusCode"]));
+            }
+        }
         
         /// <summary>
         /// Message to be displayed to user if we experience issues with TCP client connections to Tomcat.
