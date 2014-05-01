@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Specialized;
 using System.Net.Sockets;
-using System.Web;
 using BonCodeAJP13;
 using BonCodeAJP13.ServerPackets;
 using BonCodeAJP13.TomcatPackets;
@@ -141,7 +140,7 @@ namespace ConsoleTCPIP
         }
 
         //this will be passed in as delegate
-        static void PrintFlush(BonCodeAJP13PacketCollection flushCollection, HttpContext context)
+        static void PrintFlush(BonCodeAJP13PacketCollection flushCollection)
         {
             foreach (TomcatReturn flushPacket in flushCollection)
             {

@@ -203,3 +203,46 @@ Version 1.0.16 Updates:
 * Add: Block access to WEB-INF and META-INF path on any site when remote access to Admin is disabled
 * Add: installer block WEB-INF and META-INF access automatically using IIS facilities for all websites
 
+Version 1.0.17 Updates:
+* Fix: 404 redirect by connector could leave stream cache to be reused on the connection.
+* Add: New Setting (FPHeaders) to determine HTTP headers used for client fingerprint.
+* Add: Included logger changes from Igal: Log file time stamp and debug log method
+* Upd: Change the default log file name and extension to BonCodeAJP13Connection[yyyyMMdd].log
+* Upd: Internal class cleanup
+* Fix: Handle exception when determining Physical Path in case invalid virtual path references are passed
+
+Version 1.0.18 Updates:
+* Fix: Dominic's fix for Empty (null) Headers. When headers are transferred with null values instead of empty string error would be thrown.
+* Add: Set HTTP error code for Connection Errors with Tomcat included as stub in this version
+* Upd: Improve error messages for connection problems on local and remotes
+* Upd: Changed name reference of setting [FlushThreshold] to [FlushThresholdTicks] to clarify that we use time ticks.
+* Add: Added new setting [FlushThresholdBytes]. This will start spooling buffer after the byte threshold is reached. Aid in streaming large files via Tomcat.
+* Add: Allow BIN directory and Setting files to be located on UNC path so servers can share libraries and configuration
+* Add: Expanded log file name generation so that a shared setting file among multiple servers does not produce write contention
+* Add: Concurrent connection count estimate in log file with log level 2 (experimental)
+* Upd: Added back the PacketSize default when you switch to Adobe mode that was removed in 1.0.15, it will be set to 65531 bytes
+* Add: When buffering whole content switch from chunked transfer-type to fixed-length transfer for non binary data
+* Upd: Remove automatic IIS side redirect for any 30x status and use Tomcat directive instead
+* Upd: Installer does no longer remove IIS features automatically without confirmation or in silent mode
+* Fix: Adobe specific AJP13 file path extension would fail with Unicode path name requests
+* Fix: Adobe use of iso-8859-1 encoding even when UTF8 is exchanged.
+
+Version 1.0.19 Updates Planning:
+* Add: setting FlushThresholdBytes to allow for easier streaming with fixed buffer size, e.g. large files
+* Upd: change setting name of FlushThreshold to FlushThresholdTicks to be more consistent and clear on function
+* Add: setting XXXX for enabling connection errors to be displayed on front end
+* Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
+* Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
+* Add: installer add mapping for *.cfchart / *.cfres / *.cfr
+* Add: logging thread count n of x
+* Add: add IIS siteID to Logfile name
+* Add: Filter to logging, e.g. IP (regex) or HTTP Header
+
+Version 2.0 Planning:
+* Add: Log4Net
+* Add: Automatic Log Cycle
+* Add: Load Balancing 
+* Upd: Install Option Selection Default. if site-by-site is selected it will remain default.
+* Add: Installer unblock DLL script (needed for Windows8)
+* Add: Installer check web pools and ensure that they will work with connector for given site. 
+* Add: Installer option to change per site web application pool to match what connector is needing.

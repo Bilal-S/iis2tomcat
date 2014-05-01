@@ -534,7 +534,7 @@ namespace BonCodeAJP13
         /// Set the String value in the array starting from the pos index 
         /// The length prefix will be omitted.
         /// </summary>
-        protected static int SetSimpleString(byte[] data, string value, int pos)
+        protected virtual int SetSimpleString(byte[] data, string value, int pos)
         {
             
             //We use UTF 8 encoding for any string conversion
