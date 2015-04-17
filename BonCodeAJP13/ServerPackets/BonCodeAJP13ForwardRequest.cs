@@ -26,8 +26,8 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.IO;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
-
 
 namespace BonCodeAJP13.ServerPackets
 {
@@ -42,10 +42,13 @@ namespace BonCodeAJP13.ServerPackets
         new const string p_PACKET_DESCRIPTION = "FORWARD REQUEST";
         private Hashtable p_RawHeadersTranlator = null;
         private NameValueCollection p_HttpHeaders = null; //only used for storing headers for logging level is set to headers
+        private X509Certificate clientCert = null;
 
         //for logging
         private string p_Url = "";
         private string p_Method = "";
+        
+
 
         #endregion
 
@@ -145,11 +148,23 @@ namespace BonCodeAJP13.ServerPackets
 
         /// <summary>
         /// Constructor with HTTP Headers, PathInfo, and Source Port
+        /// This is the most frequently used one
         /// </summary>
-        public BonCodeAJP13ForwardRequest(NameValueCollection httpHeaders, String pathInfo, int sourcePort)
+        public BonCodeAJP13ForwardRequest(NameValueCollection httpHeaders, String pathInfo, int sourcePort, String vdirs)
         {
 
-            WritePacket(httpHeaders, pathInfo, sourcePort);
+            WritePacket(httpHeaders, pathInfo, sourcePort, vdirs);
+
+        }
+
+        /// <summary>
+        /// Constructor with HTTP Headers, PathInfo, and Source Port, and ClientCert
+        /// This is used when we have client certificates over SSL
+        /// </summary>
+        public BonCodeAJP13ForwardRequest(NameValueCollection httpHeaders, String pathInfo, int sourcePort, String vdirs, X509Certificate cert)
+        {
+            this.clientCert = cert;
+            WritePacket(httpHeaders, pathInfo, sourcePort, vdirs);
 
         }
 
@@ -217,10 +232,10 @@ namespace BonCodeAJP13.ServerPackets
         /// <summary>
         /// Creates forward request package based on header data       
         /// </summary>
-        private void WritePacket(NameValueCollection httpHeaders, String pathInfo, int sourcePort=0)
+        private void WritePacket(NameValueCollection httpHeaders, String pathInfo, int sourcePort=0, String vDirs="")
         {
             //set defaults first
-            bool is_ssl = false;
+            bool is_ssl = (GetKeyValue(httpHeaders, "HTTPS") == "on"); //is HTTPS == "on"
             
             //set values from header information
             string protocol = GetKeyValue(httpHeaders, "SERVER_PROTOCOL");   // "HTTP/1.1"            
@@ -231,18 +246,14 @@ namespace BonCodeAJP13.ServerPackets
             string remote_host = GetKeyValue(httpHeaders, "REMOTE_HOST");
             string server_name = GetKeyValue(httpHeaders, "HTTP_HOST"); //BonCodeAJP13Settings.BONCODEAJP13_SERVER;
             ushort server_port = System.Convert.ToUInt16(GetKeyValue(httpHeaders, "SERVER_PORT"));   // System.Convert.ToUInt16(BonCodeAJP13Settings.BONCODEAJP13_PORT);
+          
 
-            //check whether ssl is on
-            string sslCheck = GetKeyValue(httpHeaders, "HTTPS");
-            if (sslCheck == "on") {
-                is_ssl = true;
-            }
-         
+            //BonCodeAJP13Logger.LogDebug(String.Format("{0} {1} {2} {3} {4} {5} [{6}]", this.ConnectionId, remote_addr, GetKeyValue(httpHeaders, "REQUEST_METHOD"), server_name, req_uri, GetKeyValue(httpHeaders, "QUERY_STRING"), GetKeyValue(httpHeaders, "HTTP_USER_AGENT")));
 
             //call alternate method to complete writing of forward request packet. Final data will be stored in in p_ByteStore instance var
             try
             {
-                WritePacket(method, protocol, req_uri, remote_addr, remote_host, server_name, server_port, is_ssl, num_headers, httpHeaders, pathInfo, sourcePort);
+                WritePacket(method, protocol, req_uri, remote_addr, remote_host, server_name, server_port, is_ssl, num_headers, httpHeaders, pathInfo, sourcePort,vDirs);
             }
             catch (Exception exp)
             {
@@ -305,7 +316,8 @@ namespace BonCodeAJP13.ServerPackets
                             int num_headers,
                             NameValueCollection httpHeaders,
                             String realPathInfo ="",
-                            int sourcePort=0)
+                            int sourcePort=0,
+                            String vDirs="")
         {
             //locals
             int pos = 0;
@@ -313,7 +325,8 @@ namespace BonCodeAJP13.ServerPackets
             byte[] aUserData = new byte[BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH]; //allocate full number of bytes for processing
             int packetFillBytes = 14; //bytes used to complete package
             int expectedPacketSize = 0;
-
+            string keyName = "";
+            string keyValue = "";
 
             NameValueCollection goodHeaders = CheckHeaders(httpHeaders); //determine headers to be transferred
             num_headers = goodHeaders.AllKeys.Length; 
@@ -326,15 +339,44 @@ namespace BonCodeAJP13.ServerPackets
                 p_Url = req_uri;
                 p_HttpHeaders = goodHeaders;
             }
-            
-            //add one more header if setting enable setting is used
-            if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT ) num_headers++;    
-            //path info in alternate header
-            if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "") num_headers++;    
-            //finger print header
-            if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_CLIENTFINGERPRINT) num_headers++;  
-           
-  
+
+            //add optional headers and reset count
+            NameValueCollection addlHeaders = new NameValueCollection();
+
+            if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT)    // "X-Tomcat-DocRoot";
+            {
+                addlHeaders.Add("x-tomcat-docroot", BonCodeAJP13Settings.BonCodeAjp13_DocRoot);   // System.Web.HttpContext.Current.Server.MapPath("~"); alternatly we could use "appl-physical-path" http var
+                if (vDirs.Length > 3)
+                {
+                    addlHeaders.Add("x-vdirs", vDirs); 
+                }
+                //instance id
+                addlHeaders.Add("x-webserver-context", "W3SVC" + httpHeaders["INSTANCE_ID"]);               
+                
+            }
+
+            //path info alternate header determination            
+            if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "")    // "xajp-path-info";
+            {
+                addlHeaders.Add(BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER, realPathInfo);   // httpHeaders["PATH_INFO"]
+            }
+
+            //determine client fingerprint based on HTTP information
+            if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_CLIENTFINGERPRINT)
+            {
+                addlHeaders.Add("xajp-clientfingerprint", GetFingerprint(httpHeaders));
+            }
+
+            //during debug logging also add thread id to headers
+            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)   // debug test threadid
+            {
+                addlHeaders.Add("xajp-managedthreadid", "" + System.Threading.Thread.CurrentThread.ManagedThreadId);
+            }
+
+            //reset count of headers
+            num_headers += addlHeaders.Count;
+
+
             //add a mapping prefix if one is provided unless the same prefix is already on the start of Uri (case sensitive comparison)
             if (BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length > 2
                 && !BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Equals(req_uri.Substring(0, BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length - 1), StringComparison.Ordinal))
@@ -342,7 +384,7 @@ namespace BonCodeAJP13.ServerPackets
                 req_uri = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX + req_uri;
             }
 
-            //write a packet
+            //write start of a packet
             // ============================================================
             pos = SetByte(aUserData, BonCodeAJP13ServerPacketType.SERVER_FORWARD_REQUEST, pos); // all have to start with this            
             pos = SetByte(aUserData, method, pos);  //method: e.g. we have clicked on URL
@@ -356,34 +398,16 @@ namespace BonCodeAJP13.ServerPackets
             pos = SetInt16(aUserData, System.Convert.ToUInt16(num_headers), pos); //number of headers
             //pos = SetInt16(aUserData, System.Convert.ToUInt16(goodHeaders.AllKeys.Length), pos); //number of headers
             //iterate through headers and add to packet
-            string keyName = "";
-            string keyValue = "";
+
+
+            //first write all additional headers
+            foreach (String key in addlHeaders)
+            {
+                pos = SetString(aUserData, key.ToLower(), pos);
+                pos = SetString(aUserData, addlHeaders[key], pos);
+            }
             
-            //add optional headers            
-            if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT)
-            {
-                keyName = "x-tomcat-docroot"; //"X-Tomcat-DocRoot";                
-                keyValue = BonCodeAJP13Settings.BonCodeAjp13_DocRoot; // System.Web.HttpContext.Current.Server.MapPath("~"); alternatly we could use "appl-physical-path" http var
-                pos = SetString(aUserData, keyName.ToLower(), pos);                
-                pos = SetString(aUserData, keyValue, pos);
-
-            }
-            //path info alternate header determination            
-            if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "") {
-                keyName = BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER; //"xajp-path-info";                                
-                keyValue = realPathInfo; // httpHeaders["PATH_INFO"];
-                pos = SetString(aUserData, keyName.ToLower(), pos);
-                pos = SetString(aUserData, keyValue, pos);                
-            }
-
-            //determine client fingerprint based on HTTP information
-            if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_CLIENTFINGERPRINT)
-            {
-                keyName = "xajp-clientfingerprint";
-                keyValue = GetFingerprint(httpHeaders);
-                pos = SetString(aUserData, keyName, pos);
-                pos = SetString(aUserData, keyValue, pos);  
-            }
+            
              
             //TODO Remove this    
             /*
@@ -398,6 +422,7 @@ namespace BonCodeAJP13.ServerPackets
             pos = SetString(aUserData, keyValue, pos);
              */
             //END REMOVE THIS
+
 
 
             //all other headers
@@ -427,14 +452,73 @@ namespace BonCodeAJP13.ServerPackets
                 {
                     //raise error:
                     throw new Exception("Invalid content length. Last header processed [" + keyName + "]. Please reconfigure BonCode Connector and Apache Tomcat to allow larger transfer packets. Your max allowed content length is " + BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH + " bytes. Provided content length would be at least " + expectedPacketSize + " bytes. Clearing cookies may allow you proceed.");
-
                 }
                
                 
             }
 
+            //add SSL-Cert information to AJP ATTRIBUTES as well since this is how the servlet container accepts them
+            if (clientCert != null)
+            {
 
-            //ATTRIBUTES FOLLOW: Second iteration through headers Some header values have to be passed as attributes REMOTE_USER, AUTH_TYPE, QUERY_STRING
+                //This is the only SSL attribute exchanged as byte type all others are explicitly named
+                //pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_CERT, pos); //attribute marker
+                //pos = SetString(aUserData, CertExportToPEM(clientCert), pos); //attribute value 
+   
+                //set named AJP Attributes
+                NameValueCollection addlAtts = new NameValueCollection();
+                addlAtts.Add("SSL_CLIENTCERT", CertExportToPEM(clientCert));
+                addlAtts.Add("CERT_ISSUER", clientCert.Issuer);
+                addlAtts.Add("CERT_SUBJECT", clientCert.Subject);
+                addlAtts.Add("CERT_COOKIE", httpHeaders["CERT_COOKIE"]);
+                addlAtts.Add("HTTPS_SERVER_SUBJECT", httpHeaders["CERT_SERVER_SUBJECT"]);
+                addlAtts.Add("CERT_FLAGS", httpHeaders["CERT_FLAGS"]);
+                //addlAtts.Add("HTTPS_SECRETKEYSIZE", httpHeaders["CERT_SECRETKEYSIZE"]);  // this is done later and extracted from http headers
+                addlAtts.Add("CERT_SERIALNUMBER", clientCert.GetSerialNumberString());
+                addlAtts.Add("HTTPS_SERVER_ISSUER", httpHeaders["CERT_SERVER_ISSUER"]);
+                addlAtts.Add("HTTPS_KEYSIZE", httpHeaders["CERT_KEYSIZE"]);
+
+                //now write named attributes
+                for (int i = 0; i < addlAtts.AllKeys.Length; i++)
+                {
+                    keyName = addlAtts.AllKeys[i];
+                    keyValue = addlAtts[keyName];
+                    expectedPacketSize = keyName.Length + keyValue.Length + pos + packetFillBytes;
+                    attributeByte = BonCodeAJP13PacketHeaders.GetAttributeByte(keyName);
+                    //check whether this is byte attribute if so wee need to add the header as attribute to packet
+                    if (keyValue != "")
+                    {
+                        if (expectedPacketSize < BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH)
+                        {
+                            //set either name or byte attribute name
+                            if (attributeByte == 0x00)
+                            {
+                                //set attribute name as string
+                                pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_REQ_ATTRIBUTE, pos); //attribute marker
+                                pos = SetString(aUserData, keyName, pos); //attribute name
+                            }
+                            else
+                            {
+                                //set as byte-type
+                                pos = SetByte(aUserData, attributeByte, pos); //attribute marker
+                            }
+
+                            //set value of attribute
+                            pos = SetString(aUserData, keyValue, pos); //attribute value as string
+                           
+                        }
+                        else
+                        {
+                            throw new Exception("Invalid content length. Last attribute processed [" + keyName + "]. Please reconfigure BonCode Connector and Apache Tomcat to allow larger transfer packets. Your max allowed content length is " + BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH + " bytes. Provided content length would be at least " + expectedPacketSize + " bytes.");
+                        }
+                    }
+                }
+
+            }
+
+
+            //EXTRACT AND WRITE BYTE TYPE ATTRIBUTES FOLLOW: 
+            //Second iteration through headers Some header values have to be passed as attributes REMOTE_USER, AUTH_TYPE, QUERY_STRING
             for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
             {
                 keyName = httpHeaders.AllKeys[i];
@@ -447,6 +531,7 @@ namespace BonCodeAJP13.ServerPackets
                     if (expectedPacketSize < BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH)
                     {
                         pos = SetByte(aUserData, attributeByte, pos); //attribute marker
+                        
                         if (attributeByte == 0x0B)  //the SSL Key Size attribute is the only one currently that needs to be sent as Uint
                         {
                             pos = SetUInt16(aUserData, System.Convert.ToUInt16(keyValue), pos); //attribute value as int (high/low)
@@ -455,6 +540,7 @@ namespace BonCodeAJP13.ServerPackets
                         {
                             pos = SetString(aUserData, keyValue, pos); //attribute value as string
                         }
+                        
                     }
                     else
                     {
@@ -463,6 +549,9 @@ namespace BonCodeAJP13.ServerPackets
                 }
             }
             
+            //WRITE NAMED ATTRIBUTES
+
+
             //add secure session attribute
             if (BonCodeAJP13Settings.BONCODEAJP13_FORCE_SECURE_SESSION)
             {
@@ -527,7 +616,7 @@ namespace BonCodeAJP13.ServerPackets
 
         /// <summary>
         /// evaluates the headers passed from webserver and checks whether they can be 
-        /// accepted by tomcat as is
+        /// accepted by tomcat as is. This also converts null headers to empty strings.
         /// </summary>
         public NameValueCollection CheckHeaders(NameValueCollection httpHeaders)
         {
@@ -535,9 +624,19 @@ namespace BonCodeAJP13.ServerPackets
             NameValueCollection cleanHeaders = new NameValueCollection();
             string keyName = "";
             string keyValue = "";
-            string[] lstSystemBlacklist = new string[] { "PATH_TRANSLATED", "INSTANCE_META_PATH", "APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING", "ACCEPT", "ACCEPT_CHARSET", "ACCEPT_ENCODING", "ACCEPT_LANGUAGE", "AUTHORIZATION", "CONNECTION", "HTTP_CONTENT_TYPE", "HTTP_CONTENT_LENGTH", "PRAGMA", "REFERER", "USER_AGENT" };  //list of headers that will be skipped because they are already processed through other means, duplicate, or not needed          
+            string[] lstSystemBlacklist = new string[] { "PATH_TRANSLATED", "INSTANCE_META_PATH","INSTANCE_ID","APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING", "ACCEPT", "ACCEPT_CHARSET", "ACCEPT_ENCODING", "ACCEPT_LANGUAGE", "AUTHORIZATION", "CONNECTION", "HTTP_CONTENT_TYPE", "HTTP_CONTENT_LENGTH", "PRAGMA", "REFERER", "USER_AGENT" };  //list of headers that will be skipped because they are already processed through other means, duplicate, or not needed          
             string[] lstAllowBlank = new string[] { "" };  //send also if blank
             string[] lstUserWhitelist = null; //if we have data here, only these headers will be sent
+
+            //fix for null headers (from Dominic)
+            for (int i = 0; i < httpHeaders.AllKeys.Length; i++)
+            {
+                if (httpHeaders[httpHeaders.AllKeys[i]] == null)
+                {
+                    httpHeaders[httpHeaders.AllKeys[i]] = "";
+                }
+            }
+
 
             //check for whitelist as specified by users
             if (BonCodeAJP13Settings.BONCODEAJP13_WHITELIST_HEADERS.Length > 5)
@@ -724,7 +823,11 @@ namespace BonCodeAJP13.ServerPackets
                 foreach (String rawHeader in lstRawHeaders)
                 {
                     string rawKeyName = rawHeader.Split(new char[] { ':' })[0];
-                    this.p_RawHeadersTranlator.Add(rawKeyName.ToLower(), rawKeyName);
+                    //only add if we do not already have key
+                    if (!this.p_RawHeadersTranlator.ContainsKey(rawKeyName.ToLower()))
+                    {
+                        this.p_RawHeadersTranlator.Add(rawKeyName.ToLower(), rawKeyName);
+                    }
                 }
 
             }
@@ -784,9 +887,15 @@ namespace BonCodeAJP13.ServerPackets
         /// </summary>
         private string GetFingerprint(NameValueCollection httpHeaders)
         {
-            string lstFPHeaders = "REMOTE_ADDR,HTTP_ACCEPT,HTTP_ACCEPT_CHARSET,HTTP_ACCEPT_ENCODING,HTTP_ACCEPT_LANGUAGE,HTTP_USER_AGENT,UA_CPU,REMOTE_HOST";
+            string lstFPHeaders = BonCodeAJP13Settings.BONCODEAJP13_FINGERPRINTHEADERS; //"REMOTE_ADDR,HTTP_ACCEPT,HTTP_ACCEPT_CHARSET,HTTP_ACCEPT_ENCODING,HTTP_ACCEPT_LANGUAGE,HTTP_USER_AGENT,UA_CPU,REMOTE_HOST";
             string[] aHeaders = lstFPHeaders.Split(new char[] {','});
             string fpString = "";
+
+            //check setting min and ensure we have something valid
+            if (lstFPHeaders.Length < 5)
+            {
+                lstFPHeaders = "REMOTE_ADDR,HTTP_ACCEPT,HTTP_ACCEPT_CHARSET,HTTP_ACCEPT_ENCODING,HTTP_ACCEPT_LANGUAGE,HTTP_USER_AGENT,UA_CPU,REMOTE_HOST";
+            }
 
             for (int i = 0; i < aHeaders.Length; i++)
             {
@@ -811,6 +920,25 @@ namespace BonCodeAJP13.ServerPackets
 
             return System.Convert.ToBase64String(tmpHash);
            
+        }
+
+
+ 
+
+        /// <summary>
+        /// Export a certificate to a PEM format string
+        /// </summary>
+        /// <param name="cert">The certificate to export</param>
+        /// <returns>A PEM encoded string</returns>
+        private static string CertExportToPEM(X509Certificate cert)
+        {
+            StringBuilder builder = new StringBuilder();
+
+            builder.AppendLine("-----BEGIN CERTIFICATE-----");
+            builder.AppendLine(Convert.ToBase64String(cert.Export(X509ContentType.Cert), Base64FormattingOptions.InsertLineBreaks));
+            builder.AppendLine("-----END CERTIFICATE-----");
+
+            return builder.ToString();
         }
 
         #endregion

@@ -35,6 +35,8 @@ namespace BonCodeAJP13
     {
         private Mutex p_Mut;
         private string p_FileName;
+        private static String p_filenameDateFormat = "yyyyMMdd";
+        private static String p_timestampFormat = "yyyy-MM-dd HH:mm:ss ";
 
         /// <summary>
         /// Initialize the Logger with the File Name and Mutex to guard the access of this file.
@@ -47,8 +49,17 @@ namespace BonCodeAJP13
                 throw new ArgumentNullException("File Name cannot be null");
             if (p_FileName == "")
                 throw new ArgumentException("File Name cannot be empty");
+
             //finalize file translatedPath to be in the same directory as dll
             p_FileName = GetLogDir() + "\\" + p_FileName;
+
+            if (!File.Exists(p_FileName))
+            {   // log version to new file
+                using (StreamWriter logStream = File.AppendText(p_FileName))
+                {
+                    logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + "BonCode AJP Connenctor version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+                }
+            }
         }
 
         /// <summary>
@@ -65,9 +76,8 @@ namespace BonCodeAJP13
                     using (StreamWriter logStream = File.AppendText(p_FileName))
                     {
 
-                        //logStream.WriteLine("------------------------------------------------------------------------");
-                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
-                        //logStream.WriteLine("Error at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + "  " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+                        logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
+                       
                         logStream.WriteLine(message);
                         logStream.WriteLine(e.Message);
                         if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
@@ -81,7 +91,7 @@ namespace BonCodeAJP13
                     p_Mut.ReleaseMutex();
                 }
                 catch (Exception fileException)
-                { 
+                {                     
                     //don't like empty catches but if we cannot log, let's not throw more errors
                 }
             }
@@ -98,10 +108,8 @@ namespace BonCodeAJP13
                 try {
                     p_Mut.WaitOne();
                     using (StreamWriter logStream = File.AppendText(p_FileName))
-                    {
-                        //logStream.WriteLine("------------------------------------------------------------------------");
-                        //logStream.WriteLine(message + "     at: " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
-                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + message);
+                    {                        
+                        logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + message);
                         logStream.Flush();
                         logStream.Close();
                     }
@@ -125,13 +133,8 @@ namespace BonCodeAJP13
                 try {
                     p_Mut.WaitOne();
                     using (StreamWriter logStream = File.AppendText(p_FileName))
-                    {
-                        //logStream.WriteLine(" ");
-                        //logStream.WriteLine("------------------------------------------------------------------------");                    
-                        //logStream.WriteLine(messageType + " at:  " + DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString());
-                        //logStream.WriteLine(message);
-                        logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + messageType + " " + message);
-
+                    {                       
+                        logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + messageType + " " + message);
                         logStream.Flush();
                         logStream.Close();
                     }
@@ -162,23 +165,22 @@ namespace BonCodeAJP13
                     using (StreamWriter logStream = File.AppendText(p_FileName))
                     {
                     
+                        //log packet headers only
                         if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
-                        {
-                            //logStream.WriteLine("-- Packet Info:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
-                            logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
-
-                            //logStream.WriteLine(packet.PrintPacketHeader());
-                            //logStream.WriteLine("");
+                        {                            
+                            logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + packet.ToString() + " " + packet.PrintPacketHeader());
+                           
                             logStream.Flush();
                             logStream.Close();
                         };
+
                         //logs full packets. Log files may grow big in this case
                         if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
-                        {
-                            //logStream.WriteLine("-- Packet Data:" + packet.ToString() + " at: " + DateTime.Now.ToShortDateString() + "    " + DateTime.Now.ToLongTimeString());
-                            logStream.WriteLine(DateTime.Now.ToShortDateString() + "  " + DateTime.Now.ToLongTimeString() + " " + packet.ToString() + " " + packet.PrintPacketHeader());
+                        {                            
+                            logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + packet.ToString() + " " + packet.PrintPacketHeader());
                             logStream.WriteLine(packet.PrintPacket());
                             logStream.WriteLine("");
+                         
                             logStream.Flush();
                             logStream.Close();
                         };                    
@@ -193,6 +195,27 @@ namespace BonCodeAJP13
                 }
             }
 
+        }
+
+        /// <summary>
+        /// Debug log writing method using synchronized stream writer class. This logs to seperate file. Does not use mutex.
+        /// </summary>        
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        public static void LogDebug(String message, String filename = "debug-")
+        {
+            try
+            {
+                filename = GetLogDir() + "\\" + filename + DateTime.Now.ToString(p_filenameDateFormat) + ".log";
+
+                using (StreamWriter logStream = File.AppendText(filename))
+                {
+                    
+                    logStream.WriteLine(String.Format("{0}[T-{1}] {2}", DateTime.Now.ToString(p_timestampFormat), Thread.CurrentThread.ManagedThreadId, message));
+                    logStream.Flush();
+                    logStream.Close();
+                }
+            }
+            catch (Exception ex) { }
         }
 
         /// <summary>
@@ -214,9 +237,9 @@ namespace BonCodeAJP13
         public static string GetAssemblyDirectory()
         {
             string codeBase = System.Reflection.Assembly.GetExecutingAssembly().CodeBase;
-            UriBuilder uri = new UriBuilder(codeBase);
-            string translatedPath = Uri.UnescapeDataString(uri.Path);
-            string strPath = System.IO.Path.GetDirectoryName(translatedPath);
+            UriBuilder uri = new UriBuilder(codeBase);           
+            string strPath = System.IO.Path.GetDirectoryName(uri.Uri.LocalPath);
+
             //check whether path is accessible (it is not when in GAC)
             if (strPath.Contains("GAC_MSIL\\BonCodeAJP13\\1.0.0.0")) strPath = Environment.GetEnvironmentVariable("windir"); //Environment.GetFolderPath(Environment.SpecialFolder.System);
             //if (!Directory.Exists(strPath)) strPath = Environment.GetFolderPath(Environment.SpecialFolder.System);

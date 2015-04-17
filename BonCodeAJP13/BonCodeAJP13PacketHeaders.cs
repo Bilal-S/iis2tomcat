@@ -194,9 +194,9 @@ namespace BonCodeAJP13
                     p_ATranslator.Add("AUTH_TYPE", BonCodeAJP13HTTPAttributes.BONCODEAJP13_AUTH_TYPE);
                     p_ATranslator.Add("QUERY_STRING", BonCodeAJP13HTTPAttributes.BONCODEAJP13_QUERY_STRING);
                     p_ATranslator.Add("JVM_ROUTE", BonCodeAJP13HTTPAttributes.BONCODEAJP13_JVM_ROUTE); //JVM_ROUTE IS NOT IMPLEMENTED IN IIS7, included here for completeness sake
-                    p_ATranslator.Add("SSL_CERT", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_CERT); //SSL_CERT IS NOT IMPLEMENTED IN THIS FORM, IIS7 Uses multiple data point
+                    p_ATranslator.Add("SSL_CLIENTCERT", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_CERT); //SSL_CERT is a protocol misnomer. We transfer client certificate (x509v3).
 
-                    p_ATranslator.Add("SSL_CIPHER", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_CIPHER); //SSL_CIPHER IS NOT IMPLEMENTED IN THIS FORM, IIS7 Uses multiple data point
+                    p_ATranslator.Add("SSL_CIPHER", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_CIPHER); //SSL_CIPHER IS NOT IMPLEMENTED IN THIS FORM, IIS7+ Uses multiple data points. All SSL data is transferred via HTTP headers
                     p_ATranslator.Add("SSL_SESSION", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_SESSION); //indicate whether we are using HTTPS session. This impacts how the container responds. It will force SSL and all cookies will be secure.
                     p_ATranslator.Add("HTTPS_SECRETKEYSIZE", BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_KEY_SIZE); 
 
@@ -279,7 +279,7 @@ namespace BonCodeAJP13
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_CONTENT_LENGTH, "Content-Length");
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_DATE, "Date");
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_LAST_MODIFIED, "Last-Modified");
-                    p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_LOCATION, "Content-Location");
+                    p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_LOCATION, "Location"); //Content-Location
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_SET_COOKIE, "Set-Cookie");  //need post processing in header thus we do not use Set-Cookie as name
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_SET_COOKIE2, "Set-Cookie"); //need post processing in header thus we do not use Set-Cookie as name
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_SERVLET_ENGINE, "Servlet-Engine");

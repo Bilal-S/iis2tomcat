@@ -11,7 +11,7 @@ using System.Security;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("BonCode")]
 [assembly: AssemblyProduct("BonCodeIIS")]
-[assembly: AssemblyCopyright("Copyright © 2011 Bilal Soylu")]
+[assembly: AssemblyCopyright("Copyright © 2015 Bilal Soylu")]
 [assembly: AssemblyTrademark("BonCode")]
 [assembly: AssemblyCulture("")]
 
