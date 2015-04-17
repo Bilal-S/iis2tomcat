@@ -11,7 +11,7 @@
     <Setting Name="MaxConnections" Description="Maximum number of concurrent connections." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">200</Value>
     </Setting>
-    <Setting Name="FlushThresholdTicks" Description="Determine whether we should attempt to detect http flushes. Set in tick counts. If we do not receive any data for the specified time- tick count and the connection is still alive, we will begin spooling buffer to client. Set to zero to turn off." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
+    <Setting Name="FlushThreshold" Description="determine whether we should attempt to detect http flushes. Set in tick counts. Set to zero to turn off." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="LogLevel" Description="0=turn off logging, 1=log errors, 2=log headers, 3=log packets (full debug)" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
@@ -77,14 +77,8 @@
     <Setting Name="EnableClientFingerPrint" Description="Whether an automatically generated fingerprint HTTP header (xajp-clientfingerprint) is added to the stream." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" GenerateDefaultValueInCode="false" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="LogFile" Description="The name of the log file to use. This will be appended to the LogDir setting. Default is BonCodeAJP13Connection[yyyyMMdd].log. The date and extension &quot;.log&quot;  will automatically be appended, only provide the name." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">BonCodeAJP13Connection</Value>
-    </Setting>
-    <Setting Name="FPHeaders" Description="The HTTP CSV list of headers that will be used to determine the client fingerprint. If less than 5 characters the default list will be used. These are IIS names of headers." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">REMOTE_ADDR,HTTP_ACCEPT,HTTP_ACCEPT_CHARSET,HTTP_ACCEPT_ENCODING,HTTP_ACCEPT_LANGUAGE,HTTP_USER_AGENT,UA_CPU,REMOTE_HOST</Value>
-    </Setting>
-    <Setting Name="FlushThresholdBytes" Description="Determine whether we should attempt to detect http flushes. The number of bytes to accumulate in buffer before we spool to client. If zero, this feature is disabled." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
-      <Value Profile="(Default)">0</Value>
+    <Setting Name="LogFile" Description="The name of the log file to use. This will be appended to the LogDir setting. Default is BonCodeAJP13ConnectionLog.txt" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">BonCodeAJP13ConnectionLog.txt</Value>
     </Setting>
   </Settings>
 </SettingsFile>

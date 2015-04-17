@@ -28,8 +28,6 @@ using BonCodeAJP13;
 using BonCodeAJP13.ServerPackets;
 using BonCodeAJP13.TomcatPackets;
 using System.Net;
-using System.Threading;
-
 
 
 
@@ -56,8 +54,7 @@ namespace BonCodeIIS
             try
             {
                 KillConnection();
-                Interlocked.Decrement(ref p_InstanceCount);
-                //p_InstanceCount--;
+                p_InstanceCount--;
             }
             catch (Exception)
             {
@@ -75,21 +72,20 @@ namespace BonCodeIIS
         /// </summary>
         public BonCodeCallHandler()
         {
-            Interlocked.Increment(ref p_InstanceCount);
-            //p_InstanceCount++;
+            p_InstanceCount++;
         }
 
         #endregion
 
         /// <summary>
-        /// Declaring ourselves as reusable, so threads can be pooled
+        /// Declaring ourselfes as reusable, so threads can be pooled
         /// </summary>
         public bool IsReusable
         {
             get { return p_isReusable; }
         }
 
-       
+
 
         /// <summary>
         /// Main process hook for IIS invocation.
@@ -106,228 +102,194 @@ namespace BonCodeIIS
             bool blnProceed = true;
             bool isChunkedTransfer = false;
             int sourcePort = p_InstanceCount;  //init with count will override with port if later available
+            
+            /* debug: dump headers
+            string strOut = GetHeaders(context.Request.ServerVariables);
+            context.Response.Write(strOut);
+            */
+            //context.Response.Write(System.Web.HttpContext.Current.Server.MapPath("/addTest"));
 
-
-            try
+            if (executionFeedback.Length == 0)
             {
-                if (executionFeedback.Length == 0)
+                //determine web doc root if needed
+                //if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT) { }
+                //set shared settings
+                BonCodeAJP13Settings.BonCodeAjp13_DocRoot = System.Web.HttpContext.Current.Server.MapPath("~");
+                BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath = context.Request.PhysicalPath;
+                
+
+                //check whether we are resuable, we discard and re-establish connections if MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS is set to zero
+                if (BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS == 0)
                 {
-                    //determine web doc root if needed
-                    //if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT) { }
-                    //set shared settings (global mutable variables). Not ideal solution. Will need to refactor later.
-                    BonCodeAJP13Settings.BonCodeAjp13_DocRoot = System.Web.HttpContext.Current.Server.MapPath("~");
-                    //in some circumstances invalid path data can be supplied by client if so we will set the path to blank when exception occurs, e.g. http://project/group:master...master
+                    p_isReusable = false;
+                }
+                //determine whether we are declaring ourself as part of a reusable pool. If not we need to also take steps to 
+                //kill connections if we are close to the max of pool we maintain a ten thread margin
+                //this allows limited processing to continue even if we are close to maxed out on connections
+                if (p_isReusable && BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS < (p_InstanceCount + 10))
+                {
+                    p_isReusable = false; //new connections will be dropped immediatly
+                };
+
+                //assign reference to context to an instance handler
+                p_Context = context;
+                long streamLen = context.Request.InputStream.Length;
+                //create TcpClient to pass to AJP13 processor, this will re-use connection until this instance is destroyed
+                if (p_TcpClient == null)
+                {
                     try
                     {
-                        BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath = context.Request.PhysicalPath;
+                        p_TcpClient = new TcpClient(BonCodeAJP13Settings.BONCODEAJP13_SERVER, BonCodeAJP13Settings.BONCODEAJP13_PORT);
                     }
-                    catch
+                    catch (Exception e)
                     {
-                        BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath = "";
-                    }
-
-                    //check whether we are resuable, we discard and re-establish connections if MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS is set to zero
-                    if (BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS == 0)
-                    {
-                        p_isReusable = false;
-                    }
-                    //determine whether we are declaring ourself as part of a reusable pool. If not we need to also take steps to 
-                    //kill connections if we are close to the max of pool we maintain a ten thread margin
-                    //this allows limited processing to continue even if we are close to maxed out on connections
-                    if (p_isReusable && BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS < (p_InstanceCount + 10))
-                    {
-                        p_isReusable = false; //new connections will be dropped immediatly
-                    };
-
-                    //assign reference to context to an instance handler
-                    p_Context = context;
-                    long streamLen = context.Request.InputStream.Length;
-                    //create TcpClient to pass to AJP13 processor, this will re-use connection until this instance is destroyed
-                    if (p_TcpClient == null)
-                    {
-                        try
+                        //check whether we had issues connecting to tomcat
+                        if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL.Length > 5)
                         {
-                            p_TcpClient = new TcpClient(BonCodeAJP13Settings.BONCODEAJP13_SERVER, BonCodeAJP13Settings.BONCODEAJP13_PORT);
-                        }
-                        catch (Exception e)
-                        {
-                            //check whether we had issues connecting to tomcat
-                            if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL.Length > 5)
-                            {
-                                context.Response.Redirect(BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL);
-                            }
-                            else
-                            {
-                                string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port.<br>Details:<br>" + e.Message + "<br><small><small><br>You can change this message by changing TomcatConnectErrorURL setting in setting file.</small></small>";
-                                //context.Response.Write(errMsg);
-                                PrintError(context, errMsg, e.Message + " " + e.StackTrace);
-                            }
-                            blnProceed = false;
-
-                        }
-
-
-                        //determine whether we will need to remove the connection later
-                        if (!p_isReusable)
-                        {
-                            p_FlagKillConnection = true;
+                            context.Response.Redirect(BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL);
                         }
                         else
                         {
-                            p_FlagKillConnection = false;
+                            string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port..<br>Details:<br>" + e.Message + "<br><small><small><br>You can change this message by changing TomcatConnectErrorURL setting in setting file.</small></small>";
+                            context.Response.Write(errMsg);
+                            PrintError(context, e.StackTrace);
                         }
+                        blnProceed = false;
 
+                    }
+
+
+                    //determine whether we will need to remove the connection later
+                    if (!p_isReusable)
+                    {
+                        p_FlagKillConnection = true;
                     }
                     else
                     {
-                        //check whether existin TCP/IP connection is still working. If tomcat is restarted the connection needs to be reset here as well
-                        if (!p_TcpClient.Connected)
-                        {
-                            KillConnection();
-                            p_TcpClient = new TcpClient(BonCodeAJP13Settings.BONCODEAJP13_SERVER, BonCodeAJP13Settings.BONCODEAJP13_PORT);
-                        }
-
+                        p_FlagKillConnection = false;
                     }
-
-                    if (blnProceed)
-                    {
-                        //check for chunked transfer
-                        if (context.Request.ServerVariables["HTTP_TRANSFER_ENCODING"] != null && context.Request.ServerVariables["HTTP_TRANSFER_ENCODING"] == "chunked")
-                        {
-                            isChunkedTransfer = true;
-                        }
-
-
-                        //initialize AJP13 protocol connection
-                        string logFilePostFix = "_" + context.Request.ServerVariables["INSTANCE_ID"] + "_" + context.Server.MachineName + "_";
-                        BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection(logFilePostFix);
-                        sconn.FlushDelegateFunction = PrintFlush;  //this function will do the transfer to browser if we use Flush detection, we pass as delegate
-                        sconn.FlushStatusFunction = IsFlushing; //will let the implementation know if flushing is still in progress
-                        sconn.SetTcpClient = p_TcpClient;
-                        sconn.ChunkedTransfer = isChunkedTransfer;
-                        //TODO: bind this into log file name
-
-                        //context.Server.MachineName;
-
-
-                        //check for Adobe support
-                        if (BonCodeAJP13Settings.BONCODEAJP13_ADOBE_SUPPORT)
-                        {
-                            sconn.ServerPathFunction = ServerPath;
-                        }
-                        //setup basic information (base ForwardRequest package)            
-                        sourcePort = ((IPEndPoint)p_TcpClient.Client.LocalEndPoint).Port;
-
-                        BonCodeAJP13ForwardRequest FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables, context.Request.PathInfo, sourcePort);
-                        sconn.AddPacketToSendQueue(FR);
-
-
-
-                        //determine if extra ForwardRequests are needed. 
-                        //We need to create a collection of Requests (for form data and file uploads etc.) 
-                        //TODO: think about streaming support. The reading would be posted to a different thread that continues the reading process while
-                        //      the AJP handler continues writing the packets back to tomcat
-                        if (context.Request.ContentLength > 0 || isChunkedTransfer)
-                        {
-                            // need to create a collection of forward requests to package data in      
-                            int maxPacketSize = BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH - 1;
-                            int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(maxPacketSize))));
-                            int iStart = 0;
-                            int iCount = 0;
-
-                            //for chunked transfer we use stream length to determine number of packets
-                            if (isChunkedTransfer)
-                            {
-                                numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(streamLen / Convert.ToDouble(maxPacketSize)))); ;
-                            }
-
-                            for (int i = 1; i <= numOfPackets; i++)
-                            {
-                                //we need to breakdown data into multiple FR packages to tomcat
-                                if (i * maxPacketSize <= streamLen)
-                                {
-                                    //we are in the middle of transferring data grab next 8188 (if default packet size) bytes and create package
-                                    iStart = (i - 1) * (maxPacketSize);
-                                    iCount = Convert.ToInt32(maxPacketSize);
-                                }
-                                else
-                                {
-                                    //last user package
-                                    iStart = (i - 1) * (maxPacketSize);
-                                    iCount = Convert.ToInt32(streamLen) - iStart;
-                                }
-                                //add package to collection
-                                byte[] streamInput = new byte[iCount];
-                                context.Request.InputStream.Read(streamInput, 0, iCount); //stream pointer moves with each read so we allways start at zero position
-                                sconn.AddPacketToSendQueue(new BonCodeAJP13ForwardRequest(streamInput));
-
-                            }
-                            //add an empty Forward Request packet as terminator to collection if multiple packets are used
-                            //sconn.AddPacketToSendQueue(new BonCodeAJP13ForwardRequest(new byte[] { }));
-
-                        }
-
-                        //run connection (send and receive cycle)
-
-                        try
-                        {
-                            sconn.BeginConnection();
-                        }
-
-                        catch (Exception e)
-                        {
-                            //we have an error do the dump on screen since we are not logging but allso kill connection                                                
-                            PrintError(context, ".", e.Message + " " + e.StackTrace);
-                            KillConnection(); //remove TCP cache good after timeouts
-                        }
-
-                        //write the response to browser (if not already flushed)
-                        PrintFlush(sconn.ReceivedDataCollection);
-
-                        //kill connections if we are not reusing connections or other problems occurred
-                        if (p_FlagKillConnection)
-                        {
-                            KillConnection();
-                        }
-
-                        //dispose the sconn explictily
-                        sconn = null;
-
-                    }; // proceed is true
-
-                    //dispose of context explicity
-                    p_Context = null;
 
                 }
                 else
                 {
-                    //execution was denied by logic, only print message
-                    context.Response.Write(executionFeedback);
+                    //check whether existin TCP/IP connection is still working. If tomcat is restarted the connection needs to be reset here as well
+                    if (!p_TcpClient.Connected)
+                    {
+                        KillConnection();
+                        p_TcpClient = new TcpClient(BonCodeAJP13Settings.BONCODEAJP13_SERVER, BonCodeAJP13Settings.BONCODEAJP13_PORT);
+                    }                    
+
                 }
-            }
 
-            catch (InvalidOperationException e)
-            {
-                //TODO: check with Dominic whether the behavior is correct here
-                //this is where we set the status code to 500
-                //context.Response.StatusCode = 500;
-                KillConnection(); //remove TCP connection and cache
-                PrintError(context, ".", e.Message + " " + e.StackTrace);
-            }
-            catch (HttpException e)
-            {
-                //if we have web exception display reasonsa maxRequest length exception, e.g. 3004 then display different message otherwise normal message
-                
-                KillConnection(); //remove TCP connection and cache
-                string strErr = "IIS Web Processing Exception (" + e.GetHttpCode().ToString() + "):<hr>" + e.Message + "<br><small>For maximum request size limit errors please have administrator adjust maxRequestLength and/or maxAllowedContentLength.</small><br>";
-                PrintError(context, strErr, e.StackTrace);
-           
-            }
-            catch (Exception e)  //Global Exception catcher
-            {
-                KillConnection(); //remove TCP connection and cache
-                PrintError(context, ".", e.Message + " " + e.StackTrace);
+                if (blnProceed)
+                {
+                    //check for chunked transfer
+                    if (context.Request.ServerVariables["HTTP_TRANSFER_ENCODING"] != null && context.Request.ServerVariables["HTTP_TRANSFER_ENCODING"] =="chunked")
+                    {
+                        isChunkedTransfer = true;
+                    }
 
+
+                    //initialize AJP13 protocol connection
+                    BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection();
+                    sconn.FlushDelegateFunction = PrintFlush;  //this function will do the transfer to browser if we use Flush detection, we pass as delegate
+                    sconn.FlushStatusFunction = IsFlushing; //will let the implementation know if flushing is still in progress
+                    sconn.SetTcpClient = p_TcpClient;
+                    sconn.ChunkedTransfer = isChunkedTransfer;
+
+                    //check for Adobe support
+                    if (BonCodeAJP13Settings.BONCODEAJP13_ADOBE_SUPPORT)
+                    {
+                        sconn.ServerPathFunction = ServerPath;
+                    }
+                    //setup basic information (base ForwardRequest package)            
+                    sourcePort = ((IPEndPoint) p_TcpClient.Client.LocalEndPoint).Port;
+                    
+                    BonCodeAJP13ForwardRequest FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables,context.Request.PathInfo,sourcePort);
+                    sconn.AddPacketToSendQueue(FR);
+                    
+   
+
+                    //determine if extra ForwardRequests are needed. 
+                    //We need to create a collection of Requests (for form data and file uploads etc.) 
+                    //TODO: think about streaming support. The reading would be posted to a different thread that continues the reading process while
+                    //      the AJP handler continues writing the packets back to tomcat
+                    if (context.Request.ContentLength > 0 || isChunkedTransfer)
+                    {
+                        // need to create a collection of forward requests to package data in      
+                        int maxPacketSize = BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH - 1;
+                        int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(maxPacketSize))));
+                        int iStart = 0;
+                        int iCount = 0;
+
+                        //for chunked transfer we use stream length to determine number of packets
+                        if (isChunkedTransfer)
+                        {
+                            numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(streamLen / Convert.ToDouble(maxPacketSize)))); ;
+                        }
+
+                        for (int i = 1; i <= numOfPackets; i++)
+                        {
+                            //we need to breakdown data into multiple FR packages to tomcat
+                            if (i * maxPacketSize <= streamLen)
+                            {
+                                //we are in the middle of transferring data grab next 8188 (if default packet size) bytes and create package
+                                iStart = (i - 1) * (maxPacketSize);
+                                iCount = Convert.ToInt32(maxPacketSize);
+                            }
+                            else
+                            {
+                                //last user package
+                                iStart = (i - 1) * (maxPacketSize);
+                                iCount = Convert.ToInt32(streamLen) - iStart;
+                            }
+                            //add package to collection
+                            byte[] streamInput = new byte[iCount];
+                            context.Request.InputStream.Read(streamInput, 0, iCount); //stream pointer moves with each read so we allways start at zero position
+                            sconn.AddPacketToSendQueue(new BonCodeAJP13ForwardRequest(streamInput));
+
+                        }
+                        //add an empty Forward Request packet as terminator to collection if multiple packets are used
+                        //sconn.AddPacketToSendQueue(new BonCodeAJP13ForwardRequest(new byte[] { }));
+
+                    }
+
+                    //run connection (send and receive cycle)
+                    
+                    try
+                    {
+                        sconn.BeginConnection();  
+                    }                   
+
+                    catch (Exception e)
+                    {
+                        //we have an error do the dump on screen since we are not logging but allso kill connection
+                        string errMsg = "Generic Connector Communication Error: <hr>Please check and adjust your setup..<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual).<br>Details:<br>" + e.StackTrace + "";
+                        context.Response.Write(errMsg);
+                        PrintError(context, e.StackTrace);
+                        KillConnection(); //remove TCP cache good after timeouts
+                    }
+
+                    //write the response to browser (if not already flushed)
+                    PrintFlush(sconn.ReceivedDataCollection);
+
+                    //kill connections if we are not reusing connections
+                    if (p_FlagKillConnection)
+                    {
+                        KillConnection();
+                    }
+
+                    //dispose the sconn explictily
+                    sconn = null;
+
+
+                }; // proceed is true
+
+            }
+            else
+            {
+                //execution was denied by logic, only print message
+                context.Response.Write(executionFeedback);
             }
             
 
@@ -335,10 +297,10 @@ namespace BonCodeIIS
 
        
 
+
         /// <summary>
         /// Return the mapping of or URi to physical server path, including virtual directories etc.
         /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         string ServerPath(String virtualPath)
         {
             return System.Web.HttpContext.Current.Server.MapPath(virtualPath);
@@ -355,8 +317,7 @@ namespace BonCodeIIS
         /// <summary>
         /// Function to be passed as delegate to BonCodeAJP13 process
         /// Will pass packet collection content to user browser and flush
-        /// </summary> 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        /// </summary>        
         void PrintFlush(BonCodeAJP13PacketCollection flushCollection)
         {
             p_FlushInProgress = true;
@@ -369,6 +330,8 @@ namespace BonCodeIIS
             long contentLength = 0; //only assigned if content is known
             long transferredBytes = 0;
 
+            
+
             foreach (TomcatReturn flushPacket in flushCollection)
             {
                 try
@@ -379,7 +342,6 @@ namespace BonCodeIIS
                         TomcatSendHeaders tcshPackage = (TomcatSendHeaders)flushPacket;
                         //get Headers
                         NameValueCollection tomcatHeaders = tcshPackage.GetHeaders();
-                        
                         //iterate through headers and set
                         for (int i = 0; i < tomcatHeaders.AllKeys.Length; i++)
                         {
@@ -446,21 +408,14 @@ namespace BonCodeIIS
                             }
 
 
-                            //check whether we can represent a given header in native IIS Response context (currently only used for server side redirects)
+                            //check whether we can represent a given header in native IIS Response context
                             IISNativeHeaders(keyName, tempValue);
 
 
                         }
                         //set response status code
-                        if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
-                        {
+                        if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)  
                             p_Context.Response.StatusCode = tcshPackage.GetStatus();
-                            //we will mark this as to be killed if status is not 200 to ensure that stream cache is removed and cannot be reused by other connections                            
-                            if (tcshPackage.GetStatus() != 200)
-                            {
-                                p_FlagKillConnection = true; //we are only marking here to ensure that we finish writing as much as possible to stream before closing
-                            }
-                        }
 
                     }
                     else if (flushPacket is TomcatEndResponse)
@@ -474,16 +429,6 @@ namespace BonCodeIIS
 
                         }
 
-                        //if servlet container did not set content length, we were not flushing and we have non-binary content avoid chunked transfer by setting actual content-length (given no flush)                       
-                        if (    !isBinary &&   
-                                contentLength == 0 &&  
-                                BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES == 0 && 
-                                BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS == 0 && 
-                                transferredBytes > 0)
-                        {
-                            p_Context.Response.AddHeader("Content-Length", transferredBytes.ToString());
-                        }
-                        
                     }
                     else if (flushPacket is TomcatPhysicalPathRequest)
                     {
@@ -500,8 +445,9 @@ namespace BonCodeIIS
                 }
                 catch (Exception e)
                 {
-                    //display error                                        
-                    PrintError(p_Context, ".", e.Message + " " + e.StackTrace);
+                    //display error                    
+                    p_Context.Response.Write("Error in transfer of data from tomcat to browser.");
+                    PrintError(p_Context, e.StackTrace);
 
                 }
 
@@ -509,14 +455,13 @@ namespace BonCodeIIS
 
             //attempt to flush now
             try
-            { 
-                //send contents to browser
+            {
                 p_Context.Response.Flush();
             }
             catch (Exception e)
             {
                 //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred                
-                PrintError(p_Context, "", e.Message + " " + e.StackTrace);
+                PrintError(p_Context, e.StackTrace);
             }
 
             p_FlushInProgress = false;
@@ -527,15 +472,11 @@ namespace BonCodeIIS
         /// If we recognize certain headers that IIS supports we will write them into the response stream using IIS notation as well.        
         /// </summary> 
         private void IISNativeHeaders(string headerName, string headerValue) { 
-            //switch block
+            //switch blocked
             switch (headerName)
             {
                 case "Location": case "Content-Location":
-                    //in cases where we are restricted from writing status codes we will do a server side redirect when we detect the right headers
-                    if (!BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
-                    {
-                        p_Context.Response.Redirect(headerValue);
-                    }
+                    p_Context.Response.Redirect(headerValue);
                     break;               
                     
             }
@@ -571,21 +512,12 @@ namespace BonCodeIIS
 
         /// <summary>
         /// Determine if local call and print error on screen.
-        /// PublicError will be displayed to all users
-        /// LocalError will be displayed to local users (such as stack trace)
         /// TODO: This will be extended in the future to log errors to file.
         /// </summary>
-        private void PrintError(HttpContext context,String strPublicErr=".", String strLocalErr="")
+        private void PrintError(HttpContext context,String strErr)
         {
-            //set a constant for public error if we use period
-            if (strPublicErr == ".")
-            {
-                strPublicErr = "Generic Connector Communication Error: <hr>Please check and adjust your setup:<br>Ensure that Tomcat is running on given host and port.<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual).";
-            }
-
-            context.Response.Write(strPublicErr);
-            if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR"))) {                
-                context.Response.Write("<br><pre>" + strLocalErr + "</pre>");
+            if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR"))) {
+                context.Response.Write("<br><pre>" + strErr + "</pre>");
             }
         }
 
@@ -678,14 +610,10 @@ namespace BonCodeIIS
                 //----------------------------------
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //mark exception
-                retVal += ":exception - run locally for detailed message <br>";
-                //return stack trace if local call
-                if (IsLocalIP(GetKeyValue(httpHeaders, "REMOTE_ADDR"))) {
-                    retVal += e.StackTrace;
-                }
+                retVal += ":exception";
             }
 
 

@@ -98,7 +98,7 @@ namespace BonCodeAJP13
         private static BonCodeAJP13Logger p_Logger = null;  
 
         // Flags 
-        private static int p_ConcurrentConnections = 0;         //concurrent connection counter 
+        private static int p_ConnectionsID = 0;         //concurrent connection counter 
         private static long p_ConnectionsCounter = 0;    //life time connections will assign p_ThisConnectionID from this
 
 
@@ -112,9 +112,8 @@ namespace BonCodeAJP13
         private long p_ThisConnectionID = -1;
         private bool p_SendTermPacket = false; //indicate whether we need to send extra terminator package
         private bool p_IsChunked = false;
-        private int p_BytesInBuffer = 0; //counter for bytes to see whether we need to flush data; this is only approximated actual bytes tend to be a few more
+
         private Stopwatch p_StopWatch = new Stopwatch();
-        private string p_LogFilePostFix = "";  //will be appended to log file between user chosen name and date to ensure that we have unique log file names
 
         //this is a function place holder
         private FlushPacketsCollectionDelegate p_FpDelegate;
@@ -214,7 +213,6 @@ namespace BonCodeAJP13
         /// <summary>
         /// Generic constuctor.
         /// Only initializes intance
-        /// DEPRECATED DO NOT USE
         /// </summary>
         public BonCodeAJP13ServerConnection()
         {
@@ -222,21 +220,8 @@ namespace BonCodeAJP13
         }
 
         /// <summary>
-        /// Constructor with a post fix for log file names
-        /// Initializes intance
-        /// ONLY USE THIS
-        /// </summary>
-        public BonCodeAJP13ServerConnection(string logFilePostFix="")
-        {
-            p_LogFilePostFix = logFilePostFix; 
-            Interlocked.Increment(ref p_ConcurrentConnections);
-            CheckMutex();
-        }
-
-        /// <summary>
         /// Initialize new connection from server to tomcat in new thread.
         /// Delayed connection init. Will wait until connection is initialized
-        /// DEPRECATED DO NOT USE
         /// </summary>
         public BonCodeAJP13ServerConnection(BonCodeAJP13Packet singlePacket, bool delayConnection = true)
         {
@@ -255,7 +240,6 @@ namespace BonCodeAJP13
         /// <summary>
         /// Initialize new connection from server to tomcat in new thread.
         /// this connection will run in new thread spawned from the listener thread.
-        /// DEPRECATED DO NOT USE
         /// </summary>
         public BonCodeAJP13ServerConnection(BonCodeAJP13Packet singlePacket)
         {
@@ -270,7 +254,6 @@ namespace BonCodeAJP13
 
         /// <summary>
         /// Initialize new connection to tomcat using server and port input
-        /// DEPRECATED DO NOT USE
         /// </summary>
         public BonCodeAJP13ServerConnection(string server, int port, BonCodeAJP13Packet singlePacket)
         {
@@ -288,7 +271,6 @@ namespace BonCodeAJP13
         /// <summary>
         /// Initialize new connection from server to tomcat in new thread.
         /// We use a packet collection (in case of Form posts) 
-        /// DEPRECATED DO NOT USE
         /// </summary>
         public BonCodeAJP13ServerConnection(BonCodeAJP13PacketCollection packetsToSend)
         {
@@ -300,7 +282,6 @@ namespace BonCodeAJP13
 
         /// <summary>
         /// Initialize new connection to tomcat using server and port input and packet collection
-        /// DEPRECATED DO NOT USE
         /// </summary>
         public BonCodeAJP13ServerConnection(string server, int port, BonCodeAJP13PacketCollection packetsToSend)
         {
@@ -311,19 +292,6 @@ namespace BonCodeAJP13
             p_CreateConnection(packetsToSend);
         }
 
-
-        #endregion
-
-        #region destructor
-
-        /// <summary>
-        /// During destruction of class reduce the connection count
-        /// Only initializes intance        
-        /// </summary>
-        ~ BonCodeAJP13ServerConnection()
-        {
-            Interlocked.Decrement(ref p_ConcurrentConnections);
-        }
 
         #endregion
 
@@ -338,8 +306,7 @@ namespace BonCodeAJP13
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG)
             {
                 //default log file name is BonCodeAJP13ConnectionLog.txt in directory of DLL or Windows 
-                p_Logger = new BonCodeAJP13Logger(BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE + p_LogFilePostFix + DateTime.Now.ToString("yyyyMMdd") + ".log", p_ConnectionMutex);
-                
+                p_Logger = new BonCodeAJP13Logger(BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE, p_ConnectionMutex);
             }
         }
 
@@ -405,6 +372,22 @@ namespace BonCodeAJP13
                 //Delete all packets processed so far
                 p_PacketsReceived.Clear();
 
+                /*
+                //flush received packets (only Send Headers/Get Body Chunk packages are flushed) 
+                foreach (TomcatReturn flushPacket in p_PacketsReceived)
+                {
+                    //TODO: check by packet type and do different processing before calling flush
+                    if (flushPacket is TomcatSendHeaders)
+                    {
+                        //cast as headers packet
+                        TomcatSendHeaders tcsh = flushPacket as TomcatSendHeaders;
+                    }
+                    //generic flush of data
+                    p_FpDelegate(flushPacket.GetUserDataString());
+                    
+                }
+                 */
+
             }
             
 
@@ -416,11 +399,19 @@ namespace BonCodeAJP13
         /// </summary>
         private void p_CreateConnection(BonCodeAJP13PacketCollection packetsToSend)
         {
-            p_AbortConnection = false;        
+            p_AbortConnection = false;            
+            p_ConnectionsID++; //increment the number of connections
             p_ConnectionsCounter++;
             p_ThisConnectionID = p_ConnectionsCounter; //assign the connection id
 
 
+            if (p_ConnectionsID > BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS)
+            {
+                //throw exception if we exceeded concurrent connections
+                //Exception e = new Exception("0:Maximum connection limit exceeded. Please change limit setting if change is desired. Dropping connection.");
+                //throw e;
+
+            }
 
             try
             {
@@ -483,18 +474,32 @@ namespace BonCodeAJP13
         /// </summary>
         public void HandleConnection()
         {
-       
-                        
-            if (p_Logger != null) p_Logger.LogMessage(String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]",p_ConcurrentConnections,BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS, p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            //set timeouts (default 15m/30s)
+            try
+            {
+                //remove timeouts on the client level. Using only stream level timeouts for AJP
+                //p_TCPClient.ReceiveTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
+                //p_TCPClient.SendTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
+
+
+            }
+            catch (Exception e)
+            {
+                if (p_Logger != null) p_Logger.LogException(e, "Receive/Send timeouts level -- Server/Port:" + p_Server + "/" + p_Port.ToString());
+                ConnectionError();
+                return;
+            }
+
+            if (p_Logger != null) p_Logger.LogMessage(" New Connection to tomcat : " + p_TCPClient.Client.RemoteEndPoint.ToString() + " ID:" + p_ThisConnectionID,BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+
 
             //get stream set timeouts again (default 30 minutes)
             try
             {
-                
                 p_NetworkStream = p_TCPClient.GetStream();
                 p_NetworkStream.ReadTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
                 p_NetworkStream.WriteTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
-                
+
             }
             catch (Exception ex)
             {
@@ -649,14 +654,14 @@ namespace BonCodeAJP13
                     //clear reading array
                     Array.Clear(receivedPacketBuffer,0,receivedPacketBuffer.Length);
                  
-                    //flush detection by ticks check if we we have no data on channel                    
+                    //flush detection check if we we have no data on channel                    
                     //check whether we need monitor for tomcat flush signs  
-                    if (!p_NetworkStream.DataAvailable && BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0)
+                    if (!p_NetworkStream.DataAvailable && BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_THRESHOLD > 0)
                     {
                         long elapsedTicks = p_StopWatch.ElapsedTicks;
                         p_TickDelta = elapsedTicks - p_LastTick;
                         p_LastTick = elapsedTicks;
-                        if (p_TickDelta > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS)
+                        if (p_TickDelta > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_THRESHOLD)
                         {
                             //flush has been detected set the flag. We should flush after this receiveBuffer has been processed.
                             //no flush is needed if we see end marker during receiveBuffer processing
@@ -664,24 +669,10 @@ namespace BonCodeAJP13
                         }
                     }
 
-
-
                     //read incoming packets until timeout or last package has been received.
                     readCount++;                       
                     //read or wait on next package
                     numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
-
-                    //flush detection by bytes
-                    if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0)
-                    {
-                        p_BytesInBuffer = p_BytesInBuffer + numOfBytesReceived;
-                        if (p_BytesInBuffer > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES)
-                        {
-                            p_IsFlush = true;
-                            p_BytesInBuffer = 0;
-                        }
-                    }
-
                     
 
                     //analyze packet so far (adjust bytes from Receiving buffer):combine notProcessed with new Read bytes into new Received buffer if needed                        
@@ -701,6 +692,8 @@ namespace BonCodeAJP13
                         Array.Copy(receivedPacketBuffer, 0, tempArray, 0, numOfBytesReceived);
                         notProcessedBytes = AnalyzePackage(tempArray);
                     }
+
+                    //check to see whether we have any packets to send now
 
                 }
                     
@@ -777,7 +770,7 @@ namespace BonCodeAJP13
             p_NetworkStream.Dispose();
             p_TCPClient = null;
             p_NetworkStream = null;
-           
+            p_ConnectionsID--;
             //Kill associated timer
             if (p_KeepAliveTimer != null) p_KeepAliveTimer.Dispose();
         }
@@ -810,16 +803,11 @@ namespace BonCodeAJP13
                 //log exception
                 if (p_Logger != null) p_Logger.LogException(e, "TcpClient Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             }
-
+            p_ConnectionsID--;
             
-            //now raise the error for the call handler it will close this connection instead
-            if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
-            {
-                throw new System.InvalidOperationException("connection between Tomcat and IIS experienced error. Please check log.");
-            }
         }
 
-        private void ConnectionError(string message="", string messageType="")
+        private void ConnectionError(string message, string messageType)
         {
             if (p_Logger != null) p_Logger.LogMessageAndType(message, messageType, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             //attempt to close stream
@@ -842,12 +830,7 @@ namespace BonCodeAJP13
                 //log exception
                 if (p_Logger != null) p_Logger.LogException(e, "TcpClient Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             }
-
-            //now raise the error for the call handler it will close this connection instead
-            if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
-            {
-                throw new System.InvalidOperationException("connection between Tomcat and IIS experienced error. Please check log. " + messageType + ":" + message);
-            }
+            p_ConnectionsID--;
            
         }
         #endregion
@@ -950,23 +933,7 @@ namespace BonCodeAJP13
                                 {
                                     adobePath = BonCodeAJP13Settings.BonCodeAjp13_DocRoot + "index.htm";
                                 };
-                                //if we have trouble with the path packet we will cause exception
-                                BonCodeFilePathPacket pathResponse = null;
-                                pathResponse = new BonCodeFilePathPacket(adobePath);
-
-                                /* Degbug sequence START
-                                try
-                                {
-                                    pathResponse = new BonCodeFilePathPacket(adobePath);
-                                }
-                                catch (Exception e)
-                                {
-                                    if (p_Logger != null) p_Logger.LogException(e, "Problem determining Adobe path [" + adobePath + "] for: [" + requestPath +"] setting to fake [" + BonCodeAJP13Settings.BonCodeAjp13_DocRoot + "\\index.htm] instead.");
-                                    adobePath = BonCodeAJP13Settings.BonCodeAjp13_DocRoot + "index.htm";
-                                    pathResponse = new BonCodeFilePathPacket(adobePath);
-                                }                                 
-                                Debug Sequence END */
-
+                                BonCodeFilePathPacket pathResponse = new BonCodeFilePathPacket(adobePath);
                                 p_NetworkStream.Write(pathResponse.GetDataBytes(), 0, pathResponse.PacketLength);
                                 if (p_Logger != null) p_Logger.LogPacket(pathResponse);
                                 delayWriteIndicator = true; //prevent main process from writing to network stream
@@ -1001,12 +968,12 @@ namespace BonCodeAJP13
                             //old flush check position
                             /*
                             //check whether we need monitor for tomcat flush signs  
-                            if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0)
+                            if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_THRESHOLD > 0)
                             {
                                 long elapsedTicks = p_StopWatch.ElapsedTicks;
                                 p_TickDelta = elapsedTicks - p_LastTick;
                                 p_LastTick = elapsedTicks;
-                                if (p_TickDelta > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS)
+                                if (p_TickDelta > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_THRESHOLD)
                                 {
                                     //flush has been detected set the flag. We should flush after this receiveBuffer has been processed.
                                     //no flush is needed if we see end marker during receiveBuffer processing                                 
@@ -1057,7 +1024,8 @@ namespace BonCodeAJP13
         /// </summary>
         private byte[] AnalyzePackage(byte[] receiveBuffer,bool skipFlush = false,int iOffset=0)
         {
-            //call primary signature and return bytes while dropping delay write.            
+            //call primary signature and return bytes while dropping delay write. 
+            //this keeps t
             bool delayWrite = false;
             return AnalyzePackage(ref delayWrite, receiveBuffer, skipFlush, iOffset);
 

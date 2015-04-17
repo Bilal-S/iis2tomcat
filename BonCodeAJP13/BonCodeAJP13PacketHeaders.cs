@@ -279,7 +279,7 @@ namespace BonCodeAJP13
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_CONTENT_LENGTH, "Content-Length");
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_DATE, "Date");
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_LAST_MODIFIED, "Last-Modified");
-                    p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_LOCATION, "Location"); //Content-Location
+                    p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_LOCATION, "Content-Location");
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_SET_COOKIE, "Set-Cookie");  //need post processing in header thus we do not use Set-Cookie as name
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_SET_COOKIE2, "Set-Cookie"); //need post processing in header thus we do not use Set-Cookie as name
                     p_THeadTranslator.Add(BonCodeAJP13TomcatHeaders.BONCODEAJP13_SERVLET_ENGINE, "Servlet-Engine");

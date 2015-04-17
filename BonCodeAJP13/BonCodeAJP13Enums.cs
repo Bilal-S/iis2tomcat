@@ -212,10 +212,8 @@ namespace BonCodeAJP13
         // The tomcat server used by BonCodeAJP13.    
         public static string BONCODEAJP13_SERVER = Properties.Settings.Default.Server; // "localhost";
 
-        //autoflush detection threshold in time-ticks
-        public static long BONCODEAJP13_AUTOFLUSHDETECTION_TICKS = Properties.Settings.Default.FlushThresholdTicks; // 0;
-        //autoflush detection by byte count. Determine whether we should attempt to detect http flushes. The number of bytes to accumulate in buffer before we spool to client. If zero, this feature is disabled.
-        public static long BONCODEAJP13_AUTOFLUSHDETECTION_BYTES = Properties.Settings.Default.FlushThresholdBytes;  //0
+        //autoflush detection threshold in ticks
+        public static long BONCODEAJP13_AUTOFLUSHDETECTION_THRESHOLD = Properties.Settings.Default.FlushThreshold; // 0;
 
         //Define the maximum concurrent connections in the server. This should correspond to Max JK thread count on Apache
         public static int MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS = Properties.Settings.Default.MaxConnections; //200
@@ -225,7 +223,7 @@ namespace BonCodeAJP13
         // Log dir. If blank we will attempt to use dll location dir. IMPORTANT: I_USR user will need read/write rights in this directory
         public static string BONCODEAJP13_LOG_DIR = Properties.Settings.Default.LogDir; // Empty String;
         // Log File. If blank we will attempt to use "BonCodeAJP13ConnectionLog.txt"  IMPORTANT: I_USR user will need read/write rights in this directory
-        public static string BONCODEAJP13_LOG_FILE = Properties.Settings.Default.LogFile; // BonCodeAJP13Connection [siteId] and [date] and [.log] will be appended
+        public static string BONCODEAJP13_LOG_FILE = Properties.Settings.Default.LogFile; // BonCodeAJP13ConnectionLog.txt;
 
         //remote administration (enabled by default)
         public static bool BONCODEAJP13_ENABLE_REMOTE_MANAGER = Properties.Settings.Default.EnableRemoteAdmin; // true
@@ -287,17 +285,13 @@ namespace BonCodeAJP13
         //URL path prefix such as /axis that will be prefixed to any call from IIS to tomcat. Allows for easier mapping.
         public static string BONCODEAJP13_PATH_PREFIX = Properties.Settings.Default.PathPrefix; //blank
 
-        //DISABLED:Adobe mode change of packet size. Needs to corresdpond with Apache Tomcat packetSize. Default changes based on Adobe Support
-        public static int MAX_BONCODEAJP13_PACKET_LENGTH = BONCODEAJP13_ADOBE_SUPPORT ? 65531 : Properties.Settings.Default.PacketSize; //8192 or Adobe hardcode 65531
-        
-        //packet size and user packet size
-        //public static int MAX_BONCODEAJP13_PACKET_LENGTH =  Properties.Settings.Default.PacketSize; //8192
+        //packet size. Needs to corredpond with Apache Tomcat packetSize. Default changes based on Adobe Support
+        //public static int MAX_BONCODEAJP13_PACKET_LENGTH = BONCODEAJP13_ADOBE_SUPPORT ? 65536 : Properties.Settings.Default.PacketSize; //8192
+        public static int MAX_BONCODEAJP13_PACKET_LENGTH =  Properties.Settings.Default.PacketSize; //8192
         public static int MAX_BONCODEAJP13_USERDATA_LENGTH = MAX_BONCODEAJP13_PACKET_LENGTH - 6;
 
         //fingerprint
         public static bool BONCODEAJP13_ENABLE_CLIENTFINGERPRINT = Properties.Settings.Default.EnableClientFingerPrint; // false
-        public static string BONCODEAJP13_FINGERPRINTHEADERS = Properties.Settings.Default.FPHeaders; //CSV list of headers
-
 
     }  
 
@@ -315,7 +309,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.18";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.16";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;
