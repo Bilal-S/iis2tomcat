@@ -248,7 +248,26 @@ Version 1.0.22 Updates:
 * Add: new HTTP header x-webserver-context when EnableHeaderDataSupport setting is turned on. Will contain the IIS site context. Used with mod_cfml this can assist in auto creation of Tomcat contexts.
 * Upd: disable connection pool by default (MaxConnections=0). Most reports of bugs were related to this as users did not understand repercussions of this setting. 
 
-Version 1.0.23 Updates Planning:
+
+Version 1.0.23 Updates:
+* Fix: IIS InstanceId determination on certain computers would throw errors.
+* Fix: Windows 2012 flexgateway receiving out of order packets
+* Fix: Windows 2012 flexgateway empty packets from tomcat would cause connection abort
+
+Version 1.0.24 Updates:
+* Add: New setting RequestSecret to support Tomcat requiredSecret setup. A shared secret can be used to secure the AJP connection.
+* Add: Cache of settingfile reads
+* Add: New setting EnableAggressiveGC for more frequent Garbage Collection. Users transfering large number of bytes, e.g. images and file assets through the connector rather than through IIS.
+* Add: Installer can now install site-specific handlers
+* Upd: Changed default for HeaderBlacklist to decrease the size of initial packet. The HTTP headers URL,SERVER_SOFTWARE,SERVER_NAME, and SERVER_PROTOCOL will no longer be automatically transferred.
+* Fix: Correct virtual direcotry listing when Site Ids where manually changed by users
+
+
+Version 1.0.25 Updates:
+* Add: New setting for ModCfmlSecret
+* Add: Installer setting file can accept requestSecret and modCfmlSecret parameters
+
+Version 1.0.26 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
 * Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
 * Add: installer add mapping for *.cfchart / *.cfres / *.cfr 

@@ -45,6 +45,7 @@ using System.Collections.Specialized;
 using System.Configuration;
 using System.IO;
 using System.Xml;
+using System.Web.Caching;
 
 
 
@@ -54,144 +55,151 @@ namespace BonCodeAJP13.Config
     {
 
         #region Constants
-            const string XMLROOT = "Settings";
+        const string XMLROOT = "Settings";
         #endregion
 
         #region Instance data
 
-            private XmlDocument p_settingsXML = null;
+        // private XmlDocument p_settingsXmlDoc = null;
 
         #endregion
 
         #region Properties
 
-            public override string ApplicationName
+        public override string ApplicationName
+        {
+            get
             {
-                get
-                {                
-                    return (System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
-                }
-                set
-                {
-                    // Do nothing.
-                }
+                return (System.Reflection.Assembly.GetExecutingAssembly().GetName().Name);
             }
-
-            public override string Name
+            set
             {
-                get { return "BonCodeAJP13SettingProvider"; }
+                // Do nothing.
             }
+        }
 
-            private XmlDocument SettingsXML
+        public override string Name
+        {
+            get { return "BonCodeAJP13SettingProvider"; }
+        }
+
+        private XmlDocument SettingsXML
+        {
+            get
             {
-                get
+                XmlDocument settingsXmlDoc = new XmlDocument();
+                //If we dont hold an xml document, try opening one.  
+                //If it doesnt exist then create a new one that is empty.
+                if (System.Web.HttpRuntime.Cache["xmlsettingfile"] == null)
                 {
-                    //If we dont hold an xml document, try opening one.  
-                    //If it doesnt exist then create a new one that is empty.
-                    if (p_settingsXML == null)
+                    try
                     {
-                        p_settingsXML = new XmlDocument();
+                        settingsXmlDoc.Load(Path.Combine(GetAppSettingsPath(), GetAppSettingsFilename()));
+                    }
+                    catch (Exception)
+                    {
+                        //create new blank doc in memory to return to process
+                        XmlDeclaration dec = settingsXmlDoc.CreateXmlDeclaration("1.0", "utf-8", string.Empty);
+                        settingsXmlDoc.AppendChild(dec);
 
-                        try
-                        {
-                            p_settingsXML.Load(Path.Combine(GetAppSettingsPath(), GetAppSettingsFilename()));
-                        }
-                        catch (Exception)
-                        {
-                            //create new blank doc in memory to return to process
-                            XmlDeclaration dec = p_settingsXML.CreateXmlDeclaration("1.0", "utf-8", string.Empty);
-                            p_settingsXML.AppendChild(dec);
+                        XmlNode nodeRoot = default(XmlNode);
 
-                            XmlNode nodeRoot = default(XmlNode);
-
-                            nodeRoot = p_settingsXML.CreateNode(XmlNodeType.Element, XMLROOT, "");
-                            p_settingsXML.AppendChild(nodeRoot);
-                        }
+                        nodeRoot = settingsXmlDoc.CreateNode(XmlNodeType.Element, XMLROOT, "");
+                        settingsXmlDoc.AppendChild(nodeRoot);
                     }
 
-                    return p_settingsXML;
+                    System.Web.HttpRuntime.Cache.Insert("xmlsettingfile", settingsXmlDoc);
+
                 }
+                else
+                {
+                    //return from cache and convert
+                    settingsXmlDoc = (XmlDocument)System.Web.HttpRuntime.Cache["xmlsettingfile"];
+                }
+
+                return settingsXmlDoc;
             }
+        }
         #endregion //properties
 
 
 
         #region Methods
-            //specialized init
-            public override void Initialize(string name, NameValueCollection col)
+        //specialized init
+        public override void Initialize(string name, NameValueCollection col)
+        {
+            base.Initialize(this.ApplicationName, col);
+        }
+
+        /// <summary>
+        /// Get path in which the properties XML file should be located. This is where the .dll is located itself.           
+        /// If dll is in GAC this will switch to windows\system32 dir
+        /// </summary>
+        public virtual string GetAppSettingsPath()
+        {
+
+            return BonCodeAJP13Logger.GetAssemblyDirectory();
+        }
+
+        /// <summary>
+        /// Determine file name containing properties. This is in XML file. Should return: BonCodeAJP13.settings            
+        /// </summary>
+        public virtual string GetAppSettingsFilename()
+        {
+            //Used to determine the filename to store the settings
+            return ApplicationName + ".settings";
+        }
+
+        /// <summary>
+        /// Get the collection of properties available.            
+        /// </summary>
+        public override SettingsPropertyValueCollection GetPropertyValues(SettingsContext context, SettingsPropertyCollection props)
+        {
+            //Create new collection of values
+            SettingsPropertyValueCollection values = new SettingsPropertyValueCollection();
+
+            //Iterate through the settings to be retrieved
+            foreach (SettingsProperty setting in props)
             {
-                base.Initialize(this.ApplicationName, col);
+
+                SettingsPropertyValue value = new SettingsPropertyValue(setting);
+                value.IsDirty = false;
+                value.SerializedValue = GetValue(setting);
+                values.Add(value);
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// Get a singular property value from XML file. If not found return default from code.            
+        /// </summary>
+        private string GetValue(SettingsProperty setting)
+        {
+            string ret = "";
+
+            try
+            {
+                ret = SettingsXML.SelectSingleNode(XMLROOT + "/" + setting.Name).InnerText;
             }
 
-            /// <summary>
-            /// Get path in which the properties XML file should be located. This is where the .dll is located itself.           
-            /// If dll is in GAC this will switch to windows\system32 dir
-            /// </summary>
-            public virtual string GetAppSettingsPath()
+            catch (Exception)
             {
-
-                return BonCodeAJP13Logger.GetAssemblyDirectory(); 
-            }
-
-            /// <summary>
-            /// Determine file name containing properties. This is in XML file. Should return: BonCodeAJP13.settings            
-            /// </summary>
-            public virtual string GetAppSettingsFilename()
-            {
-                //Used to determine the filename to store the settings
-                return ApplicationName + ".settings";
-            }
-
-            /// <summary>
-            /// Get the collection of properties available.            
-            /// </summary>
-            public override SettingsPropertyValueCollection GetPropertyValues(SettingsContext context, SettingsPropertyCollection props)
-            {
-                //Create new collection of values
-                SettingsPropertyValueCollection values = new SettingsPropertyValueCollection();
-
-                //Iterate through the settings to be retrieved
-                foreach (SettingsProperty setting in props)
+                //return default value if possible otherwise return blank string
+                if ((setting.DefaultValue != null))
                 {
-
-                    SettingsPropertyValue value = new SettingsPropertyValue(setting);
-                    value.IsDirty = false;
-                    value.SerializedValue = GetValue(setting);
-                    values.Add(value);
+                    ret = setting.DefaultValue.ToString();
                 }
-                return values;
             }
 
-            /// <summary>
-            /// Get a singular property value from XML file. If not found return default from code.            
-            /// </summary>
-            private string GetValue(SettingsProperty setting)
-            {
-                string ret = "";
+            return ret;
+        }
 
-                try
-                {
-                    ret = SettingsXML.SelectSingleNode(XMLROOT + "/" + setting.Name).InnerText;                    
-                }
 
-                catch (Exception)
-                {
-                    //return default value if possible otherwise return blank string
-                    if ((setting.DefaultValue != null))
-                    {
-                        ret = setting.DefaultValue.ToString();                    
-                    }
-                }
-
-                return ret;
-            }
-
-        
-            //we do not need to set properties at this point
-            public override void SetPropertyValues(SettingsContext context, SettingsPropertyValueCollection collection)
-            {
-                throw new NotImplementedException();
-            }
+        //we do not need to set properties at this point
+        public override void SetPropertyValues(SettingsContext context, SettingsPropertyValueCollection collection)
+        {
+            throw new NotImplementedException();
+        }
         #endregion  //methods
     }
 }

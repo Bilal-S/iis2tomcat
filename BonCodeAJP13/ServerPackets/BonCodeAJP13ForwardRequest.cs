@@ -351,9 +351,13 @@ namespace BonCodeAJP13.ServerPackets
                     addlHeaders.Add("x-vdirs", vDirs); 
                 }
                 //instance id
-                addlHeaders.Add("x-webserver-context", "W3SVC" + httpHeaders["INSTANCE_ID"]);               
-                
+                addlHeaders.Add("x-webserver-context", "W3SVC" + httpHeaders["INSTANCE_ID"]);   
+                //if we have a shared key send it
+                if (BonCodeAJP13Settings.BONCODE_MODCFML_SECRET.Length > 0) {
+                    addlHeaders.Add("X-ModCFML-SharedKey", BonCodeAJP13Settings.BONCODE_MODCFML_SECRET); 
+                }                
             }
+
 
             //path info alternate header determination            
             if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "")    // "xajp-path-info";
@@ -557,6 +561,13 @@ namespace BonCodeAJP13.ServerPackets
             {
                 pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_SSL_SESSION, pos); //attribute marker
                 pos = SetString(aUserData, "on", pos); //attribute value                
+            }
+
+            //add request shared secret key
+            if (BonCodeAJP13Settings.BONCODEAJP13_REQUEST_SECRET.Length > 0)
+            {
+                pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_SECRET, pos); //attribute marker
+                pos = SetString(aUserData, BonCodeAJP13Settings.BONCODEAJP13_REQUEST_SECRET, pos); //attribute value
             }
 
             //add constant attribute for AJP13 JVM Route

@@ -58,7 +58,7 @@ namespace BonCodeAJP13.TomcatPackets
             try
             {
                 p_PacketLength = content.Length;
-                p_UserDataLength = System.Convert.ToUInt16(content.Length - 4);
+                p_UserDataLength = 0; // the actual data of end response should be zero bytes
             }
             catch
             {

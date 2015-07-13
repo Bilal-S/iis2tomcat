@@ -164,7 +164,7 @@ namespace BonCodeAJP13.Properties {
         [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
         [global::System.Configuration.SettingsDescriptionAttribute("CSV list of HTTP headers that will not be send to Tomcat even if present")]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("URL,SERVER_SOFTWARE,SERVER_NAME,SERVER_PROTOCOL")]
         public string HeaderBlacklist {
             get {
                 return ((string)(this["HeaderBlacklist"]));
@@ -474,6 +474,55 @@ namespace BonCodeAJP13.Properties {
         public string LogIPFilter {
             get {
                 return ((string)(this["LogIPFilter"]));
+            }
+        }
+        
+        /// <summary>
+        /// The connection request secret. Both Tomcat and Boncode can use a shared secret to secure the connection. This also needs to be added as requiredSecret on Tomcat side.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("The connection request secret. Both Tomcat and Boncode can use a shared secret to" +
+            " secure the connection. This also needs to be added as requiredSecret on Tomcat " +
+            "side.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string RequestSecret {
+            get {
+                return ((string)(this["RequestSecret"]));
+            }
+        }
+        
+        /// <summary>
+        /// This determines how aggressive Garbage Collection is performed to manage connector memory. If you are sending large byte content through connector you may wish to turn this on as well as set memory recycling conditions on the Application Pool.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("This determines how aggressive Garbage Collection is performed to manage connecto" +
+            "r memory. If you are sending large byte content through connector you may wish t" +
+            "o turn this on as well as set memory recycling conditions on the Application Poo" +
+            "l.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool EnableAggressiveGC {
+            get {
+                return ((bool)(this["EnableAggressiveGC"]));
+            }
+        }
+        
+        /// <summary>
+        /// The shared secret to be used with Tomcat mod_cfml valve. A special HTTP header will be added to connection. No new contexts in Tomcat will be created if this is not the same on both sides.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("The shared secret to be used with Tomcat mod_cfml valve. A special HTTP header wi" +
+            "ll be added to connection. No new contexts in Tomcat will be created if this is " +
+            "not the same on both sides.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ModCFMLSecret {
+            get {
+                return ((string)(this["ModCFMLSecret"]));
             }
         }
     }

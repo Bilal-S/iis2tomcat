@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright (c) 2011 by Bilal Soylu
  *  Bilal Soylu licenses this file to You under the 
  *  Apache License, Version 2.0
@@ -29,6 +29,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Web;
 using Microsoft.Web.Administration;
 
 namespace BonCodeIIS
@@ -40,8 +41,10 @@ namespace BonCodeIIS
         /// <summary>
         /// Check Virtual Directories and return them as string array
         /// If we do not have sufficient permissions return error string otherwise root folder mapping
+        /// Currently the siteId cannot exceed the range of the sites array, so if IIS has 10 sites your max siteId can only be 10 not 13.
+        /// This will cause problems with manually edited siteIds
         /// </summary>
-        public static String GetVirtualDirectories(Int16 siteId)
+        public static String GetVirtualDirectories()
         {
             //need to put try catch and catch permission 
             String retVal="";
@@ -57,8 +60,9 @@ namespace BonCodeIIS
             
             try
             {
+                string siteName = System.Web.Hosting.HostingEnvironment.ApplicationHost.GetSiteName();
                 ServerManager manager = new ServerManager();
-                Site currentSite = manager.Sites[(siteId-1)];
+                Site currentSite = manager.Sites[siteName];
                 int countOfDirs = 0;
                
                 foreach (Application app in currentSite.Applications)

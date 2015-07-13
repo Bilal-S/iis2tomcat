@@ -57,8 +57,8 @@ namespace BonCodeIIS
             try
             {
                 KillConnection();
-                Interlocked.Decrement(ref p_InstanceCount);
-                //p_InstanceCount--;
+                Interlocked.Decrement(ref p_InstanceCount); 
+           
             }
             catch (Exception)
             {
@@ -206,10 +206,16 @@ namespace BonCodeIIS
                             isChunkedTransfer = true;
                         }
 
-
+                        //determine instance id
+                        Int16 instanceId = 0;                        
+                        try
+                        {
+                            instanceId = Convert.ToInt16(context.Request.ServerVariables["INSTANCE_ID"]);
+                        }
+                        catch (Exception err) {} // empty catch instanceId of zero indicates error
+                        
                         //initialize AJP13 protocol connection
-                        Int16 instanceId = Convert.ToInt16(context.Request.ServerVariables["INSTANCE_ID"]);
-                        string logFilePostFix = "_" + context.Request.ServerVariables["INSTANCE_ID"] + "_" + context.Server.MachineName + "_";
+                        string logFilePostFix = "_" + instanceId.ToString() + "_" + context.Server.MachineName + "_";
                         string clientIp = GetRemoteAddr(context.Request.ServerVariables);
                         BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection(logFilePostFix, clientIp);
                         sconn.FlushDelegateFunction = PrintFlush;  //this function will do the transfer to browser if we use Flush detection, we pass as delegate
@@ -222,7 +228,7 @@ namespace BonCodeIIS
                         String virPaths = "";
                         if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT)
                         {
-                            virPaths = GetVDirs(instanceId);
+                            virPaths = GetVDirs();
                         }
                         
 
@@ -354,6 +360,13 @@ namespace BonCodeIIS
                 PrintError(context, ".", e.Message + " " + e.StackTrace);
 
             }
+
+            //if we are directed to do aggressive garbage collection we will do so now 
+            if (BonCodeAJP13Settings.BONCODEAJP13_FORCE_GC)
+            {
+                System.GC.Collect();
+                System.GC.WaitForPendingFinalizers();
+            }    
             
 
         }
@@ -553,6 +566,10 @@ namespace BonCodeIIS
                 PrintError(p_Context, "", e.Message + " " + e.StackTrace);
             }
 
+            //remove the flush collection reference 
+            flushCollection = null;
+
+            //signal that we have finished the flush process
             p_FlushInProgress = false;
         } //end print flush
 
@@ -755,11 +772,21 @@ namespace BonCodeIIS
                     //has to be local call
                     if (IsLocalIP(GetKeyValue(httpHeaders, "REMOTE_ADDR")))
                     {
-                        //get instance
-                        Int16 siteInstanceId = System.Convert.ToInt16(GetKeyValue(httpHeaders, "INSTANCE_ID"));
+                        Int16 siteInstanceId = 0;
+                        String vpaths = ";";
+                        
+                        try
+                        {
+                            //get instance
+                            siteInstanceId = System.Convert.ToInt16(GetKeyValue(httpHeaders, "INSTANCE_ID"));
 
-                        //calling function to start retrieval of data or get from specialized class
-                        String vpaths = GetVDirs(siteInstanceId);
+                            //calling function to start retrieval of data or get from specialized class
+                            vpaths = GetVDirs();
+                        } catch (Exception err) {
+                            //we are only catching this in case there is an issue with instanceId or VDirs stuff
+                            //instanceId of zero indicates trouble
+
+                        }
                
                         //for display
                         if (vpaths == ";")
@@ -892,14 +919,16 @@ namespace BonCodeIIS
             {
                 if (p_TcpClient != null)
                 {
-                    //stream
+                    //stream -- will not exists should be closed already
+                    /*
                     p_TcpClient.GetStream().Flush();
                     p_TcpClient.GetStream().Dispose();
                     p_TcpClient.GetStream().Close();                   
+                     */
                     //client
                     p_TcpClient.Client.Close();
                     p_TcpClient.Close();
-                    p_TcpClient.Client.Shutdown(SocketShutdown.Both);
+                    //p_TcpClient.Client.Shutdown(SocketShutdown.Both);
                     p_TcpClient = null;
                 }
                 
@@ -963,15 +992,15 @@ namespace BonCodeIIS
         /// <summary>
         /// Get virtual directory mapping information  
         /// </summary>
-        private String GetVDirs(Int16 siteId)
+        private String GetVDirs()
         {
-
+            
             //get from cache or retrieve from system
             String vpaths = GetSavedData("vpaths");
             if (vpaths == "")
             {
                 //we have not retrieved the virtual path yet retrieve and save
-                vpaths = BonCodeIIS.WebManagement.GetVirtualDirectories(siteId);                
+                vpaths = BonCodeIIS.WebManagement.GetVirtualDirectories();                
                 SaveData("vpaths", vpaths);
             }
 

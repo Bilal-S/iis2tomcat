@@ -326,6 +326,13 @@ namespace BonCodeAJP13
         ~ BonCodeAJP13ServerConnection()
         {
             Interlocked.Decrement(ref p_ConcurrentConnections);
+            p_ConnectionsCounter--;
+
+            p_PacketsReceived.Clear();
+            p_PacketsReceived = null;
+            p_PacketsToSend.Clear();
+            p_PacketsToSend = null;            
+            
         }
 
         #endregion
@@ -764,9 +771,9 @@ namespace BonCodeAJP13
 
             if (numOfBytesReceived == 0)
             {
-                // Nothing received from tomcat!
-                ConnectionError("Nothing received from the tomcat. Closing the Connection.", "Failed");
-                return;
+                // Nothing received from tomcat, log warning
+                p_Logger.LogMessageAndType("Empty packet received from tomcat", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                //return;
             }
 
  

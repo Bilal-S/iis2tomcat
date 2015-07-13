@@ -30,7 +30,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="HeaderBlacklist" Description="CSV list of HTTP headers that will not be send to Tomcat even if present" Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">URL,SERVER_SOFTWARE,SERVER_NAME,SERVER_PROTOCOL</Value>
     </Setting>
     <Setting Name="HeaderWhitelist" Description="CSV list of HTTP headers that will be transferred. Once white list is used, all other headers not on this list will not be transferred." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
@@ -90,6 +90,15 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="LogIPFilter" Description="The regular expression to use against client IPs to determine whether something should be logged. If blank this is disabled." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="RequestSecret" Description="The connection request secret. Both Tomcat and Boncode can use a shared secret to secure the connection. This also needs to be added as requiredSecret on Tomcat side." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="EnableAggressiveGC" Description="This determines how aggressive Garbage Collection is performed to manage connector memory. If you are sending large byte content through connector you may wish to turn this on as well as set memory recycling conditions on the Application Pool." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="ModCFMLSecret" Description="The shared secret to be used with Tomcat mod_cfml valve. A special HTTP header will be added to connection. No new contexts in Tomcat will be created if this is not the same on both sides." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
     </Setting>
   </Settings>

@@ -165,8 +165,8 @@ namespace BonCodeAJP13
        public const byte BONCODEAJP13_SSL_SESSION = 0x09;      // ?ssl_session 0x09  
        public const byte BONCODEAJP13_REQ_ATTRIBUTE = 0x0A;    // ?req_attribute 0x0A Name (the name of the attribut follows). This one will be used to send named attribute pairs
        public const byte BONCODEAJP13_SSL_KEY_SIZE = 0x0B;     // ?ssl_key_size 0x0B  
+       public const byte BONCODEAJP13_SECRET = 0x0C;           // ?secret -- request secret needs to match requiredSecret on Tomcat AJP connection defintion in server.xml
        public const byte BONCODEAJP13_ACCEPT = 0xFF;           // are_done 0xFF request_terminator. This one is appended automatically to packet.
-
 
     }
 
@@ -304,6 +304,14 @@ namespace BonCodeAJP13
         //Log IP Filter
         public static string BONCODEAJP13_LOG_IPFILTER = Properties.Settings.Default.LogIPFilter; // empty string
 
+        //The AJP connection request secret. Both Tomcat and Boncode can use a shared secret to secure the connection. This also needs to be added as requiredSecret on Tomcat side. If this is set wrong you will only see blank pages and http 403s from tomcat.
+        public static string BONCODEAJP13_REQUEST_SECRET = Properties.Settings.Default.RequestSecret; //blank = disabled
+
+        //garbage collection setting
+        public static bool BONCODEAJP13_FORCE_GC = Properties.Settings.Default.EnableAggressiveGC; // false
+
+        //ModCfmlSecret The shared secret to be used with Tomcat mod_cfml valve. No new contexts in Tomcat will be created if this is not the same on both sides.
+        public static string BONCODE_MODCFML_SECRET = Properties.Settings.Default.ModCFMLSecret; // empty string
     }  
 
 
@@ -320,7 +328,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.22";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.25";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;
