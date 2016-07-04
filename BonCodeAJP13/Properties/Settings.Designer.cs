@@ -525,5 +525,19 @@ namespace BonCodeAJP13.Properties {
                 return ((string)(this["ModCFMLSecret"]));
             }
         }
+        
+        /// <summary>
+        /// When setting EnableHeaderDataSupport is set to True IIS determines the Document Root and it will be send along to Tomcat in HTTP header x-tomcat-docroot. However, this may not work when Tomcat runs on different machines (e.g. Linus hosts). This alternate setting will allow an override to point to alternate file location.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute(@"When setting EnableHeaderDataSupport is set to True IIS determines the Document Root and it will be send along to Tomcat in HTTP header x-tomcat-docroot. However, this may not work when Tomcat runs on different machines (e.g. Linus hosts). This alternate setting will allow an override to point to alternate file location.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string DocRoot {
+            get {
+                return ((string)(this["DocRoot"]));
+            }
+        }
     }
 }

@@ -262,12 +262,28 @@ Version 1.0.24 Updates:
 * Upd: Changed default for HeaderBlacklist to decrease the size of initial packet. The HTTP headers URL,SERVER_SOFTWARE,SERVER_NAME, and SERVER_PROTOCOL will no longer be automatically transferred.
 * Fix: Correct virtual direcotry listing when Site Ids where manually changed by users
 
-
 Version 1.0.25 Updates:
 * Add: New setting for ModCfmlSecret
 * Add: Installer setting file can accept requestSecret and modCfmlSecret parameters
 
-Version 1.0.26 Updates Planning:
+Version 1.0.26 Updates:
+* Add: Flushing priority. When both time and byte flushing are specified, we will first wait for time, then use either time or byte markers
+* Add: Setting DocRoot for manual HTTP x-tomcat-docroot override, in cases where Tomcat is running on Linux
+* Add: Block client HTTP headers that match connector generated HTTP headers
+
+Version 1.0.27 Updates:
+* Add: optional logging of connection issues to Windows log if a Log Source is available
+* Add: allways log full stack trace in log file when any type of logging is enabled
+* Add: additional system error condition catches throughout comm cycle
+* Add: when we encounter stream read errors and null buffers, we will retry to read stream instead of throw exception
+* Add: suppress logging certain errors when Tomcat is stopped before IIS to avoid confusion
+* Add: suppress client disconnect errors (thread aborted) 
+* Upd: installer change information text, remove requirement to select a handler 
+* Upd: Adobe Coldfusion ExpandPath() with invalid path will no longer throw exception but return invalid path
+* Fix: error when IIS site instance IDs were set to a value higher than 32767, now the max value is: 4294967295 (UInt32)
+
+
+Version 1.0.28 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
 * Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
 * Add: installer add mapping for *.cfchart / *.cfres / *.cfr 

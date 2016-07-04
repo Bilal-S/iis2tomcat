@@ -635,7 +635,7 @@ namespace BonCodeAJP13.ServerPackets
             NameValueCollection cleanHeaders = new NameValueCollection();
             string keyName = "";
             string keyValue = "";
-            string[] lstSystemBlacklist = new string[] { "PATH_TRANSLATED", "INSTANCE_META_PATH","INSTANCE_ID","APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING", "ACCEPT", "ACCEPT_CHARSET", "ACCEPT_ENCODING", "ACCEPT_LANGUAGE", "AUTHORIZATION", "CONNECTION", "HTTP_CONTENT_TYPE", "HTTP_CONTENT_LENGTH", "PRAGMA", "REFERER", "USER_AGENT" };  //list of headers that will be skipped because they are already processed through other means, duplicate, or not needed          
+            string[] lstSystemBlacklist = new string[] { "PATH_TRANSLATED", "INSTANCE_META_PATH", "INSTANCE_ID", "APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING", "ACCEPT", "ACCEPT_CHARSET", "ACCEPT_ENCODING", "ACCEPT_LANGUAGE", "AUTHORIZATION", "CONNECTION", "HTTP_CONTENT_TYPE", "HTTP_CONTENT_LENGTH", "PRAGMA", "REFERER", "USER_AGENT", "x-vdirs", "x-tomcat-docroot", "x-webserver-context", "X-ModCFML-SharedKey", "xajp-clientfingerprint", "xajp-managedthreadid" };  //list of headers that will be skipped because they are already processed through other means, duplicate, or not needed  
             string[] lstAllowBlank = new string[] { "" };  //send also if blank
             string[] lstUserWhitelist = null; //if we have data here, only these headers will be sent
 

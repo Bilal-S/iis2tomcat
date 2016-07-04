@@ -21,6 +21,7 @@
  *************************************************************************/
 
 using System;
+using System.Diagnostics;
 using System.Collections.Specialized;
 using System.Net.Sockets;
 using System.Web;
@@ -60,9 +61,9 @@ namespace BonCodeIIS
                 Interlocked.Decrement(ref p_InstanceCount); 
            
             }
-            catch (Exception)
-            {
-                //do nothing for now
+            catch (Exception exp)
+            {                
+                RecordSysEvent("Error during call handler destruction: " + exp.Message, EventLogEntryType.Error);
             }
       
         }
@@ -108,23 +109,32 @@ namespace BonCodeIIS
             bool isChunkedTransfer = false;
             int sourcePort = p_InstanceCount;  //init with count will override with port if later available
 
-
+           
             try
             {
                 if (executionFeedback.Length == 0)
                 {
-                    //determine web doc root if needed
-                    //if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT) { }
+                    //determine web doc root if needed                    
                     //set shared settings (global mutable variables). Not ideal solution. Will need to refactor later.
-                    BonCodeAJP13Settings.BonCodeAjp13_DocRoot = System.Web.HttpContext.Current.Server.MapPath("~");
+                    if (BonCodeAJP13Settings.BONCODE_DOCROOT_OVERRIDE.Length > 0)
+                    {
+                        BonCodeAJP13Settings.BonCodeAjp13_DocRoot = BonCodeAJP13Settings.BONCODE_DOCROOT_OVERRIDE;
+                    }
+                    else
+                    {
+                        BonCodeAJP13Settings.BonCodeAjp13_DocRoot = System.Web.HttpContext.Current.Server.MapPath("~");
+                    }
+
+                    
                     //in some circumstances invalid path data can be supplied by client if so we will set the path to blank when exception occurs, e.g. http://project/group:master...master
                     try
                     {
                         BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath = context.Request.PhysicalPath;
                     }
-                    catch
+                    catch (Exception exp)
                     {
                         BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath = "";
+                        RecordSysEvent("Setting blank AJP physical path: " + exp.Message, EventLogEntryType.Warning);
                     }
 
                     //check whether we are resuable, we discard and re-establish connections if MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS is set to zero
@@ -157,21 +167,8 @@ namespace BonCodeIIS
                             blnProceed = false;
                             string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port.<br>Details:<br>" + e.Message + "<br><small><small><br>You can change this message by changing TomcatConnectErrorURL setting in setting file.</small></small>";
                             //use the PrintEror function, it will check for redirect already
-                            PrintError(context, errMsg, e.Message + " " + e.StackTrace);
-
-                            //TODO: remove commented block
-                            /*
-                            if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL.Length > 5)
-                            {
-                                context.Response.Redirect(BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL);
-                            }
-                            else
-                            {
-                                string errMsg = "Error connecting to Apache Tomcat instance.<hr>Please check that a Tomcat server is running at given location and port.<br>Details:<br>" + e.Message + "<br><small><small><br>You can change this message by changing TomcatConnectErrorURL setting in setting file.</small></small>";
-                                //context.Response.Write(errMsg);
-                                PrintError(context, errMsg, e.Message + " " + e.StackTrace);
-                            }
-                            */
+                            RecordSysEvent("Connection error 1: " + e.Message, EventLogEntryType.Error);
+                            PrintError(context, errMsg, e.Message + " " + e.StackTrace);                
 
                         }
 
@@ -207,15 +204,21 @@ namespace BonCodeIIS
                         }
 
                         //determine instance id
-                        Int16 instanceId = 0;                        
+                        /*
+                        UInt32 instanceId = 0;                       
                         try
                         {
-                            instanceId = Convert.ToInt16(context.Request.ServerVariables["INSTANCE_ID"]);
+                            //instanceId = Convert.ToInt16(context.Request.ServerVariables["INSTANCE_ID"]);
+                            instanceId = Convert.ToUInt32(System.Web.Hosting.HostingEnvironment.ApplicationHost.GetSiteID());                            
                         }
-                        catch (Exception err) {} // empty catch instanceId of zero indicates error
-                        
+                        catch (Exception err) {
+                            instanceId = 0;                            
+                            RecordSysEvent("Cannot set instanceId setting to zero instead: " + err.Message, EventLogEntryType.Warning);
+                        } // empty catch instanceId of zero indicates error
+                        */
+                                                
                         //initialize AJP13 protocol connection
-                        string logFilePostFix = "_" + instanceId.ToString() + "_" + context.Server.MachineName + "_";
+                        string logFilePostFix = "_" + context.Request.ServerVariables["INSTANCE_ID"] + "_" + context.Server.MachineName + "_";
                         string clientIp = GetRemoteAddr(context.Request.ServerVariables);
                         BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection(logFilePostFix, clientIp);
                         sconn.FlushDelegateFunction = PrintFlush;  //this function will do the transfer to browser if we use Flush detection, we pass as delegate
@@ -307,7 +310,8 @@ namespace BonCodeIIS
 
                         catch (Exception e)
                         {
-                            //we have an error do the dump on screen since we are not logging but allso kill connection                                                
+                            //we have an error do the dump on screen since we are not logging but allso kill connection 
+                            RecordSysEvent("Connection error 2: " + e.Message, EventLogEntryType.Error);
                             PrintError(context, ".", e.Message + " " + e.StackTrace);
                             KillConnection(); //remove TCP cache good after timeouts
                         }
@@ -476,8 +480,9 @@ namespace BonCodeIIS
                                 {
                                     contentLength = System.Convert.ToInt64(tempValue);
                                 }
-                                catch (Exception) {
+                                catch (Exception e) {
                                     contentLength = 0;
+                                    RecordSysEvent("Setting content-length to zero: " + e.Message, EventLogEntryType.Warning);
                                 };
 
 
@@ -528,7 +533,13 @@ namespace BonCodeIIS
                                 BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS == 0 && 
                                 transferredBytes > 0)
                         {
-                            p_Context.Response.AddHeader("Content-Length", transferredBytes.ToString());
+                            try
+                            {
+                                p_Context.Response.AddHeader("Content-Length", transferredBytes.ToString());
+                            } catch (Exception e)
+                            {
+                                RecordSysEvent("Error missing final content-length: " + e.Message, EventLogEntryType.Error);
+                            }
                         }
                         
                     }
@@ -547,7 +558,8 @@ namespace BonCodeIIS
                 }
                 catch (Exception e)
                 {
-                    //display error                                        
+                    //display error
+                    RecordSysEvent("Error writing headers: " + e.Message, EventLogEntryType.Error);
                     PrintError(p_Context, ".", e.Message + " " + e.StackTrace);
 
                 }
@@ -562,8 +574,10 @@ namespace BonCodeIIS
             }
             catch (Exception e)
             {
-                //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred                
-                PrintError(p_Context, "", e.Message + " " + e.StackTrace);
+                //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred 
+                RecordSysEvent("Error during spool to client (browser may have navigated away): " + e.Message + " " + e.StackTrace, EventLogEntryType.Warning);
+                //we don't need to printerror as the client is gone already
+                //PrintError(p_Context, "", e.Message + " " + e.StackTrace);
             }
 
             //remove the flush collection reference 
@@ -577,21 +591,25 @@ namespace BonCodeIIS
         /// <summary>
         /// If we recognize certain headers that IIS supports we will write them into the response stream using IIS notation as well.        
         /// </summary> 
-        private void IISNativeHeaders(string headerName, string headerValue) { 
-            //switch block
-            switch (headerName)
+        private void IISNativeHeaders(string headerName, string headerValue) {
+            try
             {
-                case "Location": case "Content-Location":
-                    //in cases where we are restricted from writing status codes we will do a server side redirect when we detect the right headers
-                    if (!BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
-                    {
-                        p_Context.Response.Redirect(headerValue);
-                    }
-                    break;               
-                    
-            }
-                    
-
+                //switch block
+                switch (headerName)
+                {
+                    case "Location":
+                    case "Content-Location":
+                        //in cases where we are restricted from writing status codes we will do a server side redirect when we detect the right headers
+                        if (!BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
+                        {
+                            p_Context.Response.Redirect(headerValue);
+                        }
+                        break;
+                }
+            } catch (Exception e)
+            {
+                RecordSysEvent("IISNativeHeaders setting: " + e.Message, EventLogEntryType.Warning);
+            } 
         }
 
         /// <summary>
@@ -665,12 +683,29 @@ namespace BonCodeIIS
             else
             {
                 //we have no redirect setting defined --> request we will output error code 502 to client
-                context.Response.TrySkipIisCustomErrors = true;  
-                context.Response.StatusCode = 502;
-                context.Response.Write(strPublicErr);
-                if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR")))
+                try
                 {
-                    context.Response.Write("<br><pre>" + strLocalErr + "</pre>");
+                    context.Response.TrySkipIisCustomErrors = true;
+                    context.Response.Write(strPublicErr);
+                    if (IsLocalIP(GetKeyValue(context.Request.ServerVariables, "REMOTE_ADDR")))
+                    {
+                        context.Response.Write("<br><pre>" + strLocalErr + "</pre>");
+                    }
+
+                    //we might get an error during HTTP status code change when flushing is enabled or headers have already been sent
+                    try
+                    {                        
+                        context.Response.StatusCode = 502;
+                    }
+                    catch(Exception exp )
+                    {
+                        RecordSysEvent("PrintError setting Statuscode: " + exp.Message, EventLogEntryType.Warning);
+                    };
+
+
+                } catch (Exception e)
+                {
+                    RecordSysEvent("PrintError failed: " + e.Message, EventLogEntryType.Error);
                 }
             }
 
@@ -772,19 +807,20 @@ namespace BonCodeIIS
                     //has to be local call
                     if (IsLocalIP(GetKeyValue(httpHeaders, "REMOTE_ADDR")))
                     {
-                        Int16 siteInstanceId = 0;
+                        UInt32 siteInstanceId = 0;
                         String vpaths = ";";
                         
                         try
                         {
                             //get instance
-                            siteInstanceId = System.Convert.ToInt16(GetKeyValue(httpHeaders, "INSTANCE_ID"));
+                            siteInstanceId = System.Convert.ToUInt32(GetKeyValue(httpHeaders, "INSTANCE_ID"));
 
                             //calling function to start retrieval of data or get from specialized class
                             vpaths = GetVDirs();
                         } catch (Exception err) {
                             //we are only catching this in case there is an issue with instanceId or VDirs stuff
                             //instanceId of zero indicates trouble
+                            RecordSysEvent("Cannot determine siteInstanceId): " + err.Message, EventLogEntryType.Warning);
 
                         }
                
@@ -815,6 +851,27 @@ namespace BonCodeIIS
                 //end of check for virtual directory list
                 //----------------------------------
 
+
+                //check for check for event log source registration
+                //----------------------------------
+                if (queryParams["BonCodeEventLogPrep"] != null)
+                {
+                       
+                    if (RegisterWindowsEventSource())
+                    {
+                        retVal += "<br>Windows Application Event log preparation succeeded. Please filter for 'BonCodeConnector' or EventID 417 events.";
+                    } else
+                    {
+                        retVal += "<br>Cannot access Windows Application Event log. Please change the Application Pool Identity to LocalSystem and retry. Once successfull, you can revert the Application pool identity.";
+                    }
+             
+                }
+
+                //end of check for event log source registration
+                //----------------------------------
+
+
+
             }
             catch (Exception e)
             {
@@ -825,6 +882,7 @@ namespace BonCodeIIS
                     retVal += "<br>---<br>" + e.Message + "<br>---<br>";
                     retVal += e.StackTrace;
                 }
+                RecordSysEvent("Check Execution sequence error: " + e.Message, EventLogEntryType.Error);
             }
 
 
@@ -919,23 +977,18 @@ namespace BonCodeIIS
             {
                 if (p_TcpClient != null)
                 {
-                    //stream -- will not exists should be closed already
-                    /*
-                    p_TcpClient.GetStream().Flush();
-                    p_TcpClient.GetStream().Dispose();
-                    p_TcpClient.GetStream().Close();                   
-                     */
-                    //client
+                    //only closing client -- stream should already be closed
                     p_TcpClient.Client.Close();
                     p_TcpClient.Close();
-                    //p_TcpClient.Client.Shutdown(SocketShutdown.Both);
+                    //p_TcpClient.Client.Shutdown(SocketShutdown.Both);                    
                     p_TcpClient = null;
                 }
                 
             }
-            catch (Exception)
-            {
-                //do nothing for now
+            catch (Exception exp)
+            {        
+                //attempt to add to Application log        
+                RecordSysEvent("Error during KillConnection: " + exp.Message,EventLogEntryType.Error);
             }
         }
 
@@ -987,7 +1040,56 @@ namespace BonCodeIIS
             return retVal;
         }
 
+        /// <summary>
+        /// Register Event Log Source  - we need this prior to logging events in System Application log
+        /// We will also need to temporarily change the application pool identity to NT AUTHORITY\SYSTEM
+        /// </summary>
+        private bool RegisterWindowsEventSource()
+        {
+            try
+            {
+                string sSource;
+                string sLog;              
+                sSource = "BonCodeConnector";
+                sLog = "Application";
+                //create event source
+                if (!EventLog.SourceExists(sSource))
+                {
+                    EventLog.CreateEventSource(sSource, sLog);
+                }
 
+                return true;
+            } catch
+            {
+
+                return false;
+            }
+        } 
+
+
+        /// <summary>
+        /// Record an event in system in Application event log  
+        /// </summary>
+        private void RecordSysEvent(string message, EventLogEntryType eType=EventLogEntryType.Information) {
+            string sSource;            
+            string sEvent;
+            sSource = "BonCodeConnector";            
+            sEvent = message;
+
+            //we only record events when event source exists
+            if (EventLog.SourceExists(sSource))
+            {
+                //record in event log
+                try
+                {
+                    EventLog.WriteEntry(sSource, sEvent, eType, 417);
+                } catch
+                {
+                    //do nothing for now
+                }
+
+            }
+        }
 
         /// <summary>
         /// Get virtual directory mapping information  

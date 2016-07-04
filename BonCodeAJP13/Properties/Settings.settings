@@ -101,5 +101,8 @@
     <Setting Name="ModCFMLSecret" Description="The shared secret to be used with Tomcat mod_cfml valve. A special HTTP header will be added to connection. No new contexts in Tomcat will be created if this is not the same on both sides." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="DocRoot" Description="When setting EnableHeaderDataSupport is set to True IIS determines the Document Root and it will be send along to Tomcat in HTTP header x-tomcat-docroot. However, this may not work when Tomcat runs on different machines (e.g. Linus hosts). This alternate setting will allow an override to point to alternate file location." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>

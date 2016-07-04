@@ -242,7 +242,7 @@ namespace BonCodeAJP13
 
         //enable HeaderDataSupport. Will send non-standard data in header to support cfml operations -- currently adds X-Tomcat-DocRoot
         public static bool BONCODEAJP13_HEADER_SUPPORT = Properties.Settings.Default.EnableHeaderDataSupport; //false
-        public static string BonCodeAjp13_DocRoot = ""; //will be set in CallHandler
+        public static string BonCodeAjp13_DocRoot = ""; //will be set in CallHandler and override can be passed in with alternate setting DocRoot
         public static string BonCodeAjp13_PhysicalFilePath = ""; //will be set in CallHandler
 
         //suppressed header list, this should be a comma seperated value (CSV) list of HTTP headers we will not sent to tomcat
@@ -312,6 +312,9 @@ namespace BonCodeAJP13
 
         //ModCfmlSecret The shared secret to be used with Tomcat mod_cfml valve. No new contexts in Tomcat will be created if this is not the same on both sides.
         public static string BONCODE_MODCFML_SECRET = Properties.Settings.Default.ModCFMLSecret; // empty string
+
+        //DocRoot Override
+        public static string BONCODE_DOCROOT_OVERRIDE = Properties.Settings.Default.DocRoot; // empty string
     }  
 
 
@@ -328,7 +331,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.25";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.27";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;
@@ -340,7 +343,6 @@ namespace BonCodeAJP13
         
         //public const int MAX_BONCODEAJP13_PACKET_LENGTH = 8192;         //this is including control bytes
         //public const int MAX_BONCODEAJP13_USERDATA_LENGTH = 8186;       //maximum number of user data bytes that can be packaged into Forward Request, exludes all control bytes. If length bytes are included this would be 8188
-        
         
         // The max period of time that the BonCodeAJP13 listner can stay listening without any new connection (not used).
         public const int BONCODEAJP13_LISTENER_MAX_IDLE_TIME = 3600000;

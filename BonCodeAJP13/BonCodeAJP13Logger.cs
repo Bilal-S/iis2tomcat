@@ -80,10 +80,13 @@ namespace BonCodeAJP13
                        
                         logStream.WriteLine(message);
                         logStream.WriteLine(e.Message);
+                        logStream.WriteLine(e.StackTrace);
+                        /*
                         if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
                         {
                             logStream.WriteLine(e.StackTrace);
                         }
+                        */
                         logStream.Flush();
                         logStream.Close();
 
