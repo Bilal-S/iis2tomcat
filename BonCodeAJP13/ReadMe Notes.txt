@@ -282,8 +282,15 @@ Version 1.0.27 Updates:
 * Upd: Adobe Coldfusion ExpandPath() with invalid path will no longer throw exception but return invalid path
 * Fix: error when IIS site instance IDs were set to a value higher than 32767, now the max value is: 4294967295 (UInt32)
 
+Version 1.0.28 Updates:
+* Add: additial stack trace to windows event log
+* Upd: continue spooling data even after an unallowed header change has been attempted by servlet code
 
-Version 1.0.28 Updates Planning:
+Version 1.0.29 Updates:
+* Add: additial stack trace to windows event log when we cannot write to logfiles
+* Add: AJP native flush detection. A correctly formated AJP flush packet will lead to flushing when any of the flush flags is enabled.
+
+Version 1.0.30 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
 * Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
 * Add: installer add mapping for *.cfchart / *.cfres / *.cfr 

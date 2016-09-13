@@ -21,6 +21,7 @@
  *************************************************************************/
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
@@ -94,8 +95,8 @@ namespace BonCodeAJP13
                     p_Mut.ReleaseMutex();
                 }
                 catch (Exception fileException)
-                {                     
-                    //don't like empty catches but if we cannot log, let's not throw more errors
+                {
+                    RecordSysEvent("Error during log write : " + fileException.Message, EventLogEntryType.Error);
                 }
             }
         }
@@ -120,7 +121,7 @@ namespace BonCodeAJP13
                 }   
                 catch (Exception fileException)                
                 {
-                    //don't like empty catches but if we cannot log, let's not throw more errors
+                    RecordSysEvent("Error during log write : " + fileException.Message, EventLogEntryType.Error);
                 }
 
             }
@@ -145,7 +146,7 @@ namespace BonCodeAJP13
                 }
                 catch (Exception fileException)
                 {
-                    //don't like empty catches but if we cannot log, let's not throw more errors
+                    RecordSysEvent("Error during log write : " + fileException.Message, EventLogEntryType.Error);
                 }
             }
 
@@ -194,7 +195,7 @@ namespace BonCodeAJP13
                 }
                 catch (Exception fileException)
                 {
-                    //don't like empty catches but if we cannot log, let's not throw more errors
+                    RecordSysEvent("Error during log write : " + fileException.Message, EventLogEntryType.Error);
                 }
             }
 
@@ -218,7 +219,9 @@ namespace BonCodeAJP13
                     logStream.Close();
                 }
             }
-            catch (Exception ex) { }
+            catch (Exception ex) {
+                RecordSysEvent("Error during log write : " + ex.Message, EventLogEntryType.Error);
+            }
         }
 
         /// <summary>
@@ -263,6 +266,33 @@ namespace BonCodeAJP13
             }
 
             return retValue;
+        }
+
+        /// <summary>
+        /// Record an event in system in Application event log  
+        /// A similar function is CallHandler class
+        /// </summary>
+        private static void RecordSysEvent(string message, EventLogEntryType eType = EventLogEntryType.Information)
+        {
+            string sSource;
+            string sEvent;
+            sSource = "BonCodeConnector";
+            sEvent = message;
+
+            //we only record events when event source exists
+            if (EventLog.SourceExists(sSource))
+            {
+                //record in event log
+                try
+                {
+                    EventLog.WriteEntry(sSource, sEvent, eType, 418);
+                }
+                catch
+                {
+                    //do nothing for now
+                }
+
+            }
         }
 
 

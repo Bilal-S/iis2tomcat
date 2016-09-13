@@ -997,6 +997,12 @@ namespace BonCodeAJP13
                                 if (userData.Length > 0)
                                 {
                                     p_PacketsReceived.Add(new TomcatSendBodyChunk(userData));
+                                    //check whether we have an AJP flush and whether we will accept it. In that case we have only four bytes in the packet. No user payload.                          
+                                    if (userData.Length == 4 && (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0 || BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0))
+                                    {
+                                        p_IsFlush = true;
+                                    }
+
                                 }
                                 else
                                 {

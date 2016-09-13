@@ -311,7 +311,7 @@ namespace BonCodeIIS
                         catch (Exception e)
                         {
                             //we have an error do the dump on screen since we are not logging but allso kill connection 
-                            RecordSysEvent("Connection error 2: " + e.Message, EventLogEntryType.Error);
+                            RecordSysEvent("Connection error 2: " + e.Message + " " + e.StackTrace, EventLogEntryType.Error);
                             PrintError(context, ".", e.Message + " " + e.StackTrace);
                             KillConnection(); //remove TCP cache good after timeouts
                         }
@@ -421,98 +421,108 @@ namespace BonCodeIIS
                         TomcatSendHeaders tcshPackage = (TomcatSendHeaders)flushPacket;
                         //get Headers
                         NameValueCollection tomcatHeaders = tcshPackage.GetHeaders();
-                        
-                        //iterate through headers and set
-                        for (int i = 0; i < tomcatHeaders.AllKeys.Length; i++)
+
+                        try
                         {
-                            keyName = tomcatHeaders.AllKeys[i];
-                            keyValue = tomcatHeaders[keyName];
 
-
-                            //check for repeated headers of the same type they are seperated by pipe+comma combination
-                            string[] sHeaders = keyValue.Split(new string[] { "|," }, StringSplitOptions.None);
-                            string tempValue = "";
-                            if (sHeaders.Length > 1)
+                            //iterate through headers and set
+                            for (int i = 0; i < tomcatHeaders.AllKeys.Length; i++)
                             {
-                                //check for multiple headers of same type returned, e.g. cookies                                
-                                for (int i2 = 0; i2 < sHeaders.Length; i2++)
-                                {                                   
+                                keyName = tomcatHeaders.AllKeys[i];
+                                keyValue = tomcatHeaders[keyName];
 
-                                    if (i2 == sHeaders.Length - 1)
+
+                                //check for repeated headers of the same type they are seperated by pipe+comma combination
+                                string[] sHeaders = keyValue.Split(new string[] { "|," }, StringSplitOptions.None);
+                                string tempValue = "";
+                                if (sHeaders.Length > 1)
+                                {
+                                    //check for multiple headers of same type returned, e.g. cookies                                
+                                    for (int i2 = 0; i2 < sHeaders.Length; i2++)
                                     {
-                                        tempValue = sHeaders[i2].Substring(0, sHeaders[i2].Length - 1); //last array element
+
+                                        if (i2 == sHeaders.Length - 1)
+                                        {
+                                            tempValue = sHeaders[i2].Substring(0, sHeaders[i2].Length - 1); //last array element
+                                        }
+                                        else
+                                        {
+                                            tempValue = sHeaders[i2]; //regular array element
+                                        }
+                                        p_Context.Response.AddHeader(keyName, tempValue);
+                                    }
+                                }
+
+
+                                else
+                                {
+                                    //single header remove pipe character at the end   
+                                    tempValue = keyValue.Substring(0, keyValue.Length - 1);
+                                    p_Context.Response.AddHeader(keyName, tempValue);
+
+                                }
+
+                                //check for binary or text disposition
+                                if (!isBinary && (keyName == "Content-Type" || keyName == "Content-Encoding"))
+                                {
+                                    //set encoding seperatly if needed
+                                    if (keyName == "Content-Encoding" && (tempValue.Contains("gzip") || tempValue.Contains("deflate")))
+                                    {
+                                        isBinary = true;
                                     }
                                     else
                                     {
-                                        tempValue = sHeaders[i2]; //regular array element
+                                        isBinary = TestBinary(keyValue);
                                     }
-                                    p_Context.Response.AddHeader(keyName, tempValue);
+
                                 }
-                            }
-                           
-
-                            else
-                            {
-                                //single header remove pipe character at the end   
-                                tempValue = keyValue.Substring(0, keyValue.Length - 1);
-                                p_Context.Response.AddHeader(keyName, tempValue);
-
-                            }
-
-                            //check for binary or text disposition
-                            if (!isBinary && (keyName == "Content-Type" || keyName == "Content-Encoding"))
-                            {
-                                //set encoding seperatly if needed
-                                if (keyName == "Content-Encoding" && ( tempValue.Contains("gzip") || tempValue.Contains("deflate") ))
+                                //check for known content length
+                                if (keyName == "Content-Length")
                                 {
-                                    isBinary = true;
+                                    try
+                                    {
+                                        contentLength = System.Convert.ToInt64(tempValue);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        contentLength = 0;
+                                        RecordSysEvent("Setting content-length to zero: " + e.Message, EventLogEntryType.Warning);
+                                    };
+
+
                                 }
-                                else
-                                {
-                                    isBinary = TestBinary(keyValue);
-                                }                              
 
-                            }
-                            //check for known content length
-                            if (keyName == "Content-Length")
+
+                                //check whether we can represent a given header in native IIS Response context (currently only used for server side redirects)
+                                IISNativeHeaders(keyName, tempValue);
+
+
+                            } //end for
+
+                            //set response status code
+                            if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
                             {
-                                try
+                                int respStatus = tcshPackage.GetStatus();
+                                //is the status to be returned is an error status >=400 then we need set the response flag and kill conn flags
+                                //we will mark this as to be killed if status indicates error to ensure that stream cache is removed and cannot be reused by other connections
+                                if (respStatus >= 400)
                                 {
-                                    contentLength = System.Convert.ToInt64(tempValue);
+                                    if (BonCodeAJP13Settings.BONCODEAJP13_SKIP_IISCUSTOMERRORS)
+                                    {
+                                        p_Context.Response.TrySkipIisCustomErrors = true;
+                                    }
+                                    p_FlagKillConnection = true; //we are only marking here to ensure that we finish writing as much as possible to stream before closing
                                 }
-                                catch (Exception e) {
-                                    contentLength = 0;
-                                    RecordSysEvent("Setting content-length to zero: " + e.Message, EventLogEntryType.Warning);
-                                };
+                                //set the actual Status code on the response
+                                p_Context.Response.StatusCode = respStatus;
 
 
                             }
-
-
-                            //check whether we can represent a given header in native IIS Response context (currently only used for server side redirects)
-                            IISNativeHeaders(keyName, tempValue);
-
-
-                        }
-                        //set response status code
-                        if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
+                        } catch (Exception e)
                         {
-                            int respStatus = tcshPackage.GetStatus();
-                            //is the status to be returned is an error status >=400 then we need set the response flag and kill conn flags
-                            //we will mark this as to be killed if status indicates error to ensure that stream cache is removed and cannot be reused by other connections
-                            if (respStatus >= 400)
-                            {
-                                if (BonCodeAJP13Settings.BONCODEAJP13_SKIP_IISCUSTOMERRORS)
-                                {
-                                    p_Context.Response.TrySkipIisCustomErrors = true;
-                                }
-                                p_FlagKillConnection = true; //we are only marking here to ensure that we finish writing as much as possible to stream before closing
-                            }
-                            //set the actual Status code on the response
-                            p_Context.Response.StatusCode = respStatus;
-                                                        
-
+                            RecordSysEvent("Error writing headers: " + e.Message, EventLogEntryType.Warning);
                         }
+
 
                     }
                     else if (flushPacket is TomcatEndResponse)
@@ -559,9 +569,8 @@ namespace BonCodeIIS
                 catch (Exception e)
                 {
                     //display error
-                    RecordSysEvent("Error writing headers: " + e.Message, EventLogEntryType.Error);
+                    RecordSysEvent("Error flushing data: " + e.Message, EventLogEntryType.Error);
                     PrintError(p_Context, ".", e.Message + " " + e.StackTrace);
-
                 }
 
             } //loop over packets
@@ -847,6 +856,31 @@ namespace BonCodeIIS
                     }
 
                 }
+
+
+                //return current configuration options from enums
+                //----------------------------------
+                if (queryParams["BonCodeConfigList"] != null)
+                {
+                    //has to be local call
+                    if (IsLocalIP(GetKeyValue(httpHeaders, "REMOTE_ADDR")))
+                    {
+
+                        //for display                                              
+                        retVal += "<pre>BonCode Active Configuration: <br>";
+                        retVal += "-----------------------------------------------<br>";
+                        foreach (var field in typeof(BonCodeAJP13Settings).GetFields())
+                        {
+                            retVal += field.Name + " = " + field.GetValue(field.Name).ToString();
+                            retVal += "<br>";
+                        }
+                        
+                        retVal += "</pre>";                       
+
+                    }
+
+                }
+
 
                 //end of check for virtual directory list
                 //----------------------------------
