@@ -290,7 +290,11 @@ Version 1.0.29 Updates:
 * Add: additial stack trace to windows event log when we cannot write to logfiles
 * Add: AJP native flush detection. A correctly formated AJP flush packet will lead to flushing when any of the flush flags is enabled.
 
-Version 1.0.30 Updates Planning:
+Version 1.0.30 Updates:
+* Upd: reduce system flushing events and use IIS delayed buffer write to client when user has disabled flushing
+
+
+Version 1.0.31 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
 * Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
 * Add: installer add mapping for *.cfchart / *.cfres / *.cfr 

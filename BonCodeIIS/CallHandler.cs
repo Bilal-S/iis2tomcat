@@ -370,8 +370,8 @@ namespace BonCodeIIS
             {
                 System.GC.Collect();
                 System.GC.WaitForPendingFinalizers();
-            }    
-            
+            }
+
 
         }
 
@@ -551,7 +551,7 @@ namespace BonCodeIIS
                                 RecordSysEvent("Error missing final content-length: " + e.Message, EventLogEntryType.Error);
                             }
                         }
-                        
+
                     }
                     else if (flushPacket is TomcatPhysicalPathRequest)
                     {
@@ -575,11 +575,15 @@ namespace BonCodeIIS
 
             } //loop over packets
 
-            //attempt to flush now
+            //attempt to flush now if enabled
             try
             { 
-                //send contents to browser
-                p_Context.Response.Flush();
+                //send contents to browser only if user based flush is enabled otherwise wait for IIS to push buffer
+                if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0 || BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0)
+                {
+                    p_Context.Response.Flush();
+                }
+                
             }
             catch (Exception e)
             {
