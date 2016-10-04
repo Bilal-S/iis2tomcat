@@ -293,8 +293,10 @@ Version 1.0.29 Updates:
 Version 1.0.30 Updates:
 * Upd: reduce system flushing events and use IIS delayed buffer write to client when user has disabled flushing
 
+Version 1.0.31 Updates:
+* Fix: class type comparison failed in .net framework resulting in skipped terminator BonCodeAJP13.TomcatPackets.TomcatSendBodyChunk package. This looked like pages had stopped processing.
 
-Version 1.0.31 Updates Planning:
+Version 1.0.32 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
 * Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
 * Add: installer add mapping for *.cfchart / *.cfres / *.cfr 

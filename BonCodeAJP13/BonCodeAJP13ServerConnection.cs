@@ -27,14 +27,14 @@
 //==============================================================================
 
 
+using BonCodeAJP13.ServerPackets;
+using BonCodeAJP13.TomcatPackets;
 using System;
-using System.Web;
 using System.Diagnostics;
 using System.Net.Sockets;
-using System.Threading;
-using BonCodeAJP13.TomcatPackets;
-using BonCodeAJP13.ServerPackets;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Web;
 
 
 
@@ -649,12 +649,12 @@ namespace BonCodeAJP13
                         break;
                     }
 
-                }  
-                
+                }
 
 
-                //if the last received message from tomcat is "GET_BODY_CHUNK" we need to send terminator package
-                if(p_PacketsReceived[p_PacketsReceived.Count-1] is TomcatGetBodyChunk) {
+                // if the last received message from tomcat is "GET_BODY_CHUNK" we need to send terminator package
+                // We have to do a complex type multi-comparison rather than using just one 'is' operator since c# seems to have an issue determining class type in collection
+                if (p_PacketsReceived[p_PacketsReceived.Count - 1] is TomcatSendBodyChunk || p_PacketsReceived[p_PacketsReceived.Count - 1].GetType() == typeof(TomcatGetBodyChunk) ||  p_PacketsReceived[p_PacketsReceived.Count - 1] is BonCodeAJP13.TomcatPackets.TomcatSendBodyChunk) {
                     BonCodeAJP13Packet sendPacket = new BonCodeAJP13ForwardRequest(new byte[] { }); //create terminator (empty) package
                     p_NetworkStream.Write(sendPacket.GetDataBytes(), 0, sendPacket.PacketLength);
                     //log packet as it is sent
