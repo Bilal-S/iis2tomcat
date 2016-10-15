@@ -47,8 +47,8 @@ Version history is in the Readme Notes.txt file in this project
 END OF VERSION HISTORY
 --------------------------------------------------
 
-Full documentation is available in the download package from riaforge in PDF file. 
+Full documentation is available in the download package from [github releases](https://github.com/Bilal-S/iis2tomcat/releases). Look in `BonCode_Tomcat_Connector_Manual.pdf` file. 
 
 The documentation also contains manual installation instruction, however, using automated installer contained in package is recommended.
 
-As usual any feedback is appreciated. Please use the riaforge.org site to leave feedback or open issues.
+As usual any feedback is appreciated. Please use the [github issues site](https://github.com/Bilal-S/iis2tomcat/issues) to leave feedback or open issues.
