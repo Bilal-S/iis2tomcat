@@ -437,6 +437,7 @@ namespace BonCodeAJP13
                 {
                     int maxWaitCount = (BonCodeAJP13Settings.BONCODEAJP13_FLUSH_TIMEOUT * 1000) / 50;
                     int i = 0;
+                    if (p_Logger != null) p_Logger.LogMessage("flush in progress detected. waiting.", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
                     while (p_FlushInProgress() && i < maxWaitCount)
                     {
                         i++;
@@ -849,13 +850,17 @@ namespace BonCodeAJP13
         private void CloseConnectionNoError(string message = "Closing Stream")
         {
             if (p_Logger != null) p_Logger.LogMessage(message, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG);
+
+            p_NetworkStream.Flush();
             
 
-            /* eloborate close   */
+            // This will put TCP connection in TIME_WAIT status
+            /* eloborate close   
             p_NetworkStream.Flush();
             p_NetworkStream.Close();
             p_NetworkStream.Dispose();            
             p_NetworkStream = null;
+            */
 
             /*
             p_TCPClient.Client.Close();

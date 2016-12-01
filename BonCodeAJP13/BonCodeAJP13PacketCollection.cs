@@ -20,8 +20,10 @@
  * Version:     1.0                                                      *
  *************************************************************************/
 
+using BonCodeAJP13.TomcatPackets;
+using System;
 using System.Collections;
-
+using System.Collections.Generic;
 
 namespace BonCodeAJP13
 {
@@ -29,46 +31,73 @@ namespace BonCodeAJP13
     /// Used to hold a collection of Received packets. 
     /// Can contain multiple tomcat or server packets.
     /// </summary>
-    public class BonCodeAJP13PacketCollection : CollectionBase
+    public class BonCodeAJP13PacketCollection : IEnumerable<BonCodeAJP13Packet>
     {
+        // instance store
+        private List<BonCodeAJP13Packet> packets = new List<BonCodeAJP13Packet>();
+
+        // enumeration links
+        IEnumerator IEnumerable.GetEnumerator()
+        {           
+            return ((IEnumerable<BonCodeAJP13Packet>)packets).GetEnumerator();
+        }
+
+        public IEnumerator<BonCodeAJP13Packet> GetEnumerator() {
+            return this.packets.GetEnumerator();
+        }
+
+        // getters and setters
+        public int Count { get { return (packets.Count); } }
 
         public BonCodeAJP13Packet this[int index]
         {
             get
             {
-                return ((BonCodeAJP13Packet)List[index]);
+                return ((BonCodeAJP13Packet)packets[index]);
             }
             set
             {
-                List[index] = value;
+                packets[index] = value;
             }
         }
 
-        public int Add(BonCodeAJP13Packet value)
+      
+        // public methods to collection
+        public void Add(BonCodeAJP13Packet value)
         {
-            return (List.Add(value));
+            packets.Add(value);
         }
 
         public int IndexOf(BonCodeAJP13Packet value)
         {
-            return (List.IndexOf(value));
+            return (packets.IndexOf(value));
         }
 
         public void Insert(int index, BonCodeAJP13Packet value)
         {
-            List.Insert(index, value);
+            packets.Insert(index, value);
         }
 
         public void Remove(BonCodeAJP13Packet value)
         {
-            List.Remove(value);
+            packets.Remove(value);
+        }
+
+        public void Clear()
+        {
+            packets.Clear();
         }
 
         public bool Contains(BonCodeAJP13Packet value)
         {
             // If value is not of type BonCodeAJP13Packet, this will return false.
-            return (List.Contains(value));
+            return (packets.Contains(value));
         }
 
+        // used to convert to array so that all references are resolved before looping in foreach loops
+        public IEnumerable<TomcatReturn> ToArray()
+        {
+            return (Array.ConvertAll(packets.ToArray(), item => (TomcatReturn)item));
+        }
     }
 }

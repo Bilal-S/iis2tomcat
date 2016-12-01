@@ -396,7 +396,8 @@ namespace BonCodeIIS
 
         /// <summary>
         /// Function to be passed as delegate to BonCodeAJP13 process
-        /// Will pass packet collection content to user browser and flush
+        /// Will pass packet collection content to user browser
+        /// It will either flush or deliver at end of communication cycle
         /// </summary> 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         void PrintFlush(BonCodeAJP13PacketCollection flushCollection)
@@ -411,7 +412,9 @@ namespace BonCodeIIS
             long contentLength = 0; //only assigned if content is known
             long transferredBytes = 0;
 
-            foreach (TomcatReturn flushPacket in flushCollection)
+           
+
+            foreach (TomcatReturn flushPacket in flushCollection.ToArray())
             {
                 try
                 {
@@ -593,8 +596,9 @@ namespace BonCodeIIS
                 //PrintError(p_Context, "", e.Message + " " + e.StackTrace);
             }
 
+            
             //remove the flush collection reference 
-            flushCollection = null;
+            //flushCollection = null;
 
             //signal that we have finished the flush process
             p_FlushInProgress = false;
@@ -1011,6 +1015,7 @@ namespace BonCodeIIS
         /// </summary>
         private void KillConnection()
         {
+       
             try
             {
                 if (p_TcpClient != null)
@@ -1028,6 +1033,7 @@ namespace BonCodeIIS
                 //attempt to add to Application log        
                 RecordSysEvent("Error during KillConnection: " + exp.Message,EventLogEntryType.Error);
             }
+            
         }
 
 
