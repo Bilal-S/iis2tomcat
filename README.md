@@ -39,16 +39,16 @@ If you were using a proxy or URL rewrite engine you would also benefit from:
 YouTube Videos:
 http://tomcatiis.riaforge.org/blog/index.cfm/2011/4/10/Youtube-Videos
 
------------------------------------------
-VERSION HISTORY:
 
-Version history is in the Readme Notes.txt file in this project
+## Version History:
 
-END OF VERSION HISTORY
---------------------------------------------------
+Expanded version history is in the `Readme Notes.txt` file in this project
 
-Full documentation is available in the download package from riaforge in PDF file. 
+## More Documentation and Support
+
+
+Full documentation is available in the download package from [github releases site](https://github.com/Bilal-S/iis2tomcat/releases). Download zip and look in `BonCode_Tomcat_Connector_Manual.pdf` file. 
 
 The documentation also contains manual installation instruction, however, using automated installer contained in package is recommended.
 
-As usual any feedback is appreciated. Please use the riaforge.org site to leave feedback or open issues.
+As usual any feedback is appreciated. Please use the [github issues site](https://github.com/Bilal-S/iis2tomcat/issues) to leave feedback or open issues.
