@@ -37,7 +37,7 @@ If you were using a proxy or URL rewrite engine you would also benefit from:
 *   allows you to connect to multiple tomcat instances from within one IIS site without interfering with ISAPI connector, e.g. Shibboleth and ColdFusion 10/Railo
 
 YouTube Videos:
-http://tomcatiis.riaforge.org/blog/index.cfm/2011/4/10/Youtube-Videos
+https://www.youtube.com/user/boncode/videos
 
 
 ## Version History:
