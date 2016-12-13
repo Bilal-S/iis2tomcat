@@ -581,8 +581,8 @@ namespace BonCodeIIS
             //attempt to flush now if enabled
             try
             { 
-                //send contents to browser only if user based flush is enabled otherwise wait for IIS to push buffer
-                if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0 || BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0)
+                //send contents to client(browser) only if user based flush is enabled otherwise wait for IIS to push buffer
+                if (p_Context.Response.IsClientConnected && (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0 || BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0))
                 {
                     p_Context.Response.Flush();
                 }
@@ -592,8 +592,6 @@ namespace BonCodeIIS
             {
                 //do nothing. Mostly this occurs if the browser already closed connection with server or headers were already transferred 
                 RecordSysEvent("Error during spool to client (browser may have navigated away): " + e.Message + " " + e.StackTrace, EventLogEntryType.Warning);
-                //we don't need to printerror as the client is gone already
-                //PrintError(p_Context, "", e.Message + " " + e.StackTrace);
             }
 
             

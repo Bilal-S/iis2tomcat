@@ -300,7 +300,10 @@ Version 1.0.32 Updates:
 * Fix: connection pool did not reuse existing connection even when setting was set
 * Fix: remove thread contention for object collections under load causing extra 502 errors
 
-Version 1.0.33 Updates Planning:
+Version 1.0.33 Updates:
+* Fix: IIS will throw error code is 0x800704cd when flushing to a disconnected client
+
+Version 1.0.50 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
 * Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
 * Add: installer add mapping for *.cfchart / *.cfres / *.cfr 
