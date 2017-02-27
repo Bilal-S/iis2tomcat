@@ -676,7 +676,7 @@ namespace BonCodeIIS
             //we will need to redirect to alternate URL if we have connect error URL setting defined -- we will add an errorcode and detail
             if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL.Length > 5)
             {
-                
+                string strFullUrl = "";
                 //does the connect error URL contain URL parameters already change the bind character
                 if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL.IndexOf('?') >= 0)
                 {
@@ -689,11 +689,15 @@ namespace BonCodeIIS
                     //truncate error message to 1200 characters for now, this will grow a bit with encoding but we want to be below 2000 characters as many gateways restrict URL parameters
                     strPublicErr = HttpUtility.UrlPathEncode(strPublicErr.Substring(0, Math.Min(strPublicErr.Length, 1199))); 
                     //create fully formed URL
-                    string strFullUrl = BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL + strBindChar + "errorcode=" + strErrorCode + "&detail=" + strPublicErr ;
-                    //redirect to fully formed ULR
-                    context.Response.Redirect(strFullUrl);
+                    strFullUrl = BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL + strBindChar + "errorcode=" + strErrorCode + "&detail=" + strPublicErr ;
+
+                } else {
+                    // non local IP use redirect without detail message
+                    strFullUrl = BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_DOWN_URL + strBindChar + "errorcode=" + strErrorCode + "&detail=";
                 }
 
+                //redirect to fully formed URL
+                context.Response.Redirect(strFullUrl);
             }
             else
             {

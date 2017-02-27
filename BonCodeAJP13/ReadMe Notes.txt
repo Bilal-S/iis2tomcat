@@ -303,6 +303,9 @@ Version 1.0.32 Updates:
 Version 1.0.33 Updates:
 * Fix: IIS will throw error code is 0x800704cd when flushing to a disconnected client
 
+Version 1.0.34 Updates:
+* Fix: tomcat error redirect URL would not be used with remote connected clients.
+
 Version 1.0.50 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
 * Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
