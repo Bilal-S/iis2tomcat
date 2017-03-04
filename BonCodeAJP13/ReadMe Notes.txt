@@ -306,6 +306,14 @@ Version 1.0.33 Updates:
 Version 1.0.34 Updates:
 * Fix: tomcat error redirect URL would not be used with remote connected clients.
 
+Version 1.0.35 Updates:
+* Fix: EventLog.SourceExists() requires security permissions causing exception
+* Upd: Do not record system events for invalid URL to physical path conversions
+* Upd: Encoding of redirected URL attributes when TomcatConnection Error
+* Add: additional error details for windows system events
+
+--------------------------------------
+
 Version 1.0.50 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
 * Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
