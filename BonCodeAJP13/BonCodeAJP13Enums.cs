@@ -255,8 +255,8 @@ namespace BonCodeAJP13
         public static int BONCODEAJP13_FLUSH_TIMEOUT = 30;
 
         //TCP timouts
-        public static int BONCODEAJP13_SERVER_READ_TIMEOUT = Properties.Settings.Default.ReadTimeOut;// 900000. read timeout 15 minutes
-        public static int BONCODEAJP13_SERVER_WRITE_TIMEOUT = Properties.Settings.Default.WriteTimeOut; // 30000. write timeout 30s
+        public static int BONCODEAJP13_SERVER_READ_TIMEOUT = Properties.Settings.Default.ReadTimeOut;// now set to zero=infinite, previously 1200000. read timeout 2 minutes
+        public static int BONCODEAJP13_SERVER_WRITE_TIMEOUT = Properties.Settings.Default.WriteTimeOut; // now set to zero=infinite, previously 30000. write timeout 30s
 
         //Force SSL. Force this from tomcat; this will still accept HTTP inbound all responses will be redirected on port 443 by tomcat. JSession cookie will be issued only securely.
         public static bool BONCODEAJP13_FORCE_SECURE_SESSION = Properties.Settings.Default.ForceSecureSession; //false
@@ -331,7 +331,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.35";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.36";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;

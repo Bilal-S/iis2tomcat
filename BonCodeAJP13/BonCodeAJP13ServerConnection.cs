@@ -537,8 +537,18 @@ namespace BonCodeAJP13
             {
                 
                 p_NetworkStream = p_TCPClient.GetStream();
-                p_NetworkStream.ReadTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
-                p_NetworkStream.WriteTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
+
+                //set timeouts for read and write if provided, if they are zero we will use MS TCP no-timeout default
+                if (BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT > 0 )
+                {
+                    p_NetworkStream.ReadTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
+                }
+                
+                if (BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT > 0 )
+                {
+                    p_NetworkStream.WriteTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
+                }
+                
                 
             }
             catch (Exception ex)

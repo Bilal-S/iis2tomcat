@@ -312,6 +312,10 @@ Version 1.0.35 Updates:
 * Upd: Encoding of redirected URL attributes when TomcatConnection Error
 * Add: additional error details for windows system events
 
+Version 1.0.36 Updates:
+* Upd: change TCP Read/Write timeout setting behavior. Now if these timeouts are not set, they default to infinite (they do not timeout).
+
+
 --------------------------------------
 
 Version 1.0.50 Updates Planning:
