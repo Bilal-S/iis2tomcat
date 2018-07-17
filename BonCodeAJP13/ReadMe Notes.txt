@@ -314,7 +314,12 @@ Version 1.0.35 Updates:
 
 Version 1.0.36 Updates:
 * Upd: change TCP Read/Write timeout setting behavior. Now if these timeouts are not set, they default to infinite (they do not timeout).
-* Tst: test entry
+
+Version 1.0.37 Updates:
+* Fix: Array out of bound issues when marker bytes where at the end of network package
+* Fix: Timing issue with packet delivery. Introduce wait for variable speed networks and network latency.
+* Upd: Moved to minumum requirement of .net Framework 4.5
+* 
 
 
 --------------------------------------

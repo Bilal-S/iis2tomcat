@@ -255,7 +255,7 @@ namespace BonCodeAJP13.ServerPackets
             {
                 WritePacket(method, protocol, req_uri, remote_addr, remote_host, server_name, server_port, is_ssl, num_headers, httpHeaders, pathInfo, sourcePort,vDirs);
             }
-            catch (Exception exp)
+            catch (Exception)
             {
                
                 //error write details to special log file

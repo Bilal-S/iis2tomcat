@@ -328,8 +328,8 @@ namespace BonCodeAJP13
         {
 
 
-            //if (p_Logger != null) p_Logger.LogMessage(string.Format("Closing Connection ID: {0} [T-{1}]",  p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
-            if (p_Logger != null) p_Logger.LogMessage(string.Format("Closing Connection ID: {0} [T-{1}]", p_ThisConnectionID, AppDomain.GetCurrentThreadId()), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            if (p_Logger != null) p_Logger.LogMessage(string.Format("Closing Connection ID: {0} [T-{1}]",  p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            //if (p_Logger != null) p_Logger.LogMessage(string.Format("Closing Connection ID: {0} [T-{1}]", p_ThisConnectionID, AppDomain.GetCurrentThreadId()), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
             
             Interlocked.Decrement(ref p_ConcurrentConnections);
             p_ConnectionsCounter--;
@@ -530,8 +530,8 @@ namespace BonCodeAJP13
         {
 
 
-            //if (p_Logger != null) p_Logger.LogMessage(String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]",p_ConcurrentConnections,BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS, p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
-            if (p_Logger != null) p_Logger.LogMessage(String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]", p_ConcurrentConnections, BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS, p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, AppDomain.GetCurrentThreadId()), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            if (p_Logger != null) p_Logger.LogMessage(String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]",p_ConcurrentConnections,BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS, p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            //if (p_Logger != null) p_Logger.LogMessage(String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]", p_ConcurrentConnections, BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS, p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, AppDomain.GetCurrentThreadId()), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
             //get stream set timeouts again (default 30 minutes)
             try
             {
@@ -708,6 +708,7 @@ namespace BonCodeAJP13
             try
             {
                 int readCount = 0;
+                int waitCycle = 0;
 
                 while (p_NetworkStream.CanRead && !p_AbortConnection && !p_IsLastPacket)
                 {
@@ -746,47 +747,61 @@ namespace BonCodeAJP13
 
                     try
                     {
-                        //read or wait on next package
-                        numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
-
-                        //flush detection by bytes -- in case where time flush is also defined (ticks>0) we will wait until a time flush occurs (p_TimeFlushOccurred)
-                        //before we trigger a byte flushes
-                        if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0 &&
-                            (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS == 0 ||
-                            (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0 && p_TimeFlushOccurred))
-                           )
+                        // Read or wait next package. We have situation in which the response does take time. We have to wait wait until data arrives or we time out
+                        waitCycle = 0;
+                        while (waitCycle < 10)
                         {
-                            p_BytesInBuffer = p_BytesInBuffer + numOfBytesReceived;
-                            if (p_BytesInBuffer > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES)
+                            waitCycle++;
+
+                            if (p_NetworkStream.CanRead && p_NetworkStream.DataAvailable)
                             {
-                                p_IsFlush = true;
-                                p_BytesInBuffer = 0;
+                                //set while exit condition so we don't wait
+                                waitCycle = 10;
+                                //read next package
+                                numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+
+                                //flush detection by bytes -- in case where time flush is also defined (ticks>0) we will wait until a time flush occurs (p_TimeFlushOccurred)
+                                //before we trigger a byte flushes
+                                if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0 &&
+                                    (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS == 0 ||
+                                    (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0 && p_TimeFlushOccurred))
+                                   )
+                                {
+                                    p_BytesInBuffer = p_BytesInBuffer + numOfBytesReceived;
+                                    if (p_BytesInBuffer > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES)
+                                    {
+                                        p_IsFlush = true;
+                                        p_BytesInBuffer = 0;
+                                    }
+                                }
+
+                                //analyze packet so far (adjust bytes from Receiving buffer):combine notProcessed with new Read bytes into new Received buffer if needed                        
+                                if (notProcessedBytes != null)
+                                {
+                                    //create tempArray that contains new set of bytes to be send a combination of newly received bytes as well as bytes that we were not able to process yet
+                                    byte[] tempArray = new byte[numOfBytesReceived + notProcessedBytes.Length];
+                                    Array.Copy(notProcessedBytes, 0, tempArray, 0, notProcessedBytes.Length);
+                                    Array.Copy(receivedPacketBuffer, 0, tempArray, notProcessedBytes.Length, numOfBytesReceived);
+
+                                    notProcessedBytes = AnalyzePackage(tempArray);
+                                }
+                                else
+                                {
+                                    //send bytes we received for analysis
+                                    byte[] tempArray = new byte[numOfBytesReceived];
+                                    Array.Copy(receivedPacketBuffer, 0, tempArray, 0, numOfBytesReceived);
+                                    notProcessedBytes = AnalyzePackage(tempArray);
+                                }
+                            } else
+                            {
+                                // we cannot read anymore we will wait for 500ms to see whether more data arrives
+                                Thread.Sleep(500);
                             }
-                        }
-
-
-
-                        //analyze packet so far (adjust bytes from Receiving buffer):combine notProcessed with new Read bytes into new Received buffer if needed                        
-                        if (notProcessedBytes != null)
-                        {
-                            //create tempArray that contains new set of bytes to be send a combination of newly received bytes as well as bytes that we were not able to process yet
-                            byte[] tempArray = new byte[numOfBytesReceived + notProcessedBytes.Length];
-                            Array.Copy(notProcessedBytes, 0, tempArray, 0, notProcessedBytes.Length);
-                            Array.Copy(receivedPacketBuffer, 0, tempArray, notProcessedBytes.Length, numOfBytesReceived);
-
-                            notProcessedBytes = AnalyzePackage(tempArray);
-                        }
-                        else
-                        {
-                            //send bytes we received for analysis
-                            byte[] tempArray = new byte[numOfBytesReceived];
-                            Array.Copy(receivedPacketBuffer, 0, tempArray, 0, numOfBytesReceived);
-                            notProcessedBytes = AnalyzePackage(tempArray);
                         }
                     } catch (Exception e)
                     {
+                        p_Logger.LogMessageAndType("Stream reading problem (2)(" + readCount.ToString() + "), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
                         p_AbortConnection = true;
-                        p_Logger.LogMessageAndType("Stream reading problem (2)(" + readCount.ToString() + "), you may have shutdown Tomcat unexpectedly", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
                         //p_Logger.LogException(e);
                     }
                 }
@@ -853,6 +868,19 @@ namespace BonCodeAJP13
         }
 
          
+
+        /// <summary>
+        /// Read from stream with pauses since sometimes it takes time to process results
+        /// </summary>
+        private int ReadStream(ref byte[] receivedPacketBuffer)
+        {
+            int localNumOfBytes = 0;
+            localNumOfBytes = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+
+
+            return localNumOfBytes;
+        }
+
 
         /// <summary>
         /// Close connection and its Network stream. Everything is OK.
@@ -1046,7 +1074,7 @@ namespace BonCodeAJP13
                                     { 
                                         adobePath = ServerPath(requestPath); //System.Web.HttpContext.Current.Server.MapPath("/yeah") ;//BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath;                                
                                     }
-                                    catch (Exception e)
+                                    catch (Exception)
                                     {
                                         //if (p_Logger != null) p_Logger.LogException(e, "Problem determining absolute path [" + adobePath + "] for provided relative path: [" + requestPath + "]. Please ensure that provided path is a relative path and there is a virtual mapping and you have spelled correctly.");
                                         if (p_Logger != null) p_Logger.LogMessageAndType("Problem determining absolute path [" + adobePath + "] for provided relative path: [" + requestPath + "]. Please ensure that provided path is a relative path and there is a virtual mapping and you have spelled correctly.", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
@@ -1158,12 +1186,22 @@ namespace BonCodeAJP13
         /// <summary>
         /// Get the Int16 value from the array starting from the pos pos 
         /// Using unsigned integers only range from 0 to 65,535
+        /// We will return zero if the Data array is too short (lacking 2 bytes)
+        /// This can occur when we read data that sits on the network package boundary.
         /// </summary>
         private int GetInt16B(byte[] Data, int Pos)
         {
             UInt16 Value = 0;
-            byte[] ValueData = new byte[sizeof(Int16)];
-            Array.Copy(Data, Pos, ValueData, 0, sizeof(Int16));
+            byte[] ValueData = new byte[sizeof(Int16)]; //(this will initiliaze to zero)
+            if (Pos + 2 <= Data.Length)
+            {
+                Array.Copy(Data, Pos, ValueData, 0, sizeof(Int16));
+            } else if (Pos + 1 <= Data.Length) {
+                 //we have only one byte to make determination, this is insufficient and we will load the next package from network stream
+                Array.Copy(Data, Pos, ValueData, 0, 1);
+            }
+
+            // if we cannot get bytes from array because it is not long enough, we return zero (this is how the Value Data is initilialized)
 
             //flipping for BigEndian conversion prep
             ValueData = FlipArray(ValueData);

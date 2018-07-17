@@ -131,7 +131,7 @@ namespace BonCodeIIS
                     {
                         BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath = context.Request.PhysicalPath;
                     }
-                    catch (Exception exp)
+                    catch (Exception)
                     {
                         BonCodeAJP13Settings.BonCodeAjp13_PhysicalFilePath = "";
                         // remove recording for now since this can fill up the log unnecessarily
@@ -188,7 +188,7 @@ namespace BonCodeIIS
                     else
                     {
                         //check whether existing TCP/IP connection is still working. If tomcat is restarted the connection needs to be reset here as well
-                        if (!p_TcpClient.Connected)
+                        if (!p_TcpClient.Connected || !p_TcpClient.Client.Connected) 
                         {
                             KillConnection();
                             p_TcpClient = new TcpClient(BonCodeAJP13Settings.BONCODEAJP13_SERVER, BonCodeAJP13Settings.BONCODEAJP13_PORT);
@@ -666,6 +666,7 @@ namespace BonCodeIIS
         {
             string strErrorCode = "502"; //we use the Bad Gateway HTTP error code to indicate that we had a connection issue with Tomcat, in the future an error code could be passed in.
             string strBindChar = "?"; // url parameter seperator is either question mark or ampersand
+            string timestampFormat = "yyyy-MM-dd HH:mm:ss ";
 
             // mark this thread as to be killed since it produced error
             p_FlagKillConnection = true;
@@ -673,7 +674,7 @@ namespace BonCodeIIS
             //set a constant for public error if we used period in argument
             if (strPublicErr == ".")
             {
-                strPublicErr = "Generic Connector Communication Error: <hr>Please check and adjust your setup:<br>Ensure that Tomcat is running on given host and port.<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual).";
+                strPublicErr = "Generic Connector Communication Error: <hr>Please check and adjust your setup:<br>Ensure that Tomcat is running on given host and port.<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual). [" + DateTime.Now.ToString(timestampFormat) + "]";
             }
 
             //we will need to redirect to alternate URL if we have connect error URL setting defined -- we will add an errorcode and detail
