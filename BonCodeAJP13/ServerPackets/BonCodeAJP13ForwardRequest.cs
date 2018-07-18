@@ -377,6 +377,14 @@ namespace BonCodeAJP13.ServerPackets
                 addlHeaders.Add("xajp-managedthreadid", "" + System.Threading.Thread.CurrentThread.ManagedThreadId);
             }
 
+            //special case CONTENT_LENGTH if this is zero remove from transmission, otherwise this creates issues with Apache.Axis
+            if (goodHeaders["CONTENT_LENGTH"] != null) {
+                if (Int32.Parse(goodHeaders["CONTENT_LENGTH"]) == 0) {
+                    goodHeaders.Remove("CONTENT_LENGTH");
+                    num_headers--;
+                }
+            }
+
             //reset count of headers
             num_headers += addlHeaders.Count;
 
@@ -438,6 +446,8 @@ namespace BonCodeAJP13.ServerPackets
 
                 if (expectedPacketSize < BonCodeAJP13Settings.MAX_BONCODEAJP13_PACKET_LENGTH)
                 {
+                    
+                    //TODO: see whether we can just use string header name and remove byte translation
                     //add byte or string header name               
                     if (BonCodeAJP13PacketHeaders.GetHeaderBytes(keyName) != null)
                     {
@@ -449,6 +459,9 @@ namespace BonCodeAJP13.ServerPackets
                         //string header (remove HTTP prefix this is added by IIS) and change underscore                       
                         pos = SetString(aUserData, GetCorrectHeaderName(keyName), pos);
                     }
+                    
+
+
                     //add value if keyName is not empty string
                     pos = SetString(aUserData, keyValue, pos);
                 }

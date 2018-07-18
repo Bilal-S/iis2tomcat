@@ -617,7 +617,9 @@ namespace BonCodeAJP13
                             {
                                 sanityCheck++;
                                 try {
-                                    numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+                                    numOfBytesReceived = ReadStream(ref receivedPacketBuffer,"chunked read");
+                                    // numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+
                                     notProcessedBytes = AnalyzePackage(ref delayWrite, receivedPacketBuffer, true); //no flush processing during sending of data
                                                                                                                     //we expect a 7 byte response except for the last package record, if not record a warning                        
                                     if (sendPacketCount != p_PacketsToSend.Count && numOfBytesReceived > 7)
@@ -708,7 +710,6 @@ namespace BonCodeAJP13
             try
             {
                 int readCount = 0;
-                int waitCycle = 0;
 
                 while (p_NetworkStream.CanRead && !p_AbortConnection && !p_IsLastPacket)
                 {
@@ -748,59 +749,52 @@ namespace BonCodeAJP13
                     try
                     {
                         // Read or wait next package. We have situation in which the response does take time. We have to wait wait until data arrives or we time out
-                        waitCycle = 0;
-                        while (waitCycle < 10)
+                        numOfBytesReceived = ReadStream(ref receivedPacketBuffer,"regular read (2)");
+                            
+
+                        //flush detection by bytes -- in case where time flush is also defined (ticks>0) we will wait until a time flush occurs (p_TimeFlushOccurred)
+                        //before we trigger a byte flushes
+                        if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0 &&
+                            (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS == 0 ||
+                            (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0 && p_TimeFlushOccurred))
+                            )
                         {
-                            waitCycle++;
-
-                            if (p_NetworkStream.CanRead && p_NetworkStream.DataAvailable)
+                            p_BytesInBuffer = p_BytesInBuffer + numOfBytesReceived;
+                            if (p_BytesInBuffer > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES)
                             {
-                                //set while exit condition so we don't wait
-                                waitCycle = 10;
-                                //read next package
-                                numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
-
-                                //flush detection by bytes -- in case where time flush is also defined (ticks>0) we will wait until a time flush occurs (p_TimeFlushOccurred)
-                                //before we trigger a byte flushes
-                                if (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES > 0 &&
-                                    (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS == 0 ||
-                                    (BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_TICKS > 0 && p_TimeFlushOccurred))
-                                   )
-                                {
-                                    p_BytesInBuffer = p_BytesInBuffer + numOfBytesReceived;
-                                    if (p_BytesInBuffer > BonCodeAJP13Settings.BONCODEAJP13_AUTOFLUSHDETECTION_BYTES)
-                                    {
-                                        p_IsFlush = true;
-                                        p_BytesInBuffer = 0;
-                                    }
-                                }
-
-                                //analyze packet so far (adjust bytes from Receiving buffer):combine notProcessed with new Read bytes into new Received buffer if needed                        
-                                if (notProcessedBytes != null)
-                                {
-                                    //create tempArray that contains new set of bytes to be send a combination of newly received bytes as well as bytes that we were not able to process yet
-                                    byte[] tempArray = new byte[numOfBytesReceived + notProcessedBytes.Length];
-                                    Array.Copy(notProcessedBytes, 0, tempArray, 0, notProcessedBytes.Length);
-                                    Array.Copy(receivedPacketBuffer, 0, tempArray, notProcessedBytes.Length, numOfBytesReceived);
-
-                                    notProcessedBytes = AnalyzePackage(tempArray);
-                                }
-                                else
-                                {
-                                    //send bytes we received for analysis
-                                    byte[] tempArray = new byte[numOfBytesReceived];
-                                    Array.Copy(receivedPacketBuffer, 0, tempArray, 0, numOfBytesReceived);
-                                    notProcessedBytes = AnalyzePackage(tempArray);
-                                }
-                            } else
-                            {
-                                // we cannot read anymore we will wait for 500ms to see whether more data arrives
-                                Thread.Sleep(500);
+                                p_IsFlush = true;
+                                p_BytesInBuffer = 0;
                             }
                         }
+
+                        if (numOfBytesReceived > 0) {
+                            //analyze packet so far (adjust bytes from Receiving buffer):combine notProcessed with new Read bytes into new Received buffer if needed                        
+                            if (notProcessedBytes != null)
+                            {
+                                //create tempArray that contains new set of bytes to be send a combination of newly received bytes as well as bytes that we were not able to process yet
+                                byte[] tempArray = new byte[numOfBytesReceived + notProcessedBytes.Length];
+                                Array.Copy(notProcessedBytes, 0, tempArray, 0, notProcessedBytes.Length);
+                                Array.Copy(receivedPacketBuffer, 0, tempArray, notProcessedBytes.Length, numOfBytesReceived);
+
+                                notProcessedBytes = AnalyzePackage(tempArray);
+                            }
+                            else
+                            {
+                                //send bytes we received for analysis
+                                byte[] tempArray = new byte[numOfBytesReceived];
+                                Array.Copy(receivedPacketBuffer, 0, tempArray, 0, numOfBytesReceived);
+                                notProcessedBytes = AnalyzePackage(tempArray);
+                            }
+                        } else {
+                            p_Logger.LogMessageAndType("Stream reading problem (5), zero bytes received as Tomcat response. There may be a network or protocol problem.", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                        }
+
+
+
                     } catch (Exception e)
                     {
-                        p_Logger.LogMessageAndType("Stream reading problem (2)(" + readCount.ToString() + "), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                        p_Logger.LogException(e,"Stream reading problem (2)(" + readCount.ToString() + "), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly",BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                        // p_Logger.LogMessageAndType("Stream reading problem (2)(" + readCount.ToString() + "), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
                         p_AbortConnection = true;
                         //p_Logger.LogException(e);
                     }
@@ -813,7 +807,8 @@ namespace BonCodeAJP13
                     //we need to clear the tcp pipe so the next request does not pick up data we will do this up to 100 times and write warning
                     try
                     {
-                        numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+                        numOfBytesReceived = ReadStream(ref receivedPacketBuffer,"clear-end read");
+                        // numOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
                     } catch
                     {
                         //do nothing here
@@ -843,7 +838,7 @@ namespace BonCodeAJP13
             if (numOfBytesReceived == 0)
             {
                 // Nothing received from tomcat, log warning
-                p_Logger.LogMessageAndType("Empty packet received from tomcat", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                if (p_Logger != null) p_Logger.LogMessageAndType("Empty packet received from tomcat", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
                 //return;
             }
 
@@ -870,15 +865,40 @@ namespace BonCodeAJP13
          
 
         /// <summary>
-        /// Read from stream with pauses since sometimes it takes time to process results
+        /// Read from stream with wait pauses since sometimes there is delay in network or response
         /// </summary>
-        private int ReadStream(ref byte[] receivedPacketBuffer)
+        private int ReadStream(ref byte[] receivedPacketBuffer, string readOrigin = "")
         {
-            int localNumOfBytes = 0;
-            localNumOfBytes = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+            int localNumOfBytesReceived = 0;
+            int waitCycle = 0;
+            int maxWaitCycle = 20;
 
+            try{
+                while (waitCycle < maxWaitCycle) {
+                    waitCycle++;
+                    if (p_NetworkStream.CanRead && p_NetworkStream.DataAvailable)
+                    {
+                        //set while exit condition so we don't wait
+                        waitCycle = maxWaitCycle + 2;
+                        //read next package
+                        localNumOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
+                    } else {
+                        // we cannot read anymore we will wait for 300ms to see whether more data arrives
+                        Thread.Sleep(300);
+                    }
+                }
 
-            return localNumOfBytes;
+                if (waitCycle == maxWaitCycle){
+                    if (p_Logger != null) p_Logger.LogMessageAndType("Stream reading problem (3)[" + readOrigin + "](10), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                    p_AbortConnection = true;
+                }
+            } catch (Exception){
+                if (p_Logger != null) p_Logger.LogMessageAndType("Stream reading problem (4)[" + readOrigin + "](" + waitCycle.ToString() + "), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                p_AbortConnection = true;
+
+            }
+
+            return localNumOfBytesReceived;
         }
 
 

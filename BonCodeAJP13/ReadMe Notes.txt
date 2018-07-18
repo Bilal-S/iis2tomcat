@@ -318,8 +318,9 @@ Version 1.0.36 Updates:
 Version 1.0.37 Updates:
 * Fix: Array out of bound issues when marker bytes where at the end of network package
 * Fix: Timing issue with packet delivery. Introduce wait for variable speed networks and network latency.
+* Fix: Apache Axis Soap processor embedded in Adobe ColdFusion will not instantiate when CONTENT_LENGTH is specified as zero
 * Upd: Moved to minumum requirement of .net Framework 4.5
-* 
+* Upd: Removed .net framework 3.5 distribution
 
 
 --------------------------------------
