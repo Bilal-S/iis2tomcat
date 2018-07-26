@@ -49,6 +49,6 @@ Expanded version history is in the `Readme Notes.txt` file in this project
 
 Full documentation is available in the download package from [github releases site](https://github.com/Bilal-S/iis2tomcat/releases). Download zip and look in `BonCode_Tomcat_Connector_Manual.pdf` file. 
 
-The documentation also contains manual installation instruction, however, using automated installer contained in package is recommended.
+[The documentation](http://boncode.net/connector/webdocs/) also contains manual installation instruction, however, using automated installer contained in package is recommended.
 
 As usual any feedback is appreciated. Please use the [github issues site](https://github.com/Bilal-S/iis2tomcat/issues) to leave feedback or open issues.
