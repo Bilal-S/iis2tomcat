@@ -323,6 +323,10 @@ Version 1.0.37 Updates:
 * Upd: Removed .net framework 3.5 distribution
 
 
+Version 1.0.38 Updates:
+* Upd: block /pms path from being used when admin access from remote is not allowed. This is for Adobe CF.
+* Fix: location of global setting file was placed under GAC rather then c:\windows
+
 --------------------------------------
 
 Version 1.0.50 Updates Planning:

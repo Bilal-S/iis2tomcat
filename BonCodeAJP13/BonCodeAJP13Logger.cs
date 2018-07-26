@@ -246,8 +246,8 @@ namespace BonCodeAJP13
             UriBuilder uri = new UriBuilder(codeBase);           
             string strPath = System.IO.Path.GetDirectoryName(uri.Uri.LocalPath);
 
-            //check whether path is accessible (it is not when in GAC)
-            if (strPath.Contains("GAC_MSIL\\BonCodeAJP13\\1.0.0.0")) strPath = Environment.GetEnvironmentVariable("windir"); //Environment.GetFolderPath(Environment.SpecialFolder.System);
+            //check whether path is accessible (it is not when in GAC)            
+            if (strPath.Contains("GAC_MSIL\\BonCodeAJP13\\")) strPath = Environment.GetEnvironmentVariable("windir"); //Environment.GetFolderPath(Environment.SpecialFolder.System);
             //if (!Directory.Exists(strPath)) strPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
             return strPath;
 

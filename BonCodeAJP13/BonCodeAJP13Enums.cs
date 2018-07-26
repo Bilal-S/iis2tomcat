@@ -237,7 +237,7 @@ namespace BonCodeAJP13
         public static string[] BONCODEAJP13_TEXT_MARK = new string[] { "text", "xml", "html", "plain" };
 
         //protect remote execution of manager for tomcat, railo, and others using these signatures
-        public static string[] BONCODEAJP13_MANAGER_URLS = new string[] { "/manager/","/host-manager","/web-inf", "/meta-inf" }; //these cannot be at the start of the URi
+        public static string[] BONCODEAJP13_MANAGER_URLS = new string[] { "/manager/","/host-manager","/web-inf", "/meta-inf", "/pms" }; //these cannot be at the start of the URi
         public static string[] BONCODEAJP13_MANAGER_FLEXURLS = new string[] {"/lucee/admin", "/railo-context/admin/", "/bluedragon/administrator/", "/cfide/administrator", "/cfide/adminapi", "/cfide/componentutils" }; //these cannot be anywhere in the URi path
 
         //enable HeaderDataSupport. Will send non-standard data in header to support cfml operations -- currently adds X-Tomcat-DocRoot
@@ -331,7 +331,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.37";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.38";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;
