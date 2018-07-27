@@ -1,6 +1,6 @@
 # BonCode AJP13 Connector for IIS
 
-## The easiest to connector to script deployments and bundle in your projects ;o)
+## The easiest connector to script deployments and bundle in your projects ;o)
 
 - Hands-down the easiest connector to use for the common developer (no need to get involved with the intricacies of Tomcat and IIS protocol interchanges.)
 - Simply run the `Connector_Setup.exe` and you are done.
