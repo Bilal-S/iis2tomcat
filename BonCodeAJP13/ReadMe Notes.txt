@@ -2,15 +2,20 @@
 Notes on AJP13 implementation:
 Licensed under Apache License, Version 2.0
 
+Automatic Installation:
+-----------------------
+- run installer if possible (Connector_Setup.exe) to handle all the details
 
-Installation:
--------------
-IIS7:
+
+Manual Installation:
+-------------------
+IIS7 - IIS10:
 -Need IIS .net extensibility feature on IIS7
 -create BIN directory under web-document root e.g. c:\inetpub\wwwroot\BIN
 -copy the dll files in the BonCodeIIS project into BIN directory
 -register handler for extension(Request Path) using Type:
 BonCodeIIS.BonCodeCallHandler
+
 
 
 Test Remaining:
@@ -37,8 +42,10 @@ All Upper:
 
 
 Main Test Environment:
-	Railo-Administrator
+	Tomcat with Lucee	
 	Axis2 webservices
+
+==========================================
 
 Version 0.9.1 Updates:
 * Add: Added automated installer beta (all windows versions from XP on)

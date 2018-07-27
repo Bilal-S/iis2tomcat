@@ -1,7 +1,12 @@
-iis2tomcat
-==========
+# BonCode AJP13 Connector for IIS
 
--- Hands-down the easiest connector to deploy for IIS to Tomcat connectivity -- ;o)
+## The easiest to connector to script deployments and bundle in your projects ;o)
+
+- Hands-down the easiest connector to use for the common developer (no need to get involved with the intricacies of Tomcat and IIS protocol interchanges.)
+- Simply run the `Connector_Setup.exe` and you are done.
+- If you need to script your deployments this can be achieved as easy as calling a command line.
+
+## Differences and Advantages
 
 This is the modern method of connecting IIS and Apache Tomcat. Most likely to use a Railo, Lucee or JSP driven backend.
 The BonCode AJP (Apache JServ Protocol version 1.3) Connector uses already existing pathways to connect to Apache Tomcat. 
@@ -10,7 +15,7 @@ In general it is a preference question how you connect IIS to Tomcat, though, th
 *   no ISAPI code, IIS6 vestiges or backward compatibility elements needed
 *   does not block or hinder IIS functionality or slows unrelated requests
 *   all managed code for IIS7+ using the modern extensibility framework
-*   works on IIS5.1, IIS6 and IIS7, IIS7.5, IIS8+ (Windows XP through Windows 10, Windows Server 2003-2012)
+*   works on IIS7 - IIS10 (Windows 7 through Windows 10, Windows Server 2003-2016)
 *   speed, throughput, and stability improvements 
 *   configuration in IIS UI
 *   no virtual directories and virtual mappings needed
@@ -25,9 +30,11 @@ In general it is a preference question how you connect IIS to Tomcat, though, th
 *   Improved transfer of SSL data to Tomcat servlet container
 *   Support improved translation of load balancer headers to determine correct client IP 
 *   Support client fingerprint mechanism for use with safer sessions
-*   Support for Adobe Coldfusion 10,11 AJP dialect
+*   Support for Adobe Coldfusion 10 - 2018 AJP dialects
 *   Support for Lucee, Railo, and OpenBD CFML Engines 
 *   Support for alternate Path-Info header transmission via AJP
+
+## Even more stuff
 
 If you were using a proxy or URL rewrite engine you would also benefit from:
 *   Fully integrated SSL to Servlet container
@@ -39,10 +46,21 @@ If you were using a proxy or URL rewrite engine you would also benefit from:
 YouTube Videos:
 https://www.youtube.com/user/boncode/videos
 
+## Lucee / Railo in place upgrade
+
+- use this link: http://www.boncode.net/boncode-connector/upgrading-railo-or-lucee-connector
+
+## Adobe ColdFusion configuration
+
+- use this link: http://www.boncode.net/boncode-connector/using-boncode-with-adobe-coldfusion
+
+## Latest Package Download
+
+- use this link: https://github.com/Bilal-S/iis2tomcat/releases/latest
 
 ## Version History:
 
-Expanded version history is in the `Readme Notes.txt` file in this project
+Expanded version history is in the `Readme Notes.txt` file in this project under BonCodeAJP13 sources
 
 ## More Documentation and Support
 
