@@ -538,18 +538,21 @@ namespace BonCodeAJP13
                 
                 p_NetworkStream = p_TCPClient.GetStream();
 
+                // we are repurposing the read timeout differently using it during the HandleCommunication for waits
                 //set timeouts for read and write if provided, if they are zero we will use MS TCP no-timeout default
+                /*
                 if (BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT > 0 )
                 {
                     p_NetworkStream.ReadTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT;
                 }
-                
+               
+                //TODO: to be removed
                 if (BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT > 0 )
                 {
                     p_NetworkStream.WriteTimeout = BonCodeAJP13Settings.BONCODEAJP13_SERVER_WRITE_TIMEOUT;
                 }
-                
-                
+                */
+
             }
             catch (Exception ex)
             {
@@ -871,7 +874,7 @@ namespace BonCodeAJP13
         {
             int localNumOfBytesReceived = 0;
             int waitCycle = 0;
-            int maxWaitCycle = 20;
+            int maxWaitCycle = (int) Math.Round(BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT/200.0); // default 2:00 mins max wait for response
 
             try{
                 while (waitCycle < maxWaitCycle) {
@@ -883,8 +886,8 @@ namespace BonCodeAJP13
                         //read next package
                         localNumOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
                     } else {
-                        // we cannot read anymore we will wait for 300ms to see whether more data arrives
-                        Thread.Sleep(300);
+                        // we cannot read anymore we will wait for 200ms to see whether more data arrives
+                        Thread.Sleep(200);
                     }
                 }
 
@@ -954,7 +957,7 @@ namespace BonCodeAJP13
             //now raise the error for the call handler it will close TCP client
             if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
             {
-                throw new InvalidOperationException("Connection between Tomcat and IIS experienced error. If you restarted Tomcat this is expected. ");
+                throw new InvalidOperationException("Connection between Tomcat and IIS experienced error. If you restarted Tomcat this is expected. (1) ");
             }
         }
 
@@ -976,7 +979,7 @@ namespace BonCodeAJP13
             //now raise the error for the call handler it will close the TCP client
             if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
             {
-                throw new InvalidOperationException("Connection between Tomcat and IIS experienced error. If you restarted Tomcat this is expected. " + messageType + ":" + message);
+                throw new InvalidOperationException("Connection between Tomcat and IIS experienced error. If you restarted Tomcat this is expected. (2)" + messageType + ":" + message);
             }
            
         }

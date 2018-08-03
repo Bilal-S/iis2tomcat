@@ -333,6 +333,12 @@ Version 1.0.37 Updates:
 Version 1.0.38 Updates:
 * Upd: block /pms path from being used when admin access from remote is not allowed. This is for Adobe CF.
 * Fix: location of global setting file was placed under GAC rather then c:\windows
+* Add: read timeout of 6s for silent or errand connections that stop responding
+
+Version 1.0.39 Updates:
+* Upd: associate ReadTimeout setting with errand connection timeout and default to 120000 (2 minutes)
+* Upd: Remove WriteTimeout setting
+
 
 --------------------------------------
 

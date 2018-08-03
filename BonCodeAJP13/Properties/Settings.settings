@@ -36,7 +36,7 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="ReadTimeOut" Description="Number of milliseconds to wait before we stop listening for more traffic. 1000ms=1s. Default 120000 (20 min)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">120000</Value>
     </Setting>
     <Setting Name="WriteTimeOut" Description="Number of milliseconds to wait until we stop writing to tomcat. 1000ms=1s. Default 30000 (30s)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
       <Value Profile="(Default)">0</Value>

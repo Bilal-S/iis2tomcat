@@ -194,7 +194,7 @@ namespace BonCodeAJP13.Properties {
         [global::System.Configuration.SettingsDescriptionAttribute("Number of milliseconds to wait before we stop listening for more traffic. 1000ms=" +
             "1s. Default 120000 (20 min).")]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("120000")]
         public int ReadTimeOut {
             get {
                 return ((int)(this["ReadTimeOut"]));
