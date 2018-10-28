@@ -329,7 +329,6 @@ Version 1.0.37 Updates:
 * Upd: Moved to minumum requirement of .net Framework 4.5
 * Upd: Removed .net framework 3.5 distribution
 
-
 Version 1.0.38 Updates:
 * Upd: block /pms path from being used when admin access from remote is not allowed. This is for Adobe CF.
 * Fix: location of global setting file was placed under GAC rather then c:\windows
@@ -338,6 +337,10 @@ Version 1.0.38 Updates:
 Version 1.0.39 Updates:
 * Upd: associate ReadTimeout setting with errand connection timeout and default to 120000 (2 minutes)
 * Upd: Remove WriteTimeout setting
+
+Version 1.0.40 Updates:
+* Fix: do not allow remote call for setup of WindowsEventSource. This will lead to uneccessary error messages.
+
 
 
 --------------------------------------

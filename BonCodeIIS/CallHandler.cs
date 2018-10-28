@@ -901,9 +901,9 @@ namespace BonCodeIIS
                 //----------------------------------
 
 
-                //check for check for event log source registration
+                //check for check for event log source registration has to be local call
                 //----------------------------------
-                if (queryParams["BonCodeEventLogPrep"] != null)
+                if (queryParams["BonCodeEventLogPrep"] != null && IsLocalIP(GetKeyValue(httpHeaders, "REMOTE_ADDR")))
                 {
                        
                     if (RegisterWindowsEventSource())
