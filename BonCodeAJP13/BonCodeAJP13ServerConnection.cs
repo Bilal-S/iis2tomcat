@@ -874,7 +874,7 @@ namespace BonCodeAJP13
         {
             int localNumOfBytesReceived = 0;
             int waitCycle = 0;
-            int maxWaitCycle = (int) Math.Round(BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT/200.0); // default 2:00 mins max wait for response
+            int maxWaitCycle = (int) Math.Round(BonCodeAJP13Settings.BONCODEAJP13_SERVER_READ_TIMEOUT/1.0); // default 2:00 mins max wait for response
 
             try{
                 while (waitCycle < maxWaitCycle) {
@@ -886,8 +886,8 @@ namespace BonCodeAJP13
                         //read next package
                         localNumOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
                     } else {
-                        // we cannot read anymore we will wait for 200ms to see whether more data arrives
-                        Thread.Sleep(200);
+                        // we cannot read anymore we will wait for 1ms to see whether more data arrives
+                        Thread.Sleep(1);
                     }
                 }
 

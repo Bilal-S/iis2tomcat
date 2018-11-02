@@ -342,6 +342,9 @@ Version 1.0.40 Updates:
 * Fix: do not allow remote call for setup of WindowsEventSource. This will lead to uneccessary error messages.
 
 
+Version 1.0.41 Updates:
+* Fix: to avoid file upload timeout reduce wait time for network data to arrive to avoid uncessary timeouts.
+
 
 --------------------------------------
 
