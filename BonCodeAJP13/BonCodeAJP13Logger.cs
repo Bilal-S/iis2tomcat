@@ -58,7 +58,7 @@ namespace BonCodeAJP13
             {   // log version to new file
                 using (StreamWriter logStream = File.AppendText(p_FileName))
                 {
-                    logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + "BonCode AJP Connenctor version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+                    logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + "BonCode AJP Connector version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
                 }
             }
         }
