@@ -70,3 +70,11 @@ Full documentation is available in the download package from [github releases si
 [The documentation](http://boncode.net/connector/webdocs/) also contains manual installation instruction, however, using automated installer contained in package is recommended.
 
 As usual any feedback is appreciated. Please use the [github issues site](https://github.com/Bilal-S/iis2tomcat/issues) to leave feedback or open issues.
+
+## GDPR & CCPA Cookie Manager
+
+If you are looking for a good cookie and script manager take a look at one of my other open source projects XcooBee Cookie Kit:
+
+https://github.com/XcooBee/xcoobee-cookie-kit/tree/master/packages/xcoobee-cookie-kit-web
+
+Ensures that you can manage consent and only execute scripts and set cookies with the propper documented consent.
