@@ -14,8 +14,8 @@ The AJP implementation is generic and will work to connect IIS with any AJP serv
 In general it is a preference question how you connect IIS to Tomcat, though, there are several advantages with the BonCode connector vs the old ISAPI connector:
 *   no ISAPI code, IIS6 vestiges or backward compatibility elements needed
 *   does not block or hinder IIS functionality or slows unrelated requests
-*   all managed code for IIS7+ using the modern extensibility framework
-*   works on IIS7 - IIS10 (Windows 7 through Windows 10, Windows Server 2003-2016)
+*   all managed code for IIS using the modern extensibility framework
+*   works on most IIS versions (Windows 7 through Windows 10, Windows Server 2003-2020)
 *   speed, throughput, and stability improvements 
 *   configuration in IIS UI
 *   no virtual directories and virtual mappings needed
