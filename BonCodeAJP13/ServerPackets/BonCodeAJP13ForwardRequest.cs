@@ -391,7 +391,8 @@ namespace BonCodeAJP13.ServerPackets
 
             //add a mapping prefix if one is provided unless the same prefix is already on the start of Uri (case sensitive comparison)
             if (BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length > 2
-                && !BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Equals(req_uri.Substring(0, BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length - 1), StringComparison.Ordinal))
+                && (req_uri.Length < BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length
+                || !BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Equals(req_uri.Substring(0, BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length - 1), StringComparison.Ordinal)))
             {                
                 req_uri = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX + req_uri;
             }
