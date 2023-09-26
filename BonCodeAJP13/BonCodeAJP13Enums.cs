@@ -141,6 +141,7 @@ namespace BonCodeAJP13
         public const byte BONCODEAJP13_MERGE = 0x19;            // MERGE 25 
         public const byte BONCODEAJP13_BASELINE_CONTROL = 0x1A; // BASELINE_CONTROL 26 
         public const byte BONCODEAJP13_MKACTIVITY = 0x1B;       // MKACTIVITY 27 
+        public const byte BONCODEAJP13_SC_M_JKSTORED = 0xFF;       // Any other VERB 255 to Stroe in Attributes
 
     }
 
@@ -166,6 +167,7 @@ namespace BonCodeAJP13
        public const byte BONCODEAJP13_REQ_ATTRIBUTE = 0x0A;    // ?req_attribute 0x0A Name (the name of the attribut follows). This one will be used to send named attribute pairs
        public const byte BONCODEAJP13_SSL_KEY_SIZE = 0x0B;     // ?ssl_key_size 0x0B  
        public const byte BONCODEAJP13_SECRET = 0x0C;           // ?secret -- request secret needs to match requiredSecret on Tomcat AJP connection defintion in server.xml
+       public const byte BONCODEAJP13_STORED_METHOD = 0x0D;    // Used to handle non Default HTTP Methods
        public const byte BONCODEAJP13_ACCEPT = 0xFF;           // are_done 0xFF request_terminator. This one is appended automatically to packet.
 
     }
