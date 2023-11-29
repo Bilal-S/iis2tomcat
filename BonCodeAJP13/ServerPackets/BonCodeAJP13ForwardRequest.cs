@@ -566,8 +566,17 @@ namespace BonCodeAJP13.ServerPackets
                     }
                 }
             }
-            
+
             //WRITE NAMED ATTRIBUTES
+
+
+            //Check if the METHOD needs to be sent in the STORED METHOD Attribute IF SO we Set that Attribute and Value
+            if (method == BonCodeAJP13HTTPMethods.BONCODEAJP13_SC_M_JKSTORED)
+            {
+                string NonStandardVerb = GetKeyValue(httpHeaders, "REQUEST_METHOD");
+                pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_STORED_METHOD, pos); //attribute marker
+                pos = SetString(aUserData, NonStandardVerb, pos);  //method: e.g. we have clicked on URL
+            }
 
 
             //add secure session attribute
