@@ -391,7 +391,8 @@ namespace BonCodeAJP13.ServerPackets
 
             //add a mapping prefix if one is provided unless the same prefix is already on the start of Uri (case sensitive comparison)
             if (BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length > 2
-                && !BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Equals(req_uri.Substring(0, BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length - 1), StringComparison.Ordinal))
+                && (req_uri.Length < BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length
+                || !BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Equals(req_uri.Substring(0, BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length - 1), StringComparison.Ordinal)))
             {                
                 req_uri = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX + req_uri;
             }
@@ -565,8 +566,17 @@ namespace BonCodeAJP13.ServerPackets
                     }
                 }
             }
-            
+
             //WRITE NAMED ATTRIBUTES
+
+
+            //Check if the METHOD needs to be sent in the STORED METHOD Attribute IF SO we Set that Attribute and Value
+            if (method == BonCodeAJP13HTTPMethods.BONCODEAJP13_SC_M_JKSTORED)
+            {
+                string NonStandardVerb = GetKeyValue(httpHeaders, "REQUEST_METHOD");
+                pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_STORED_METHOD, pos); //attribute marker
+                pos = SetString(aUserData, NonStandardVerb, pos);  //method: e.g. we have clicked on URL
+            }
 
 
             //add secure session attribute

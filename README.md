@@ -14,8 +14,8 @@ The AJP implementation is generic and will work to connect IIS with any AJP serv
 In general it is a preference question how you connect IIS to Tomcat, though, there are several advantages with the BonCode connector vs the old ISAPI connector:
 *   no ISAPI code, IIS6 vestiges or backward compatibility elements needed
 *   does not block or hinder IIS functionality or slows unrelated requests
-*   all managed code for IIS7+ using the modern extensibility framework
-*   works on IIS7 - IIS10 (Windows 7 through Windows 10, Windows Server 2003-2016)
+*   all managed code for IIS using the modern extensibility framework
+*   works on most IIS versions (Windows 7 through Windows 10, Windows Server 2003-2020)
 *   speed, throughput, and stability improvements 
 *   configuration in IIS UI
 *   no virtual directories and virtual mappings needed
@@ -70,3 +70,11 @@ Full documentation is available in the download package from [github releases si
 [The documentation](http://boncode.net/connector/webdocs/) also contains manual installation instruction, however, using automated installer contained in package is recommended.
 
 As usual any feedback is appreciated. Please use the [github issues site](https://github.com/Bilal-S/iis2tomcat/issues) to leave feedback or open issues.
+
+## GDPR & CCPA Cookie Manager
+
+If you are looking for a good cookie and script manager take a look at one of my other open source projects XcooBee Cookie Kit:
+
+https://github.com/XcooBee/xcoobee-cookie-kit/tree/master/packages/xcoobee-cookie-kit-web
+
+Ensures that you can manage consent and only execute scripts and set cookies with the propper documented consent.

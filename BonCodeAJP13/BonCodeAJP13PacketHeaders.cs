@@ -105,9 +105,10 @@ namespace BonCodeAJP13
             /// </summary> 
             public static byte GetMethodByte(string methodKey)
             {
-                byte retVal = BonCodeAJP13HTTPMethods.BONCODEAJP13_GET;
+            //Change the Default from "BONCODEAJP13_GET" to "BONCODEAJP13_SC_M_JKSTORED",  This will allow us to check and Store the VERB in the BONCODEAJP13_STORED_METHOD Attribute
+            byte retVal = BonCodeAJP13HTTPMethods.BONCODEAJP13_SC_M_JKSTORED;  
 
-                if (p_MStringTranslator.ContainsKey(methodKey))
+            if (p_MStringTranslator.ContainsKey(methodKey))
                 {
                     retVal = (byte)p_MStringTranslator[methodKey];
                 }
