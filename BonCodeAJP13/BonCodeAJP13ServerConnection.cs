@@ -887,6 +887,7 @@ namespace BonCodeAJP13
                         localNumOfBytesReceived = p_NetworkStream.Read(receivedPacketBuffer, 0, receivedPacketBuffer.Length);
                     } else {
                         // we cannot read anymore we will wait for 1ms to see whether more data arrives
+                        if (p_Logger != null) p_Logger.LogMessageAndType("Stream waiting cycle [" + waitCycle.ToString() + "].", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG);
                         Thread.Sleep(1);
                     }
                 }

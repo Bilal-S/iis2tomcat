@@ -426,8 +426,16 @@ namespace BonCodeIIS
                     if (flushPacket is TomcatSendHeaders)
                     {
                         TomcatSendHeaders tcshPackage = (TomcatSendHeaders)flushPacket;
+                        NameValueCollection tomcatHeaders = null;
                         //get Headers
-                        NameValueCollection tomcatHeaders = tcshPackage.GetHeaders();
+                        try {
+                             tomcatHeaders= tcshPackage.GetHeaders();
+                        } catch (Exception err) {                            
+                            RecordSysEvent("Error reading headers: " + BitConverter.ToString(tcshPackage.GetDataBytes()) + " : " + err.Message, EventLogEntryType.Warning);
+                            
+                            // propagate exception
+                            throw;
+                        }
 
                         try
                         {
@@ -522,6 +530,7 @@ namespace BonCodeIIS
                                 }
                                 //set the actual Status code on the response
                                 p_Context.Response.StatusCode = respStatus;
+                                // p_Context.Response.StatusDescription = "";
 
 
                             }
@@ -576,6 +585,7 @@ namespace BonCodeIIS
                 catch (Exception e)
                 {
                     //display error
+                    
                     RecordSysEvent("Error flushing data: " + e.Message + " " + e.StackTrace, EventLogEntryType.Error);
                     PrintError(p_Context, ".", e.Message + " " + e.StackTrace);
                 }
