@@ -335,7 +335,7 @@ namespace BonCodeAJP13.ServerPackets
             //populate log values
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
             {
-                p_Method = BonCodeAJP13PacketHeaders.GetMethodString(method);   //not using: GetKeyValue(httpHeaders, "REQUEST_METHOD");
+                p_Method = GetKeyValue(httpHeaders, "REQUEST_METHOD");  // we allways get the declared string method instead of binary translation -- BonCodeAJP13PacketHeaders.GetMethodString(method);
                 p_Url = req_uri;
                 p_HttpHeaders = goodHeaders;
             }
@@ -575,7 +575,7 @@ namespace BonCodeAJP13.ServerPackets
             {
                 string NonStandardVerb = GetKeyValue(httpHeaders, "REQUEST_METHOD");
                 pos = SetByte(aUserData, BonCodeAJP13HTTPAttributes.BONCODEAJP13_STORED_METHOD, pos); //attribute marker
-                pos = SetString(aUserData, NonStandardVerb, pos);  //method: e.g. we have clicked on URL
+                pos = SetString(aUserData, NonStandardVerb, pos);  //HTTP method: e.g. PATCH -- anything that does not have binary translation markers
             }
 
 

@@ -346,7 +346,12 @@ Version 1.0.41 Updates:
 * Fix: to avoid file upload timeout reduce wait time for network data to arrive to avoid uncessary timeouts.
 
 Version 1.0.42 Updates:
-* Upd: add debug logging for stream wait cycle.
+* Add: add debug logging for stream wait cycle.
+* Add: error catch for HTTP headers that cannot be read from stream
+
+Version 1.0.45 Updates:
+* Upd: dot-net framework 4.8
+* Add: support for non-standard HTTP verbs in AJP, e.g. PATCH
 
 --------------------------------------
 

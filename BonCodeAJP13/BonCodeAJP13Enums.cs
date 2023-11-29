@@ -141,7 +141,7 @@ namespace BonCodeAJP13
         public const byte BONCODEAJP13_MERGE = 0x19;            // MERGE 25 
         public const byte BONCODEAJP13_BASELINE_CONTROL = 0x1A; // BASELINE_CONTROL 26 
         public const byte BONCODEAJP13_MKACTIVITY = 0x1B;       // MKACTIVITY 27 
-        public const byte BONCODEAJP13_SC_M_JKSTORED = 0xFF;       // Any other VERB 255 to Stroe in Attributes
+        public const byte BONCODEAJP13_SC_M_JKSTORED = 0xFF;    // Any other VERB 255 to store in Attributes flag to indicate we have another HTTP verb -- tomcat.apache.org/tomcat-10.0-doc/api/org/apache/coyote/ajp/Constants.html#SC_M_JK_STORED
 
     }
 
@@ -333,7 +333,7 @@ namespace BonCodeAJP13
     {
 
         //connector version identifier
-        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.42";
+        public const string BONCODEAJP13_CONNECTOR_VERSION = "1.0.44";
 
         // Version number for the BonCodeAJP13 Protocol.    
         public const byte BONCODEAJP13_PROTOCOL_VERSION = 13;
