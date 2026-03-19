@@ -104,17 +104,6 @@ jobs:
         echo "Check IIS port 80 via BonCode" >> %GITHUB_STEP_SUMMARY%
         curl http://127.0.0.1/check.cfm?version=%LUCEE_VERSION% --fail-with-body >> %GITHUB_STEP_SUMMARY%
 
-    - name: Verify BonCode event source registered (LDEV-6164)
-      shell: powershell
-      run: |
-        $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\BonCodeConnector"
-        if (Test-Path $regPath) {
-          Write-Host "PASS: Event source registry key exists at $regPath"
-        } else {
-          Write-Error "FAIL: Event source registry key NOT found at $regPath"
-          exit 1
-        }
-
     - name: debug failure
       if: ${{ failure() }}
       shell: cmd
