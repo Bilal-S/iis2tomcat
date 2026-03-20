@@ -72,6 +72,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BonCodeAJP13\LoggerTests.cs" />
+    <Compile Include="BonCodeAJP13\PacketTests.cs" />
+    <Compile Include="BonCodeAJP13\ServerConnectionTests.cs" />
+    <Compile Include="BonCodeAJP13\TomcatPacketTests.cs" />
     <Compile Include="BonCodeIIS\CallHandlerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
