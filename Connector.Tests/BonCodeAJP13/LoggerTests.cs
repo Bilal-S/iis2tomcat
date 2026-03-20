@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using Xunit;
+using BonCodeAJP13;
 
 namespace Connector.Tests.BonCodeAJP13
 {
