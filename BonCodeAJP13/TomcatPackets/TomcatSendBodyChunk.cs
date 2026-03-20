@@ -26,6 +26,8 @@
 //==============================================================================
 //==============================================================================
 
+using System;
+
 namespace BonCodeAJP13.TomcatPackets
 {
     public class TomcatSendBodyChunk : TomcatReturn
@@ -66,9 +68,9 @@ namespace BonCodeAJP13.TomcatPackets
                 p_PacketLength = content.Length;
                 p_UserDataLength = System.Convert.ToUInt16(content.Length - 4);
             }
-            catch
+            catch (Exception ex)
             {
-                //do nothing for now
+                System.Diagnostics.Debug.WriteLine($"Error in TomcatSendBodyChunk(byte[]): {ex.Message}");
             }
         }
 
@@ -87,11 +89,11 @@ namespace BonCodeAJP13.TomcatPackets
                 p_PacketLength = content.Length;
                 p_UserDataLength = System.Convert.ToUInt16(content.Length - 4);
             }
-            catch
+            catch (Exception ex)
             {
-                //do nothing for now
+                System.Diagnostics.Debug.WriteLine($"Error in TomcatSendBodyChunk(string): {ex.Message}");
             }
-        } 
+        }
 
         #endregion
 

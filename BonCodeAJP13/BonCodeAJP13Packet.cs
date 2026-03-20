@@ -45,6 +45,10 @@ namespace BonCodeAJP13
         protected int p_PacketLength=0;
         protected byte[] p_ByteStore = null; //declare storage for packet data. it is empty by default
         protected const string p_PACKET_DESCRIPTION = "GENERIC"; //this constant will be overriden with derived classes
+        
+        // Constants for magic numbers
+        protected const int PACKET_CONTROL_BYTES = 4;
+        protected const int MIN_PACKET_DATA_LENGTH = 3;
 
         #endregion
 
@@ -115,9 +119,12 @@ namespace BonCodeAJP13
             {
                 try
                 {
-                    p_UserDataLength = System.Convert.ToUInt16(buffer.Length - 4);
+                    p_UserDataLength = System.Convert.ToUInt16(buffer.Length - PACKET_CONTROL_BYTES);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error converting buffer length: {ex.Message}");
+                }
             }
             else
             {
@@ -143,9 +150,12 @@ namespace BonCodeAJP13
                 {
                     try
                     {
-                        p_UserDataLength = System.Convert.ToUInt16(buffer.Length - 4);
+                        p_UserDataLength = System.Convert.ToUInt16(buffer.Length - PACKET_CONTROL_BYTES);
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error converting buffer length: {ex.Message}");
+                    }
                 }
                 else
                 {
@@ -184,6 +194,11 @@ namespace BonCodeAJP13
         public virtual string GetDataString(int intEncoding=8)
         {
             //return the user data packet as string. This returns the whole store.
+            if (p_ByteStore == null)
+            {
+                System.Diagnostics.Debug.WriteLine("GetDataString called with null p_ByteStore");
+                return string.Empty;
+            }
             return System.Text.Encoding.UTF8.GetString(p_ByteStore, 0, p_ByteStore.Length);   
    
         }
@@ -193,10 +208,16 @@ namespace BonCodeAJP13
         /// </summary>
         public virtual byte[] GetUserDataBytes()
         {
-            if (p_ByteStore.Length > 3)
+            if (p_ByteStore == null)
             {
-                byte[] userArray = new byte[p_ByteStore.Length - 4];
-                Array.Copy(p_ByteStore, 3, userArray, 0, p_ByteStore.Length - 4);                
+                System.Diagnostics.Debug.WriteLine("GetUserDataBytes called with null p_ByteStore");
+                return new byte[] { };
+            }
+            
+            if (p_ByteStore.Length > MIN_PACKET_DATA_LENGTH)
+            {
+                byte[] userArray = new byte[p_ByteStore.Length - PACKET_CONTROL_BYTES];
+                Array.Copy(p_ByteStore, MIN_PACKET_DATA_LENGTH, userArray, 0, p_ByteStore.Length - PACKET_CONTROL_BYTES);                
                 return userArray;
             }
             else
@@ -214,10 +235,16 @@ namespace BonCodeAJP13
         {
             //generically the first three bytes and the last byte are control bytes and we will not return them
             //byte[0]=type, byte[1,2] = string length, last byte (0x00) = string terminator
-            if (p_ByteStore.Length > 3)
+            if (p_ByteStore == null)
+            {
+                System.Diagnostics.Debug.WriteLine("GetUserDataString called with null p_ByteStore");
+                return string.Empty;
+            }
+            
+            if (p_ByteStore.Length > MIN_PACKET_DATA_LENGTH)
             {
                 
-                return System.Text.Encoding.UTF8.GetString(p_ByteStore, 3, p_ByteStore.Length - 4);
+                return System.Text.Encoding.UTF8.GetString(p_ByteStore, MIN_PACKET_DATA_LENGTH, p_ByteStore.Length - PACKET_CONTROL_BYTES);
             }
             else
             {
@@ -625,6 +652,12 @@ namespace BonCodeAJP13
         /// </summary>
         public virtual string PrintPacket()
         {
+            if (p_ByteStore == null)
+            {
+                System.Diagnostics.Debug.WriteLine("PrintPacket called with null p_ByteStore");
+                return "\r\n begin of packet ====> \r\n<null packet>\r\n <==== end of packet";
+            }
+            
             string strPck;
             strPck =  "\r\n begin of packet ====> \r\nType:" + p_ByteStore[0].ToString();
             if (p_ByteStore.Length > 2)
@@ -632,7 +665,7 @@ namespace BonCodeAJP13
                 strPck = strPck + "\r\nUser Data High:" + p_ByteStore[1].ToString();
                 strPck = strPck + "\r\nUser Data Low:" + p_ByteStore[2].ToString();
                 strPck = strPck + "\r\n";
-                if (p_ByteStore.Length > 4)
+                if (p_ByteStore.Length > PACKET_CONTROL_BYTES)
                 {
                     strPck = strPck + GetUserDataString();
                 }
@@ -653,6 +686,12 @@ namespace BonCodeAJP13
         /// </summary>
         public virtual string PrintPacketHeader()
         {
+            if (p_ByteStore == null)
+            {
+                System.Diagnostics.Debug.WriteLine("PrintPacketHeader called with null p_ByteStore");
+                return " <null>";
+            }
+            
             string strPckHead="";
             strPckHead = " " + p_ByteStore.Length.ToString() + " bytes";    
 

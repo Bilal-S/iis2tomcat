@@ -950,7 +950,10 @@ namespace BonCodeAJP13.ServerPackets
 
             tmpSource = ASCIIEncoding.ASCII.GetBytes(sourceData);
             //Compute hash based on source string.
-            tmpHash = new MD5CryptoServiceProvider().ComputeHash(tmpSource);
+            using (var md5 = MD5.Create())
+            {
+                tmpHash = md5.ComputeHash(tmpSource);
+            }
 
             return System.Convert.ToBase64String(tmpHash);
            
