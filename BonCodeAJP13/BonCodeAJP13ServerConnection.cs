@@ -96,7 +96,9 @@ namespace BonCodeAJP13
         private NetworkStream p_NetworkStream=null;
 
         // Logger is shared. The log file will be located in directory where dll is deployed. Normally inetpub\wwwroot\BIN
-        private static BonCodeAJP13Logger p_Logger = null;  
+        private static BonCodeAJP13Logger p_Logger = null;
+        private static readonly object p_LoggerLock = new object();
+        private static string p_LoggerFileName = null;  
 
         // Flags 
         private static int p_ConcurrentConnections = 0;         //concurrent connection counter 
@@ -332,7 +334,7 @@ namespace BonCodeAJP13
             //if (p_Logger != null) p_Logger.LogMessage(string.Format("Closing Connection ID: {0} [T-{1}]", p_ThisConnectionID, AppDomain.GetCurrentThreadId()), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
             
             Interlocked.Decrement(ref p_ConcurrentConnections);
-            p_ConnectionsCounter--;
+            Interlocked.Decrement(ref p_ConnectionsCounter);
 
             p_PacketsReceived.Clear();
             p_PacketsReceived = null;
@@ -376,8 +378,16 @@ namespace BonCodeAJP13
                 
                 if (initLogger)
                 {
-                    //default log file name is BonCodeAJP13ConnectionLog.txt in directory of DLL or Windows 
-                    p_Logger = new BonCodeAJP13Logger(BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE + p_LogFilePostFix + DateTime.Now.ToString("yyyyMMdd") + ".log", p_ConnectionMutex);
+                    //default log file name is BonCodeAJP13ConnectionLog.txt in directory of DLL or Windows
+                    string logFileName = BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE + p_LogFilePostFix + DateTime.Now.ToString("yyyyMMdd") + ".log";
+                    lock (p_LoggerLock)
+                    {
+                        if (p_Logger == null || p_LoggerFileName != logFileName)
+                        {
+                            p_Logger = new BonCodeAJP13Logger(logFileName, p_ConnectionMutex);
+                            p_LoggerFileName = logFileName;
+                        }
+                    }
                     //if RegEx contained error message we will also write an error msg
                     if (errMsg.Length > 0)
                     {
@@ -461,9 +471,8 @@ namespace BonCodeAJP13
         /// </summary>
         private void p_CreateConnection(BonCodeAJP13PacketCollection packetsToSend)
         {
-            p_AbortConnection = false;        
-            p_ConnectionsCounter++;
-            p_ThisConnectionID = p_ConnectionsCounter; //assign the connection id
+            p_AbortConnection = false;
+            p_ThisConnectionID = Interlocked.Increment(ref p_ConnectionsCounter); //assign the connection id
 
 
 
@@ -517,7 +526,7 @@ namespace BonCodeAJP13
         private void p_KeepAliveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {            
             p_AbortConnection = true;
-            ((Timer)sender).Dispose(); // should be equivalent but rather be safe  p_KeepAliveTimer.Dispose();
+            ((System.Timers.Timer)sender).Dispose(); // should be equivalent but rather be safe  p_KeepAliveTimer.Dispose();
             ConnectionError("Timeout on Connection ID " + p_ThisConnectionID, "Time Out");
 
         }
@@ -704,7 +713,7 @@ namespace BonCodeAJP13
                     p_NetworkStream.Read(receivedPacketBuffer, 0, 0); //call empty read so we block this thread until we receive a response or we time out
                 } catch (Exception e)
                 {
-                    p_Logger.LogException(e);
+                    if (p_Logger != null) p_Logger.LogException(e);
                 }
             }
             numOfBytesReceived = 0;
@@ -789,14 +798,14 @@ namespace BonCodeAJP13
                                 notProcessedBytes = AnalyzePackage(tempArray);
                             }
                         } else {
-                            p_Logger.LogMessageAndType("Stream reading problem (5), zero bytes received as Tomcat response. There may be a network or protocol problem.", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                            if (p_Logger != null) p_Logger.LogMessageAndType("Stream reading problem (5), zero bytes received as Tomcat response. There may be a network or protocol problem.", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
                         }
 
 
 
                     } catch (Exception e)
                     {
-                        p_Logger.LogException(e,"Stream reading problem (2)(" + readCount.ToString() + "), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly",BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+                        if (p_Logger != null) p_Logger.LogException(e,"Stream reading problem (2)(" + readCount.ToString() + "), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly",BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
                         // p_Logger.LogMessageAndType("Stream reading problem (2)(" + readCount.ToString() + "), we stopped waiting on Tomcat response. You may have shutdown Tomcat unexpectedly", "warning", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
                         p_AbortConnection = true;
                         //p_Logger.LogException(e);
@@ -913,23 +922,32 @@ namespace BonCodeAJP13
         {
             if (p_Logger != null) p_Logger.LogMessage(message, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG);
 
-            p_NetworkStream.Flush();
-            
+            try
+            {
+                if (p_NetworkStream != null)
+                {
+                    p_NetworkStream.Flush();
+                    p_NetworkStream.Close();
+                    p_NetworkStream = null;
+                }
+            }
+            catch (Exception e)
+            {
+                if (p_Logger != null) p_Logger.LogException(e, "Stream Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+            }
 
-            // This will put TCP connection in TIME_WAIT status
-            /* eloborate close   
-            p_NetworkStream.Flush();
-            p_NetworkStream.Close();
-            p_NetworkStream.Dispose();            
-            p_NetworkStream = null;
-            */
-
-            /*
-            p_TCPClient.Client.Close();
-            p_TCPClient.Close();
-            p_TCPClient.Client.Shutdown(SocketShutdown.Both);
-            p_TCPClient = null;
-            */
+            try
+            {
+                if (p_TCPClient != null)
+                {
+                    p_TCPClient.Close();
+                    p_TCPClient = null;
+                }
+            }
+            catch (Exception e)
+            {
+                if (p_Logger != null) p_Logger.LogException(e, "TCP Client Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+            }
 
             //Kill associated timer
             if (p_KeepAliveTimer != null) p_KeepAliveTimer.Dispose();
@@ -946,7 +964,7 @@ namespace BonCodeAJP13
             //attempt to close stream
             try
             {
-               p_NetworkStream.Close();              
+               if (p_NetworkStream != null) p_NetworkStream.Close();
             }
             catch (Exception e)
             {
@@ -968,7 +986,7 @@ namespace BonCodeAJP13
             //attempt to close stream
             try
             {
-               p_NetworkStream.Close();
+               if (p_NetworkStream != null) p_NetworkStream.Close();
             }
             catch (Exception e)
             {

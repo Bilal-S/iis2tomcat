@@ -1,0 +1,118 @@
+name: Build
+
+on:
+  push:
+    branches: [ master, fix/* ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  LUCEE_INSTALLER_URL: https://cdn.lucee.org/lucee-7.0.2.106-windows-x64-installer.exe
+  LUCEE_INSTALLER_EXE: lucee-7.0.2.106-windows-x64-installer.exe
+  LUCEE_VERSION: 7.0.2.106
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    - name: Restore NuGet packages
+      run: nuget restore ConsoleTCPIP.sln
+
+    - name: Build Release
+      run: msbuild ConsoleTCPIP.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+    - name: Upload BonCode DLLs
+      uses: actions/upload-artifact@v4
+      with:
+        name: BonCode-DLLs
+        path: |
+          BonCodeAJP13/bin/Release/BonCodeAJP13.dll
+          BonCodeIIS/bin/Release/BonCodeIIS.dll
+        if-no-files-found: error
+
+  test-iis:
+    runs-on: windows-latest
+    needs: build
+    steps:
+    - name: Cache Lucee installer
+      id: cache-lucee
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.LUCEE_INSTALLER_EXE }}
+        key: lucee-installer-${{ env.LUCEE_VERSION }}
+
+    - name: Download Lucee installer
+      if: steps.cache-lucee.outputs.cache-hit != 'true'
+      shell: cmd
+      run: curl --fail -L -o %LUCEE_INSTALLER_EXE% %LUCEE_INSTALLER_URL%
+
+    - name: Install IIS
+      shell: powershell
+      run: |
+        Install-WindowsFeature -Name Web-Server
+        Start-Service W3SVC
+        Write-Host "IIS installed and running"
+
+    - name: Run Lucee installer with IIS + BonCode
+      shell: cmd
+      run: |
+        %LUCEE_INSTALLER_EXE% --mode unattended --installconn false --installmodcfml false --installiis true --startatboot true --luceepass ibtest --installjre true
+
+    - name: Download patched BonCode DLLs
+      uses: actions/download-artifact@v4
+      with:
+        name: BonCode-DLLs
+
+    - name: Replace BonCode DLLs with patched build
+      shell: powershell
+      run: |
+        # Stop IIS so DLLs aren't locked
+        Stop-Service W3SVC
+        Copy-Item BonCodeAJP13/bin/Release/BonCodeAJP13.dll c:\lucee\AJP13\BonCodeAJP13.dll -Force
+        Copy-Item BonCodeIIS/bin/Release/BonCodeIIS.dll c:\lucee\AJP13\BonCodeIIS.dll -Force
+        Start-Service W3SVC
+
+    - name: Start Tomcat and wait
+      shell: cmd
+      run: |
+        c:\lucee\tomcat\bin\startup.bat
+        powershell -command "Start-Sleep -s 15"
+
+    - name: Write test page
+      shell: cmd
+      run: |
+        echo ^<cfscript^>if (server.lucee.version neq url.version) header statusCode=500;^</cfscript^>^<cfoutput^>Lucee #server.lucee.version#, Java #server.java.version#, #server.servlet.name#, OS #server.os.version# #server.os.arch#^</cfoutput^> > c:\lucee\tomcat\webapps\ROOT\check.cfm
+
+    - name: Test Tomcat direct (port 8888)
+      shell: cmd
+      run: |
+        echo "Check Tomcat port 8888" >> %GITHUB_STEP_SUMMARY%
+        curl http://127.0.0.1:8888/check.cfm?version=%LUCEE_VERSION% --fail-with-body >> %GITHUB_STEP_SUMMARY%
+
+    - name: Test IIS via BonCode (port 80)
+      shell: cmd
+      run: |
+        echo "Check IIS port 80 via BonCode" >> %GITHUB_STEP_SUMMARY%
+        curl http://127.0.0.1/check.cfm?version=%LUCEE_VERSION% --fail-with-body >> %GITHUB_STEP_SUMMARY%
+
+    - name: debug failure
+      if: ${{ failure() }}
+      shell: cmd
+      run: |
+        echo "--- BonCode logs ---"
+        if exist "c:\lucee\AJP13\BonCodeAJP13*.log" type c:\lucee\AJP13\BonCodeAJP13*.log
+        echo "--- catalina.out ---"
+        if exist "c:\lucee\tomcat\logs\catalina.out" type c:\lucee\tomcat\logs\catalina.out
+        echo "--- install.log ---"
+        if exist "c:\lucee\install.log" type c:\lucee\install.log
+        echo "--- IIS BonCode DLLs ---"
+        dir c:\lucee\AJP13\*.dll

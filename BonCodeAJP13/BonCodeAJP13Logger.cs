@@ -78,7 +78,7 @@ namespace BonCodeAJP13
                     {
 
                         logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
-                       
+
                         logStream.WriteLine(message);
                         logStream.WriteLine(e.Message);
                         logStream.WriteLine(e.StackTrace);
@@ -92,11 +92,14 @@ namespace BonCodeAJP13
                         logStream.Close();
 
                     }
-                    p_Mut.ReleaseMutex();
                 }
                 catch (Exception fileException)
                 {
                     RecordSysEvent("Error during log write : " + fileException.Message, EventLogEntryType.Error);
+                }
+                finally
+                {
+                    try { p_Mut.ReleaseMutex(); } catch { }
                 }
             }
         }
@@ -112,16 +115,19 @@ namespace BonCodeAJP13
                 try {
                     p_Mut.WaitOne();
                     using (StreamWriter logStream = File.AppendText(p_FileName))
-                    {                        
+                    {
                         logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + message);
                         logStream.Flush();
                         logStream.Close();
                     }
-                    p_Mut.ReleaseMutex();
-                }   
-                catch (Exception fileException)                
+                }
+                catch (Exception fileException)
                 {
                     RecordSysEvent("Error during log write : " + fileException.Message, EventLogEntryType.Error);
+                }
+                finally
+                {
+                    try { p_Mut.ReleaseMutex(); } catch { }
                 }
 
             }
@@ -137,16 +143,19 @@ namespace BonCodeAJP13
                 try {
                     p_Mut.WaitOne();
                     using (StreamWriter logStream = File.AppendText(p_FileName))
-                    {                       
+                    {
                         logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + messageType + " " + message);
                         logStream.Flush();
                         logStream.Close();
                     }
-                    p_Mut.ReleaseMutex();
                 }
                 catch (Exception fileException)
                 {
                     RecordSysEvent("Error during log write : " + fileException.Message, EventLogEntryType.Error);
+                }
+                finally
+                {
+                    try { p_Mut.ReleaseMutex(); } catch { }
                 }
             }
 
@@ -168,34 +177,37 @@ namespace BonCodeAJP13
                     p_Mut.WaitOne();
                     using (StreamWriter logStream = File.AppendText(p_FileName))
                     {
-                    
+
                         //log packet headers only
                         if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
-                        {                            
+                        {
                             logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + packet.ToString() + " " + packet.PrintPacketHeader());
-                           
+
                             logStream.Flush();
                             logStream.Close();
                         };
 
                         //logs full packets. Log files may grow big in this case
                         if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)
-                        {                            
+                        {
                             logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + packet.ToString() + " " + packet.PrintPacketHeader());
                             logStream.WriteLine(packet.PrintPacket());
                             logStream.WriteLine("");
-                         
+
                             logStream.Flush();
                             logStream.Close();
-                        };                    
+                        };
 
                     }
-                    p_Mut.ReleaseMutex();
 
                 }
                 catch (Exception fileException)
                 {
                     RecordSysEvent("Error during log write : " + fileException.Message, EventLogEntryType.Error);
+                }
+                finally
+                {
+                    try { p_Mut.ReleaseMutex(); } catch { }
                 }
             }
 
@@ -274,24 +286,19 @@ namespace BonCodeAJP13
         /// </summary>
         private static void RecordSysEvent(string message, EventLogEntryType eType = EventLogEntryType.Information)
         {
-            string sSource;
-            string sEvent;
-            sSource = "BonCodeConnector";
-            sEvent = message;
+            string sSource = "BonCodeConnector";
 
-            //we only record events when event source exists
-            if (EventLog.SourceExists(sSource))
+            try
             {
-                //record in event log
-                try
+                //we only record events when event source exists
+                if (EventLog.SourceExists(sSource))
                 {
-                    EventLog.WriteEntry(sSource, sEvent, eType, 418);
+                    EventLog.WriteEntry(sSource, message, eType, 418);
                 }
-                catch
-                {
-                    //do nothing for now
-                }
-
+            }
+            catch
+            {
+                //EventLog not accessible (e.g. Security/State logs inaccessible under IIS)
             }
         }
 
