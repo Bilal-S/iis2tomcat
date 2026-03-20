@@ -71,6 +71,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BonCodeAJP13\ForwardRequestTests.cs" />
     <Compile Include="BonCodeAJP13\LoggerTests.cs" />
     <Compile Include="BonCodeAJP13\PacketTests.cs" />
     <Compile Include="BonCodeAJP13\ServerConnectionTests.cs" />

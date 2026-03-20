@@ -64,7 +64,6 @@
   <ItemGroup>
     <Compile Include="CallHandler.cs" />
     <Compile Include="WebManagement.cs" />
-    <Compile Include="Mock\BonCodeTCPClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
