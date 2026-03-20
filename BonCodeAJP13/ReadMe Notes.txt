@@ -349,22 +349,25 @@ Version 1.0.42 Updates:
 * Add: add debug logging for stream wait cycle.
 * Add: error catch for HTTP headers that cannot be read from stream
 
-Version 1.0.45 Updates:
+Version 1.0.44 Updates:
 * Upd: dot-net framework 4.8
 * Add: support for non-standard HTTP verbs in AJP, e.g. PATCH
+
+Version 1.0.50 Updates:
+* Fix: fix logging deadlock that caused failures around midnight when we had log file switches
+* Fix: connection timeout
+* Fix: socket leak bugs
+- Add: basic integration test
+
 
 --------------------------------------
 
 Version 1.0.50 Updates Planning:
 * Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
-* Add: installer detect Adobe CF10 and add screen to toggle adobe mode (bypass others)
 * Add: installer add mapping for *.cfchart / *.cfres / *.cfr 
 
 Version 2.0 Planning:
 * Add: Log4Net
-* Add: Automatic Log Cycle
-* Add: Load Balancing 
 * Upd: Install Option Selection Default. if site-by-site is selected it will remain default.
-* Add: Installer unblock DLL script (needed for Windows8)
 * Add: Installer check web pools and ensure that they will work with connector for given site. 
 * Add: Installer option to change per site web application pool to match what connector is needing.

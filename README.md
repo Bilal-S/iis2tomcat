@@ -15,7 +15,7 @@ In general it is a preference question how you connect IIS to Tomcat, though, th
 *   no ISAPI code, IIS6 vestiges or backward compatibility elements needed
 *   does not block or hinder IIS functionality or slows unrelated requests
 *   all managed code for IIS using the modern extensibility framework
-*   works on most IIS versions (Windows 7 through Windows 10, Windows Server 2003-2020)
+*   works on most IIS versions (Windows 7 through Windows 10, Windows Server 2003-2025)
 *   speed, throughput, and stability improvements 
 *   configuration in IIS UI
 *   no virtual directories and virtual mappings needed
@@ -24,13 +24,13 @@ In general it is a preference question how you connect IIS to Tomcat, though, th
 *   support partial stream sending to browser (automatic flushing) with faster response to client
 *   support both 32/64 bit of Windows with same process and files
 *   transfer of all request headers
-*   build-in simple-security for web-administration pages (Tomcat, Railo, OpenBD, ColdFusion)
+*   build-in simple-security for web-administration pages (Lucee, Tomcat, Railo, OpenBD, ColdFusion)
 *   IP6 support
 *   Additional HTTP headers data is passed to Tomcat servlet container (previously unavailable)
 *   Improved transfer of SSL data to Tomcat servlet container
 *   Support improved translation of load balancer headers to determine correct client IP 
 *   Support client fingerprint mechanism for use with safer sessions
-*   Support for Adobe Coldfusion 10 - 2018 AJP dialects
+*   Support for Adobe Coldfusion 10 - 2021 AJP dialects
 *   Support for Lucee, Railo, and OpenBD CFML Engines 
 *   Support for alternate Path-Info header transmission via AJP
 
@@ -41,7 +41,7 @@ If you were using a proxy or URL rewrite engine you would also benefit from:
 *   Tomcat threading awareness (will not overload Tomcat and drop connections unnecessarily)
 *   Your servlets and scripts will receive correct HTTP header/URL/IP information for processing
 *   reduced traffic and processing on both IIS and tomcat sides
-*   allows you to connect to multiple tomcat instances from within one IIS site without interfering with ISAPI connector, e.g. Shibboleth and ColdFusion 10/Railo
+*   allows you to connect to multiple tomcat instances from within one IIS site without interfering with ISAPI connector, e.g. Shibboleth and ColdFusion
 
 YouTube Videos:
 https://www.youtube.com/user/boncode/videos

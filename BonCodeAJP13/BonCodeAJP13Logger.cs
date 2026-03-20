@@ -36,6 +36,7 @@ namespace BonCodeAJP13
     {
         private Mutex p_Mut;
         private string p_FileName;
+        private string p_FileNamePattern;  // Original filename pattern for date rolling
         private static String p_filenameDateFormat = "yyyyMMdd";
         private static String p_timestampFormat = "yyyy-MM-dd HH:mm:ss ";
 
@@ -44,23 +45,65 @@ namespace BonCodeAJP13
         /// </summary>
         public BonCodeAJP13Logger(string fileName, Mutex loggerMutex)
         {
+            // Validate mutex is not null
+            if (loggerMutex == null)
+                throw new ArgumentNullException("loggerMutex", "Mutex cannot be null");
+            
             p_Mut = loggerMutex;
-            p_FileName = fileName;
-            if (p_FileName == null)
+            p_FileNamePattern = fileName;  // Store original filename for date rolling
+            
+            if (p_FileNamePattern == null)
                 throw new ArgumentNullException("File Name cannot be null");
-            if (p_FileName == "")
+            if (p_FileNamePattern == "")
                 throw new ArgumentException("File Name cannot be empty");
 
-            //finalize file translatedPath to be in the same directory as dll
-            p_FileName = GetLogDir() + "\\" + p_FileName;
+            // Build dated log file path using Path.Combine for proper path handling
+            p_FileName = GetDatedLogPath(p_FileNamePattern);
 
-            if (!File.Exists(p_FileName))
-            {   // log version to new file
-                using (StreamWriter logStream = File.AppendText(p_FileName))
-                {
-                    logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + "BonCode AJP Connector version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+            // Acquire mutex before checking/creating file to prevent race condition
+            try
+            {
+                p_Mut.WaitOne();
+                if (!File.Exists(p_FileName))
+                {   // log version to new file
+                    using (StreamWriter logStream = File.AppendText(p_FileName))
+                    {
+                        logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + "BonCode AJP Connector version " + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION);
+                        logStream.Flush();
+                        logStream.Close();  // Explicit close for immediate resource release (using will also Dispose)
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                RecordSysEvent("Error during logger initialization : " + ex.Message, EventLogEntryType.Error);
+            }
+            finally
+            {
+                try { p_Mut.ReleaseMutex(); } 
+                catch (Exception ex) { RecordSysEvent("Error releasing mutex during initialization : " + ex.Message, EventLogEntryType.Warning); }
+            }
+        }
+
+        /// <summary>
+        /// Generates a dated log file path from a base filename pattern.
+        /// Adds date suffix before the file extension for daily log rotation.
+        /// </summary>
+        private string GetDatedLogPath(string baseFileName)
+        {
+            string dateSuffix = DateTime.Now.ToString(p_filenameDateFormat);
+            string dir = GetLogDir();
+            string baseName = Path.GetFileNameWithoutExtension(baseFileName);
+            string ext = Path.GetExtension(baseFileName);
+            return Path.Combine(dir, baseName + "-" + dateSuffix + ext);
+        }
+
+        /// <summary>
+        /// Gets the current dated log file path (recalculates date for midnight rollover support).
+        /// </summary>
+        private string GetCurrentLogPath()
+        {
+            return GetDatedLogPath(p_FileNamePattern);
         }
 
         /// <summary>
@@ -74,7 +117,8 @@ namespace BonCodeAJP13
                 try
                 {
                     p_Mut.WaitOne();
-                    using (StreamWriter logStream = File.AppendText(p_FileName))
+                    // Use GetCurrentLogPath() for date rolling support (midnight rollover)
+                    using (StreamWriter logStream = File.AppendText(GetCurrentLogPath()))
                     {
 
                         logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + BonCodeAJP13Consts.BONCODEAJP13_CONNECTOR_VERSION + " ERROR ");
@@ -89,7 +133,7 @@ namespace BonCodeAJP13
                         }
                         */
                         logStream.Flush();
-                        logStream.Close();
+                        logStream.Close();  // Explicit close for immediate resource release (maybe redundant since using will also Dispose)
 
                     }
                 }
@@ -99,7 +143,8 @@ namespace BonCodeAJP13
                 }
                 finally
                 {
-                    try { p_Mut.ReleaseMutex(); } catch { }
+                    try { p_Mut.ReleaseMutex(); } 
+                    catch (Exception ex) { RecordSysEvent("Error releasing mutex in LogException : " + ex.Message, EventLogEntryType.Warning); }
                 }
             }
         }
@@ -114,11 +159,12 @@ namespace BonCodeAJP13
             {
                 try {
                     p_Mut.WaitOne();
-                    using (StreamWriter logStream = File.AppendText(p_FileName))
+                    // Use GetCurrentLogPath() for date rolling support (midnight rollover)
+                    using (StreamWriter logStream = File.AppendText(GetCurrentLogPath()))
                     {
                         logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + message);
                         logStream.Flush();
-                        logStream.Close();
+                        logStream.Close();  // Explicit close for immediate resource release (using will also Dispose)
                     }
                 }
                 catch (Exception fileException)
@@ -127,7 +173,8 @@ namespace BonCodeAJP13
                 }
                 finally
                 {
-                    try { p_Mut.ReleaseMutex(); } catch { }
+                    try { p_Mut.ReleaseMutex(); } 
+                    catch (Exception ex) { RecordSysEvent("Error releasing mutex in LogMessage : " + ex.Message, EventLogEntryType.Warning); }
                 }
 
             }
@@ -142,11 +189,12 @@ namespace BonCodeAJP13
             {
                 try {
                     p_Mut.WaitOne();
-                    using (StreamWriter logStream = File.AppendText(p_FileName))
+                    // Use GetCurrentLogPath() for date rolling support (midnight rollover)
+                    using (StreamWriter logStream = File.AppendText(GetCurrentLogPath()))
                     {
                         logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + messageType + " " + message);
                         logStream.Flush();
-                        logStream.Close();
+                        logStream.Close();  // Explicit close for immediate resource release (using will also Dispose)
                     }
                 }
                 catch (Exception fileException)
@@ -155,7 +203,8 @@ namespace BonCodeAJP13
                 }
                 finally
                 {
-                    try { p_Mut.ReleaseMutex(); } catch { }
+                    try { p_Mut.ReleaseMutex(); } 
+                    catch (Exception ex) { RecordSysEvent("Error releasing mutex in LogMessageAndType : " + ex.Message, EventLogEntryType.Warning); }
                 }
             }
 
@@ -169,13 +218,14 @@ namespace BonCodeAJP13
         /// </summary>
         public void LogPacket(BonCodeAJP13Packet packet, bool logAllways = false, int minLogLevel = BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS)
         {
-            //only log packets if logging level allows
-            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= minLogLevel || logAllways)
+            //only log packets if logging level allows (parentheses added for correct operator precedence)
+            if ((BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL > BonCodeAJP13LogLevels.BONCODEAJP13_NO_LOG && BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= minLogLevel) || logAllways)
             {
                 try {
 
                     p_Mut.WaitOne();
-                    using (StreamWriter logStream = File.AppendText(p_FileName))
+                    // Use GetCurrentLogPath() for date rolling support (midnight rollover)
+                    using (StreamWriter logStream = File.AppendText(GetCurrentLogPath()))
                     {
 
                         //log packet headers only
@@ -184,7 +234,7 @@ namespace BonCodeAJP13
                             logStream.WriteLine(DateTime.Now.ToString(p_timestampFormat) + packet.ToString() + " " + packet.PrintPacketHeader());
 
                             logStream.Flush();
-                            logStream.Close();
+                            logStream.Close();  // Explicit close for immediate resource release (using will also Dispose)
                         };
 
                         //logs full packets. Log files may grow big in this case
@@ -195,7 +245,7 @@ namespace BonCodeAJP13
                             logStream.WriteLine("");
 
                             logStream.Flush();
-                            logStream.Close();
+                            logStream.Close();  // Explicit close for immediate resource release (using will also Dispose)
                         };
 
                     }
@@ -207,7 +257,8 @@ namespace BonCodeAJP13
                 }
                 finally
                 {
-                    try { p_Mut.ReleaseMutex(); } catch { }
+                    try { p_Mut.ReleaseMutex(); } 
+                    catch (Exception ex) { RecordSysEvent("Error releasing mutex in LogPacket : " + ex.Message, EventLogEntryType.Warning); }
                 }
             }
 
@@ -221,14 +272,15 @@ namespace BonCodeAJP13
         {
             try
             {
-                filename = GetLogDir() + "\\" + filename + DateTime.Now.ToString(p_filenameDateFormat) + ".log";
+                // Use Path.Combine for proper path handling
+                string datedFilename = Path.Combine(GetLogDir(), filename + DateTime.Now.ToString(p_filenameDateFormat) + ".log");
 
-                using (StreamWriter logStream = File.AppendText(filename))
+                using (StreamWriter logStream = File.AppendText(datedFilename))
                 {
                     
                     logStream.WriteLine(String.Format("{0}[T-{1}] {2}", DateTime.Now.ToString(p_timestampFormat), Thread.CurrentThread.ManagedThreadId, message));
                     logStream.Flush();
-                    logStream.Close();
+                    logStream.Close();  // Explicit close for immediate resource release (using will also Dispose)
                 }
             }
             catch (Exception ex) {
