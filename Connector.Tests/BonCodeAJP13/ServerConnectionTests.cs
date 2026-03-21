@@ -240,7 +240,9 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void Constructor_WithEmptyParameters_CreatesInstance()
         {
+#pragma warning disable CS0618 // Type or member is obsolete — testing deprecated constructor still creates instance
             Assert.NotNull(new BonCodeAJP13ServerConnection());
+#pragma warning restore CS0618
         }
 
         #endregion

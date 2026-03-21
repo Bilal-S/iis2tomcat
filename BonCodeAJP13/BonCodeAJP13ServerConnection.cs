@@ -238,6 +238,7 @@ namespace BonCodeAJP13
         /// Only initializes intance
         /// DEPRECATED DO NOT USE
         /// </summary>
+        [Obsolete("Use BonCodeAJP13ServerConnection(string logFilePostFix, string clientIp) instead. Always wrap in a using statement for proper disposal.")]
         public BonCodeAJP13ServerConnection()
         {
             CheckMutex();
@@ -261,6 +262,7 @@ namespace BonCodeAJP13
         /// Delayed connection init. Will wait until connection is initialized
         /// DEPRECATED DO NOT USE
         /// </summary>
+        [Obsolete("Use BonCodeAJP13ServerConnection(string logFilePostFix, string clientIp), set FlushDelegateFunction, and call BeginConnection(). Wrap in a using statement.")]
         public BonCodeAJP13ServerConnection(BonCodeAJP13Packet singlePacket, bool delayConnection = true)
         {
             CheckMutex();
@@ -280,6 +282,7 @@ namespace BonCodeAJP13
         /// this connection will run in new thread spawned from the listener thread.
         /// DEPRECATED DO NOT USE
         /// </summary>
+        [Obsolete("Use BonCodeAJP13ServerConnection(string logFilePostFix, string clientIp), set FlushDelegateFunction, and call BeginConnection(). Wrap in a using statement.")]
         public BonCodeAJP13ServerConnection(BonCodeAJP13Packet singlePacket)
         {
             CheckMutex();
@@ -295,6 +298,7 @@ namespace BonCodeAJP13
         /// Initialize new connection to tomcat using server and port input
         /// DEPRECATED DO NOT USE
         /// </summary>
+        [Obsolete("Use BonCodeAJP13ServerConnection(string logFilePostFix, string clientIp), set Server/Port properties, set FlushDelegateFunction, and call BeginConnection(). Wrap in a using statement.")]
         public BonCodeAJP13ServerConnection(string server, int port, BonCodeAJP13Packet singlePacket)
         {
             CheckMutex();
@@ -313,6 +317,7 @@ namespace BonCodeAJP13
         /// We use a packet collection (in case of Form posts) 
         /// DEPRECATED DO NOT USE
         /// </summary>
+        [Obsolete("Use BonCodeAJP13ServerConnection(string logFilePostFix, string clientIp), set FlushDelegateFunction, add packets, and call BeginConnection(). Wrap in a using statement.")]
         public BonCodeAJP13ServerConnection(BonCodeAJP13PacketCollection packetsToSend)
         {
             CheckMutex();
@@ -325,6 +330,7 @@ namespace BonCodeAJP13
         /// Initialize new connection to tomcat using server and port input and packet collection
         /// DEPRECATED DO NOT USE
         /// </summary>
+        [Obsolete("Use BonCodeAJP13ServerConnection(string logFilePostFix, string clientIp), set Server/Port properties, set FlushDelegateFunction, add packets, and call BeginConnection(). Wrap in a using statement.")]
         public BonCodeAJP13ServerConnection(string server, int port, BonCodeAJP13PacketCollection packetsToSend)
         {
             CheckMutex();
@@ -673,8 +679,22 @@ namespace BonCodeAJP13
             ThrowIfDisposed();
 
 
-            if (p_Logger != null) p_Logger.LogMessage(String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]",p_ConcurrentConnections,BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS, p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
-            //if (p_Logger != null) p_Logger.LogMessage(String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]", p_ConcurrentConnections, BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS, p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, AppDomain.GetCurrentThreadId()), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            if (p_Logger != null)
+            {
+                string connLog;
+                if (BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS > 0)
+                {
+                    connLog = String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]",
+                        p_ConcurrentConnections, BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS,
+                        p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId);
+                }
+                else
+                {
+                    connLog = String.Format("New Connection to tomcat: {0} ID: {1} [T-{2}]",
+                        p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId);
+                }
+                p_Logger.LogMessage(connLog, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+            }
             //get stream set timeouts again (default 30 minutes)
             try
             {
@@ -1057,7 +1077,7 @@ namespace BonCodeAJP13
         /// </summary>
         private void CloseConnectionNoError(string message = "Closing Stream")
         {
-            if (p_Logger != null) p_Logger.LogMessage(message, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG);
+            if (p_Logger != null) p_Logger.LogMessage(string.Format("Closing Connection ID: {0} [T-{1}]", p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
 
             // Close network stream (always owned by this class)
             try
