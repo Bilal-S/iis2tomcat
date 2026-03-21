@@ -356,7 +356,7 @@ namespace BonCodeAJP13
     }   
 
     /// <summary>
-    /// Log Level enumarations (0-4) 
+    /// Log Level enumarations (0-5) 
     /// </summary>
     public struct BonCodeAJP13LogLevels
     {
@@ -365,6 +365,7 @@ namespace BonCodeAJP13
         public const int BONCODEAJP13_LOG_BASIC = 2;
         public const int BONCODEAJP13_LOG_HEADERS = 3;
         public const int BONCODEAJP13_LOG_DEBUG = 4;
+        public const int BONCODEAJP13_LOG_PACKETS = 5;  // Capture raw packet bytes to .pak files
     }
 
     

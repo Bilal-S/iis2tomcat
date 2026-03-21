@@ -773,6 +773,13 @@ namespace BonCodeAJP13
 
                         //log packet
                         if (p_Logger != null) p_Logger.LogPacket(sendPacket, false, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS);
+                        //capture sent packet bytes for test validation (log level 5)
+                        if (p_Logger != null)
+                        {
+                            byte[] sentBytes = sendPacket.GetDataBytes();
+                            byte sentType = sentBytes.Length > 4 ? sentBytes[4] : (byte)0;
+                            p_Logger.LogPacketBytes(sentBytes, (int)p_ThisConnectionID, sentType);
+                        }
 
                         //after the second packet (first packet for Adobe) in a packet collection we have to listen and receive a TomcatGetBodyChunk
                         if (sendPacketCount >= listenAfterPacket)
@@ -838,6 +845,13 @@ namespace BonCodeAJP13
                     p_NetworkStream.Write(sendPacket.GetDataBytes(), 0, sendPacket.PacketLength);
                     //log packet as it is sent
                     if (p_Logger != null) p_Logger.LogPacket(sendPacket, false, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS);
+                    //capture sent packet bytes for test validation (log level 5)
+                    if (p_Logger != null)
+                    {
+                        byte[] sentBytes = sendPacket.GetDataBytes();
+                        byte sentType = sentBytes.Length > 4 ? sentBytes[4] : (byte)0;
+                        p_Logger.LogPacketBytes(sentBytes, (int)p_ThisConnectionID, sentType);
+                    }
                 }
 
 
@@ -849,6 +863,13 @@ namespace BonCodeAJP13
                 p_NetworkStream.Write(sendPacket.GetDataBytes(), 0, sendPacket.PacketLength);
                 //log each packet as it is sent
                 if (p_Logger != null) p_Logger.LogPacket(sendPacket, false, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS);
+                //capture sent packet bytes for test validation (log level 5)
+                if (p_Logger != null)
+                {
+                    byte[] sentBytes = sendPacket.GetDataBytes();
+                    byte sentType = sentBytes.Length > 4 ? sentBytes[4] : (byte)0;
+                    p_Logger.LogPacketBytes(sentBytes, (int)p_ThisConnectionID, sentType);
+                }
             }
             else
             {
@@ -1251,7 +1272,9 @@ namespace BonCodeAJP13
                         //we skip 4-bytes:magic (AB) and packet length markers when determining user data
                         Array.Copy(receiveBuffer, iStart + 4, userData, 0, packetLength);
 
-                        
+                        //capture raw wire-level packet bytes for test validation (log level 5)
+                        if (p_Logger != null) p_Logger.LogPacketBytes(receiveBuffer, iStart, packetLength + 4, (int)p_ThisConnectionID, (byte)packetType);
+
 
                         //Detect Correct packet Type and create instance of store
                         switch (packetType)

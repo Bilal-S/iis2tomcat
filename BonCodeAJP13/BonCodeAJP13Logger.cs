@@ -265,6 +265,74 @@ namespace BonCodeAJP13
         }
 
         /// <summary>
+        /// Log raw packet bytes to a .pak file for test capture and validation.
+        /// Only active when BONCODEAJP13_LOG_LEVEL >= 5 (BONCODEAJP13_LOG_PACKETS).
+        /// Writes a .pak file with raw bytes and a .pak.meta companion with human-readable metadata.
+        /// Does not use mutex (each file is independent).
+        /// </summary>
+        /// <param name="packetBytes">The complete wire-level packet bytes (magic + length + type + data + padding)</param>
+        /// <param name="connectionID">Connection identifier for naming</param>
+        /// <param name="packetType">AJP packet type byte</param>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        public void LogPacketBytes(byte[] packetBytes, int connectionID, byte packetType)
+        {
+            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL < BonCodeAJP13LogLevels.BONCODEAJP13_LOG_PACKETS)
+                return;
+            if (packetBytes == null || packetBytes.Length == 0)
+                return;
+
+            try
+            {
+                string dir = GetLogDir();
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+                int threadId = Thread.CurrentThread.ManagedThreadId;
+                string baseName = string.Format("{0:D5}_T{1}_{2}", connectionID, threadId, timestamp);
+                string pakPath = Path.Combine(dir, baseName + ".pak");
+                string metaPath = Path.Combine(dir, baseName + ".pak.meta");
+
+                // Write raw bytes
+                File.WriteAllBytes(pakPath, packetBytes);
+
+                // Write metadata sidecar
+                string metaContent = string.Format(
+                    "Timestamp: {0}\r\nThreadID: {1}\r\nConnectionID: {2}\r\nPacketType: 0x{3:X2}\r\nByteCount: {4}\r\n",
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+                    threadId,
+                    connectionID,
+                    packetType,
+                    packetBytes.Length);
+                File.WriteAllText(metaPath, metaContent);
+            }
+            catch (Exception ex)
+            {
+                RecordSysEvent("Error during packet byte capture: " + ex.Message, EventLogEntryType.Error);
+            }
+        }
+
+        /// <summary>
+        /// Log raw packet bytes from a buffer slice to a .pak file for test capture and validation.
+        /// Only active when BONCODEAJP13_LOG_LEVEL >= 5 (BONCODEAJP13_LOG_PACKETS).
+        /// Does not use mutex (each file is independent).
+        /// </summary>
+        /// <param name="buffer">Source buffer containing the packet bytes</param>
+        /// <param name="offset">Start offset in the buffer</param>
+        /// <param name="length">Number of bytes to capture</param>
+        /// <param name="connectionID">Connection identifier for naming</param>
+        /// <param name="packetType">AJP packet type byte</param>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
+        public void LogPacketBytes(byte[] buffer, int offset, int length, int connectionID, byte packetType)
+        {
+            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL < BonCodeAJP13LogLevels.BONCODEAJP13_LOG_PACKETS)
+                return;
+            if (buffer == null || length <= 0 || offset < 0 || offset + length > buffer.Length)
+                return;
+
+            byte[] packetBytes = new byte[length];
+            Array.Copy(buffer, offset, packetBytes, 0, length);
+            LogPacketBytes(packetBytes, connectionID, packetType);
+        }
+
+        /// <summary>
         /// Debug log writing method using synchronized stream writer class. This logs to seperate file. Does not use mutex.
         /// </summary>        
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]

@@ -332,14 +332,6 @@ namespace BonCodeAJP13.ServerPackets
             num_headers = goodHeaders.AllKeys.Length; 
             PopulateRawHeaders(httpHeaders["ALL_RAW"]); //we use this to do retranslate the spelling (case) of header names
 
-            //populate log values
-            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
-            {
-                p_Method = GetKeyValue(httpHeaders, "REQUEST_METHOD");  // we allways get the declared string method instead of binary translation -- BonCodeAJP13PacketHeaders.GetMethodString(method);
-                p_Url = req_uri;
-                p_HttpHeaders = goodHeaders;
-            }
-
             //add optional headers and reset count
             NameValueCollection addlHeaders = new NameValueCollection();
 
@@ -375,6 +367,14 @@ namespace BonCodeAJP13.ServerPackets
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL == BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG)   // debug test threadid
             {
                 addlHeaders.Add("xajp-managedthreadid", "" + System.Threading.Thread.CurrentThread.ManagedThreadId);
+            }
+
+            //populate log values
+            if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
+            {
+                p_Method = GetKeyValue(httpHeaders, "REQUEST_METHOD");
+                p_Url = req_uri;
+                p_HttpHeaders = goodHeaders;
             }
 
             //special case CONTENT_LENGTH if this is zero remove from transmission, otherwise this creates issues with Apache.Axis
@@ -661,6 +661,14 @@ namespace BonCodeAJP13.ServerPackets
             string[] lstSystemBlacklist = new string[] { "PATH_TRANSLATED", "INSTANCE_META_PATH", "INSTANCE_ID", "APPL_MD_PATH", "AUTH_TYPE", "REMOTE_USER", "REQUEST_METHOD", "REMOTE_ADDR", "REMOTE_HOST", "ALL_HTTP", "ALL_RAW", "QUERY_STRING", "ACCEPT", "ACCEPT_CHARSET", "ACCEPT_ENCODING", "ACCEPT_LANGUAGE", "AUTHORIZATION", "CONNECTION", "HTTP_CONTENT_TYPE", "HTTP_CONTENT_LENGTH", "PRAGMA", "REFERER", "USER_AGENT", "x-vdirs", "x-tomcat-docroot", "x-webserver-context", "X-ModCFML-SharedKey", "xajp-clientfingerprint", "xajp-managedthreadid" };  //list of headers that will be skipped because they are already processed through other means, duplicate, or not needed  
             string[] lstAllowBlank = new string[] { "" };  //send also if blank
             string[] lstUserWhitelist = null; //if we have data here, only these headers will be sent
+
+            //when PathInfoHeader is set, block raw PATH_INFO to avoid sending a non-RFC
+            //compliant path-info header that conflicts with the RFC-compliant xajp-path-info
+            if (BonCodeAJP13Settings.BONCODEAJP13_PATHINFO_HEADER != "")
+            {
+                Array.Resize<string>(ref lstSystemBlacklist, lstSystemBlacklist.Length + 1);
+                lstSystemBlacklist[lstSystemBlacklist.Length - 1] = "PATH_INFO";
+            }
 
             //fix for null headers (from Dominic)
             for (int i = 0; i < httpHeaders.AllKeys.Length; i++)

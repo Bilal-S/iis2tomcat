@@ -357,14 +357,22 @@ Version 1.0.50 Updates:
 * Fix: fix logging deadlock that caused failures around midnight when we had log file switches
 * Fix: connection timeout
 * Fix: socket leak bugs
-- Add: basic integration test
-
+* Fix: correct release version in connector
+* Add: basic integration test via github CI/CD
+* Add: comprehensive unit tests for all classes and seperate test project
+* Upd: class disposing logic to ensure we do not close connection early
+* Upd: Github documentation
+* Upd: clearer log entries
+* Upd: mark obsolete constructor calls for future removal
+* Add: create package capture log mode 5 and infrastructure
+* Add: create test cfm pages for standard packets
+* Add: log additional headers at log level 3
 
 --------------------------------------
 
-Version 1.0.50 Updates Planning:
-* Add: installer add /REST folder wildcard mapping for Railo when individual sites are chosen
-* Add: installer add mapping for *.cfchart / *.cfres / *.cfr 
+Version 1.0.60 Updates Planning:
+* Add: installer add /REST folder wildcard mapping for Lucee when individual sites are chosen
+
 
 Version 2.0 Planning:
 * Add: Log4Net
