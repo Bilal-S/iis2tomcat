@@ -70,7 +70,7 @@ namespace Connector.Tests.BonCodeAJP13
         {
             // Arrange
             var expectedDateSuffix = DateTime.Now.ToString("yyyyMMdd");
-            var expectedFileName = Path.Combine(_testLogDir, "test-" + expectedDateSuffix + ".log");
+            var expectedFileName = Path.Combine(_testLogDir, "test" + expectedDateSuffix + ".log");
 
             // Temporarily override the log directory setting
             var originalLogDir = BonCodeAJP13Settings.BONCODEAJP13_LOG_DIR;
@@ -115,7 +115,7 @@ namespace Connector.Tests.BonCodeAJP13
 
                 // Assert
                 var expectedDateSuffix = DateTime.Now.ToString("yyyyMMdd");
-                var expectedFileName = Path.Combine(_testLogDir, "test-" + expectedDateSuffix + ".log");
+                var expectedFileName = Path.Combine(_testLogDir, "test" + expectedDateSuffix + ".log");
                 var content = File.ReadAllText(expectedFileName);
                 Assert.Contains(testMessage, content);
             }
@@ -144,7 +144,7 @@ namespace Connector.Tests.BonCodeAJP13
 
                 // Assert - message should not be in file
                 var expectedDateSuffix = DateTime.Now.ToString("yyyyMMdd");
-                var expectedFileName = Path.Combine(_testLogDir, "test-" + expectedDateSuffix + ".log");
+                var expectedFileName = Path.Combine(_testLogDir, "test" + expectedDateSuffix + ".log");
                 
                 if (File.Exists(expectedFileName))
                 {

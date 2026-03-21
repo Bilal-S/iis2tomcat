@@ -95,7 +95,7 @@ namespace BonCodeAJP13
             string dir = GetLogDir();
             string baseName = Path.GetFileNameWithoutExtension(baseFileName);
             string ext = Path.GetExtension(baseFileName);
-            return Path.Combine(dir, baseName + "-" + dateSuffix + ext);
+            return Path.Combine(dir, baseName + dateSuffix + ext);
         }
 
         /// <summary>

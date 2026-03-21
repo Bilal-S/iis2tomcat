@@ -379,7 +379,7 @@ namespace BonCodeAJP13
                 if (initLogger)
                 {
                     //default log file name is BonCodeAJP13ConnectionLog.txt in directory of DLL or Windows
-                    string logFileName = BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE + p_LogFilePostFix + DateTime.Now.ToString("yyyyMMdd") + ".log";
+                    string logFileName = BonCodeAJP13Settings.BONCODEAJP13_LOG_FILE + p_LogFilePostFix + ".log";
                     lock (p_LoggerLock)
                     {
                         if (p_Logger == null || p_LoggerFileName != logFileName)
