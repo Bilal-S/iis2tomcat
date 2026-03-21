@@ -1,14 +1,12 @@
 using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using Xunit;
 using BonCodeAJP13;
 
 namespace Connector.Tests.BonCodeAJP13
 {
-    /// <summary>
-    /// Unit tests for BonCodeAJP13ServerConnection class
-    /// Tests static utility methods and properties that don't require network connections
-    /// </summary>
     public class ServerConnectionTests
     {
         #region Static Method Tests - FlipArray
@@ -16,54 +14,34 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void FlipArray_ReversesByteArray()
         {
-            // Arrange
             var input = new byte[] { 0x01, 0x02, 0x03, 0x04 };
             var expected = new byte[] { 0x04, 0x03, 0x02, 0x01 };
-
-            // Act
             var result = InvokeStaticMethod<byte[]>("FlipArray", input);
-
-            // Assert
             Assert.Equal(expected, result);
         }
 
         [Fact]
         public void FlipArray_WithSingleElement_ReturnsSameArray()
         {
-            // Arrange
             var input = new byte[] { 0x42 };
-
-            // Act
             var result = InvokeStaticMethod<byte[]>("FlipArray", input);
-
-            // Assert
             Assert.Equal(input, result);
         }
 
         [Fact]
         public void FlipArray_WithEmptyArray_ReturnsEmptyArray()
         {
-            // Arrange
             var input = new byte[0];
-
-            // Act
             var result = InvokeStaticMethod<byte[]>("FlipArray", input);
-
-            // Assert
             Assert.Empty(result);
         }
 
         [Fact]
         public void FlipArray_WithTwoElements_SwapsPositions()
         {
-            // Arrange
             var input = new byte[] { 0xAB, 0xCD };
             var expected = new byte[] { 0xCD, 0xAB };
-
-            // Act
             var result = InvokeStaticMethod<byte[]>("FlipArray", input);
-
-            // Assert
             Assert.Equal(expected, result);
         }
 
@@ -74,126 +52,81 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void ByteSearch_FindsPatternAtStart_ReturnsZero()
         {
-            // Arrange
             var searchIn = new byte[] { 0xAB, 0xCD, 0xEF, 0x00 };
             var searchFor = new byte[] { 0xAB, 0xCD };
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 0);
-
-            // Assert
             Assert.Equal(0, result);
         }
 
         [Fact]
         public void ByteSearch_FindsPatternInMiddle_ReturnsCorrectIndex()
         {
-            // Arrange
             var searchIn = new byte[] { 0x00, 0x01, 0xAB, 0xCD, 0x02 };
             var searchFor = new byte[] { 0xAB, 0xCD };
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 0);
-
-            // Assert
             Assert.Equal(2, result);
         }
 
         [Fact]
         public void ByteSearch_PatternNotFound_ReturnsMinusOne()
         {
-            // Arrange
             var searchIn = new byte[] { 0x00, 0x01, 0x02, 0x03 };
             var searchFor = new byte[] { 0xAB, 0xCD };
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 0);
-
-            // Assert
             Assert.Equal(-1, result);
         }
 
         [Fact]
         public void ByteSearch_WithStartOffset_SearchesFromOffset()
         {
-            // Arrange
             var searchIn = new byte[] { 0xAB, 0xCD, 0xAB, 0xCD };
             var searchFor = new byte[] { 0xAB, 0xCD };
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 2);
-
-            // Assert
             Assert.Equal(2, result);
         }
 
         [Fact]
         public void ByteSearch_SingleBytePattern_FindsCorrectly()
         {
-            // Arrange
             var searchIn = new byte[] { 0x00, 0x42, 0x01 };
             var searchFor = new byte[] { 0x42 };
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 0);
-
-            // Assert
             Assert.Equal(1, result);
         }
 
         [Fact]
         public void ByteSearch_EmptySearchIn_ReturnsMinusOne()
         {
-            // Arrange
             var searchIn = new byte[0];
             var searchFor = new byte[] { 0xAB };
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 0);
-
-            // Assert
             Assert.Equal(-1, result);
         }
 
         [Fact]
         public void ByteSearch_EmptySearchFor_ReturnsMinusOne()
         {
-            // Arrange
             var searchIn = new byte[] { 0x00, 0x01, 0x02 };
             var searchFor = new byte[0];
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 0);
-
-            // Assert
             Assert.Equal(-1, result);
         }
 
         [Fact]
         public void ByteSearch_PatternLongerThanData_ReturnsMinusOne()
         {
-            // Arrange
             var searchIn = new byte[] { 0x01 };
             var searchFor = new byte[] { 0x01, 0x02, 0x03 };
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 0);
-
-            // Assert
             Assert.Equal(-1, result);
         }
 
         [Fact]
         public void ByteSearch_FindsAJP13MagicBytes()
         {
-            // Arrange - AJP13 packets start with 0x41, 0x42 ('AB')
             var searchIn = new byte[] { 0x00, 0x00, 0x41, 0x42, 0x00, 0x05 };
             var searchFor = new byte[] { 0x41, 0x42 };
-
-            // Act
             var result = InvokeStaticMethod<int>("ByteSearch", searchIn, searchFor, 0);
-
-            // Assert
             Assert.Equal(2, result);
         }
 
@@ -204,56 +137,36 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void GetInt16B_ReadsBigEndianValue()
         {
-            // Arrange - Big Endian: 0x01 0x02 = 258
             var data = new byte[] { 0x01, 0x02 };
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
             var result = InvokePrivateMethod<int>(connection, "GetInt16B", data, 0);
-
-            // Assert
             Assert.Equal(258, result);
         }
 
         [Fact]
         public void GetInt16B_WithOffset_ReadsCorrectPosition()
         {
-            // Arrange
-            var data = new byte[] { 0x00, 0x00, 0x03, 0x00 }; // Value at position 2
+            var data = new byte[] { 0x00, 0x00, 0x03, 0x00 };
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
             var result = InvokePrivateMethod<int>(connection, "GetInt16B", data, 2);
-
-            // Assert
-            Assert.Equal(768, result); // 0x03 0x00 in Big Endian = 768
+            Assert.Equal(768, result);
         }
 
         [Fact]
         public void GetInt16B_WithZero_ReturnsZero()
         {
-            // Arrange
             var data = new byte[] { 0x00, 0x00 };
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
             var result = InvokePrivateMethod<int>(connection, "GetInt16B", data, 0);
-
-            // Assert
             Assert.Equal(0, result);
         }
 
         [Fact]
         public void GetInt16B_WithMaxValue_ReturnsMaxUInt16()
         {
-            // Arrange - 0xFF 0xFF = 65535
             var data = new byte[] { 0xFF, 0xFF };
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
             var result = InvokePrivateMethod<int>(connection, "GetInt16B", data, 0);
-
-            // Assert
             Assert.Equal(65535, result);
         }
 
@@ -264,90 +177,54 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void Server_GetSet_WorksCorrectly()
         {
-            // Arrange
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
             connection.Server = "192.168.1.1";
-            var result = connection.Server;
-
-            // Assert
-            Assert.Equal("192.168.1.1", result);
+            Assert.Equal("192.168.1.1", connection.Server);
         }
 
         [Fact]
         public void Port_GetSet_WorksCorrectly()
         {
-            // Arrange
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
             connection.Port = 9009;
-            var result = connection.Port;
-
-            // Assert
-            Assert.Equal(9009, result);
+            Assert.Equal(9009, connection.Port);
         }
 
         [Fact]
         public void AbortConnection_DefaultValue_IsFalse()
         {
-            // Arrange
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Assert
             Assert.False(connection.AbortConnection);
         }
 
         [Fact]
         public void AbortConnection_GetSet_WorksCorrectly()
         {
-            // Arrange
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
             connection.AbortConnection = true;
-            var result = connection.AbortConnection;
-
-            // Assert
-            Assert.True(result);
+            Assert.True(connection.AbortConnection);
         }
 
         [Fact]
         public void ChunkedTransfer_DefaultValue_IsFalse()
         {
-            // Arrange
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Assert
             Assert.False(connection.ChunkedTransfer);
         }
 
         [Fact]
         public void ChunkedTransfer_GetSet_WorksCorrectly()
         {
-            // Arrange
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
             connection.ChunkedTransfer = true;
-            var result = connection.ChunkedTransfer;
-
-            // Assert
-            Assert.True(result);
+            Assert.True(connection.ChunkedTransfer);
         }
 
         [Fact]
         public void ReceivedDataCollection_IsNotNull()
         {
-            // Arrange
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
-
-            // Act
-            var result = connection.ReceivedDataCollection;
-
-            // Assert
-            Assert.NotNull(result);
+            Assert.NotNull(connection.ReceivedDataCollection);
         }
 
         #endregion
@@ -357,21 +234,13 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void Constructor_WithLogFilePostFix_CreatesInstance()
         {
-            // Act
-            var connection = new BonCodeAJP13ServerConnection("test-postfix", "127.0.0.1");
-
-            // Assert
-            Assert.NotNull(connection);
+            Assert.NotNull(new BonCodeAJP13ServerConnection("test-postfix", "127.0.0.1"));
         }
 
         [Fact]
         public void Constructor_WithEmptyParameters_CreatesInstance()
         {
-            // Act
-            var connection = new BonCodeAJP13ServerConnection();
-
-            // Assert
-            Assert.NotNull(connection);
+            Assert.NotNull(new BonCodeAJP13ServerConnection());
         }
 
         #endregion
@@ -381,49 +250,203 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void AddPacketToSendQueue_AddsPacketToCollection()
         {
-            // Arrange
             var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
             var packet = new global::BonCodeAJP13.TomcatPackets.TomcatSendBodyChunk("test data");
-
-            // Act
             connection.AddPacketToSendQueue(packet);
-
-            // Assert - we can't directly access the send queue, but we can verify no exception was thrown
             Assert.NotNull(connection);
+        }
+
+        #endregion
+
+        #region IDisposable Tests
+
+        [Fact]
+        public void Dispose_IsIdempotent_DoesNotThrowOnSecondCall()
+        {
+            var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
+            connection.Dispose();
+            connection.Dispose();
+        }
+
+        [Fact]
+        public void Dispose_ThrowsObjectDisposedException_OnReceivedDataCollection()
+        {
+            var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
+            connection.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => connection.ReceivedDataCollection);
+        }
+
+        [Fact]
+        public void Dispose_ThrowsObjectDisposedException_OnBeginConnection()
+        {
+            var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
+            connection.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => connection.BeginConnection());
+        }
+
+        [Fact]
+        public void Dispose_ThrowsObjectDisposedException_OnAddPacketToSendQueue()
+        {
+            var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
+            var packet = new global::BonCodeAJP13.TomcatPackets.TomcatSendBodyChunk("test");
+            connection.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => connection.AddPacketToSendQueue(packet));
+        }
+
+        [Fact]
+        public void ImplementsIDisposable()
+        {
+            Assert.IsAssignableFrom<IDisposable>(new BonCodeAJP13ServerConnection("test", "127.0.0.1"));
+        }
+
+        [Fact]
+        public void SetTcpClient_SetsOwnershipToFalse_WhenNonNullClientPassed()
+        {
+            var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
+            using (var tcpClient = new TcpClient())
+            {
+                connection.SetTcpClient = tcpClient;
+                var field = typeof(BonCodeAJP13ServerConnection).GetField("_ownsTcpClient", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.NotNull(field);
+                Assert.False((bool)field.GetValue(connection));
+            }
+        }
+
+        [Fact]
+        public void SetTcpClient_SetsOwnershipToTrue_WhenNullPassed()
+        {
+            var connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
+            connection.SetTcpClient = null;
+            var field = typeof(BonCodeAJP13ServerConnection).GetField("_ownsTcpClient", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(field);
+            Assert.True((bool)field.GetValue(connection));
+        }
+
+        [Fact]
+        public void UsingStatement_DisposesConnection()
+        {
+            BonCodeAJP13ServerConnection connection;
+            using (connection = new BonCodeAJP13ServerConnection("test", "127.0.0.1"))
+            {
+                Assert.NotNull(connection.ReceivedDataCollection);
+            }
+            Assert.Throws<ObjectDisposedException>(() => connection.ReceivedDataCollection);
+        }
+
+        #endregion
+
+        #region TCP Connection Reuse Tests
+
+        [Fact]
+        public void Dispose_DoesNotCloseBorrowedTcpClient()
+        {
+            var listener = TcpListener.Create(0);
+            listener.Start();
+            try
+            {
+                var endpoint = (IPEndPoint)listener.LocalEndpoint;
+                var tcpClient = new TcpClient();
+                tcpClient.Connect("127.0.0.1", endpoint.Port);
+                Assert.True(tcpClient.Connected, "Precondition: TCP client should be connected");
+
+                using (var conn = new BonCodeAJP13ServerConnection("test", "127.0.0.1"))
+                {
+                    conn.SetTcpClient = tcpClient;
+                }
+
+                Assert.True(tcpClient.Connected, "Borrowed TcpClient should survive ServerConnection Dispose");
+                tcpClient.Close();
+            }
+            finally
+            {
+                listener.Stop();
+            }
+        }
+
+        [Fact]
+        public void Dispose_ClosesOwnedTcpClient()
+        {
+            var listener = TcpListener.Create(0);
+            listener.Start();
+            try
+            {
+                var endpoint = (IPEndPoint)listener.LocalEndpoint;
+                var tcpClient = new TcpClient();
+                tcpClient.Connect("127.0.0.1", endpoint.Port);
+                Assert.True(tcpClient.Connected, "Precondition: TCP client should be connected");
+
+                var conn = new BonCodeAJP13ServerConnection("test", "127.0.0.1");
+                conn.SetTcpClient = null; // _ownsTcpClient = true
+                var tcpField = typeof(BonCodeAJP13ServerConnection).GetField("p_TCPClient", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.NotNull(tcpField);
+                tcpField.SetValue(conn, tcpClient);
+
+                conn.Dispose();
+
+                bool connected = false;
+                try { connected = tcpClient.Connected; }
+                catch (NullReferenceException) { /* expected: socket was disposed */ }
+                Assert.False(connected, "Owned TcpClient should be closed after Dispose");
+            }
+            finally
+            {
+                listener.Stop();
+            }
+        }
+
+        [Fact]
+        public void SameTcpClient_ReusedAcrossMultipleConnections()
+        {
+            var listener = TcpListener.Create(0);
+            listener.Start();
+            try
+            {
+                var endpoint = (IPEndPoint)listener.LocalEndpoint;
+                var tcpClient = new TcpClient();
+                tcpClient.Connect("127.0.0.1", endpoint.Port);
+                int originalPort = ((IPEndPoint)tcpClient.Client.LocalEndPoint).Port;
+
+                using (var conn1 = new BonCodeAJP13ServerConnection("test", "127.0.0.1"))
+                {
+                    conn1.SetTcpClient = tcpClient;
+                }
+                Assert.True(tcpClient.Connected, "TCP should survive first request");
+
+                using (var conn2 = new BonCodeAJP13ServerConnection("test", "127.0.0.1"))
+                {
+                    conn2.SetTcpClient = tcpClient;
+                }
+                Assert.True(tcpClient.Connected, "TCP should survive second request");
+
+                int reusedPort = ((IPEndPoint)tcpClient.Client.LocalEndPoint).Port;
+                Assert.True(originalPort == reusedPort, "Same local port proves the socket was reused, not destroyed and recreated");
+
+                tcpClient.Close();
+            }
+            finally
+            {
+                listener.Stop();
+            }
         }
 
         #endregion
 
         #region Helper Methods
 
-        /// <summary>
-        /// Invokes a static private method on BonCodeAJP13ServerConnection using reflection
-        /// </summary>
         private T InvokeStaticMethod<T>(string methodName, params object[] parameters)
         {
-            var method = typeof(BonCodeAJP13ServerConnection).GetMethod(methodName, 
+            var method = typeof(BonCodeAJP13ServerConnection).GetMethod(methodName,
                 BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
-            
-            if (method == null)
-                throw new InvalidOperationException($"Method {methodName} not found");
-            
-            var result = method.Invoke(null, parameters);
-            return (T)result;
+            if (method == null) throw new InvalidOperationException($"Method {methodName} not found");
+            return (T)method.Invoke(null, parameters);
         }
 
-        /// <summary>
-        /// Invokes a private instance method on BonCodeAJP13ServerConnection using reflection
-        /// </summary>
         private T InvokePrivateMethod<T>(object instance, string methodName, params object[] parameters)
         {
-            var method = typeof(BonCodeAJP13ServerConnection).GetMethod(methodName, 
+            var method = typeof(BonCodeAJP13ServerConnection).GetMethod(methodName,
                 BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
-            
-            if (method == null)
-                throw new InvalidOperationException($"Method {methodName} not found");
-            
-            var result = method.Invoke(instance, parameters);
-            return (T)result;
+            if (method == null) throw new InvalidOperationException($"Method {methodName} not found");
+            return (T)method.Invoke(instance, parameters);
         }
 
         #endregion

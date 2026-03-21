@@ -221,113 +221,113 @@ namespace BonCodeIIS
                         //initialize AJP13 protocol connection
                         string logFilePostFix = "_" + context.Request.ServerVariables["INSTANCE_ID"] + "_" + context.Server.MachineName + "_";
                         string clientIp = GetRemoteAddr(context.Request.ServerVariables);
-                        BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection(logFilePostFix, clientIp);
-                        sconn.FlushDelegateFunction = PrintFlush;  //this function will do the transfer to browser if we use Flush detection, we pass as delegate
-                        sconn.FlushStatusFunction = IsFlushing; //will let the implementation know if flushing is still in progress
-                        sconn.SetTcpClient = p_TcpClient;
-                        sconn.ChunkedTransfer = isChunkedTransfer;
-                        //TODO: bind this into log file name  
-                      
-                        //check for header data support and retrieve virtual directories if needed
-                        String virPaths = "";
-                        if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT)
+                        using (BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection(logFilePostFix, clientIp))
                         {
-                            virPaths = GetVDirs();
-                        }
+                            sconn.FlushDelegateFunction = PrintFlush;  //this function will do the transfer to browser if we use Flush detection, we pass as delegate
+                            sconn.FlushStatusFunction = IsFlushing; //will let the implementation know if flushing is still in progress
+                            sconn.SetTcpClient = p_TcpClient;
+                            sconn.ChunkedTransfer = isChunkedTransfer;
+                            //TODO: bind this into log file name  
                         
-
-                        //check for Adobe support
-                        if (BonCodeAJP13Settings.BONCODEAJP13_ADOBE_SUPPORT)
-                        {
-                            sconn.ServerPathFunction = ServerPath;
-                        }
-                        //setup basic information (base ForwardRequest package)            
-                        sourcePort = ((IPEndPoint)p_TcpClient.Client.LocalEndPoint).Port;
-                        BonCodeAJP13ForwardRequest FR = null; 
-                        //if we are in SSL mode we need to check for client certificates
-                        if (context.Request.IsSecureConnection && context.Request.ClientCertificate.IsPresent)                        {
-
-                            FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables, context.Request.PathInfo, sourcePort, virPaths, GetClientCert(context));
-                        }
-                        else
-                        {
-                            FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables, context.Request.PathInfo, sourcePort, virPaths);
-                        }
-
-                        sconn.AddPacketToSendQueue(FR);
-
-
-
-                        //determine if extra ForwardRequests are needed. 
-                        //We need to create a collection of Requests (for form data and file uploads etc.) 
-                        //TODO: think about streaming support. The reading would be posted to a different thread that continues the reading process while
-                        //      the AJP handler continues writing the packets back to tomcat
-                        if (context.Request.ContentLength > 0 || isChunkedTransfer)
-                        {
-                            // need to create a collection of forward requests to package data in      
-                            int maxPacketSize = BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH - 1;
-                            int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(maxPacketSize))));
-                            int iStart = 0;
-                            int iCount = 0;
-
-                            //for chunked transfer we use stream length to determine number of packets
-                            if (isChunkedTransfer)
+                            //check for header data support and retrieve virtual directories if needed
+                            String virPaths = "";
+                            if (BonCodeAJP13Settings.BONCODEAJP13_HEADER_SUPPORT)
                             {
-                                numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(streamLen / Convert.ToDouble(maxPacketSize)))); ;
+                                virPaths = GetVDirs();
+                            }
+                            
+
+                            //check for Adobe support
+                            if (BonCodeAJP13Settings.BONCODEAJP13_ADOBE_SUPPORT)
+                            {
+                                sconn.ServerPathFunction = ServerPath;
+                            }
+                            //setup basic information (base ForwardRequest package)            
+                            sourcePort = ((IPEndPoint)p_TcpClient.Client.LocalEndPoint).Port;
+                            BonCodeAJP13ForwardRequest FR = null; 
+                            //if we are in SSL mode we need to check for client certificates
+                            if (context.Request.IsSecureConnection && context.Request.ClientCertificate.IsPresent)                        {
+
+                                FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables, context.Request.PathInfo, sourcePort, virPaths, GetClientCert(context));
+                            }
+                            else
+                            {
+                                FR = new BonCodeAJP13ForwardRequest(context.Request.ServerVariables, context.Request.PathInfo, sourcePort, virPaths);
                             }
 
-                            for (int i = 1; i <= numOfPackets; i++)
+                            sconn.AddPacketToSendQueue(FR);
+
+
+
+                            //determine if extra ForwardRequests are needed. 
+                            //We need to create a collection of Requests (for form data and file uploads etc.) 
+                            //TODO: think about streaming support. The reading would be posted to a different thread that continues the reading process while
+                            //      the AJP handler continues writing the packets back to tomcat
+                            if (context.Request.ContentLength > 0 || isChunkedTransfer)
                             {
-                                //we need to breakdown data into multiple FR packages to tomcat
-                                if (i * maxPacketSize <= streamLen)
+                                // need to create a collection of forward requests to package data in      
+                                int maxPacketSize = BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH - 1;
+                                int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(maxPacketSize))));
+                                int iStart = 0;
+                                int iCount = 0;
+
+                                //for chunked transfer we use stream length to determine number of packets
+                                if (isChunkedTransfer)
                                 {
-                                    //we are in the middle of transferring data grab next 8188 (if default packet size) bytes and create package
-                                    iStart = (i - 1) * (maxPacketSize);
-                                    iCount = Convert.ToInt32(maxPacketSize);
+                                    numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(streamLen / Convert.ToDouble(maxPacketSize)))); ;
                                 }
-                                else
+
+                                for (int i = 1; i <= numOfPackets; i++)
                                 {
-                                    //last user package
-                                    iStart = (i - 1) * (maxPacketSize);
-                                    iCount = Convert.ToInt32(streamLen) - iStart;
+                                    //we need to breakdown data into multiple FR packages to tomcat
+                                    if (i * maxPacketSize <= streamLen)
+                                    {
+                                        //we are in the middle of transferring data grab next 8188 (if default packet size) bytes and create package
+                                        iStart = (i - 1) * (maxPacketSize);
+                                        iCount = Convert.ToInt32(maxPacketSize);
+                                    }
+                                    else
+                                    {
+                                        //last user package
+                                        iStart = (i - 1) * (maxPacketSize);
+                                        iCount = Convert.ToInt32(streamLen) - iStart;
+                                    }
+                                    //add package to collection
+                                    byte[] streamInput = new byte[iCount];
+                                    context.Request.InputStream.Read(streamInput, 0, iCount); //stream pointer moves with each read so we allways start at zero position
+                                    sconn.AddPacketToSendQueue(new BonCodeAJP13ForwardRequest(streamInput));
+
                                 }
-                                //add package to collection
-                                byte[] streamInput = new byte[iCount];
-                                context.Request.InputStream.Read(streamInput, 0, iCount); //stream pointer moves with each read so we allways start at zero position
-                                sconn.AddPacketToSendQueue(new BonCodeAJP13ForwardRequest(streamInput));
+                                //add an empty Forward Request packet as terminator to collection if multiple packets are used
+                                //sconn.AddPacketToSendQueue(new BonCodeAJP13ForwardRequest(new byte[] { }));
 
                             }
-                            //add an empty Forward Request packet as terminator to collection if multiple packets are used
-                            //sconn.AddPacketToSendQueue(new BonCodeAJP13ForwardRequest(new byte[] { }));
 
-                        }
+                            //run connection (send and receive cycle)
 
-                        //run connection (send and receive cycle)
+                            try
+                            {
+                                sconn.BeginConnection();
+                            }
 
-                        try
-                        {
-                            sconn.BeginConnection();
-                        }
+                            catch (Exception e)
+                            {
+                                //we have an error do the dump on screen since we are not logging but allso kill connection 
+                                RecordSysEvent("Connection error 2: " + e.Message + " " + e.StackTrace, EventLogEntryType.Error);
+                                PrintError(context, ".", e.Message + " " + e.StackTrace);
+                                KillConnection(); //remove TCP cache good after timeouts
+                            }
 
-                        catch (Exception e)
-                        {
-                            //we have an error do the dump on screen since we are not logging but allso kill connection 
-                            RecordSysEvent("Connection error 2: " + e.Message + " " + e.StackTrace, EventLogEntryType.Error);
-                            PrintError(context, ".", e.Message + " " + e.StackTrace);
-                            KillConnection(); //remove TCP cache good after timeouts
-                        }
+                            //write the response to browser (if not already flushed)
+                            PrintFlush(sconn.ReceivedDataCollection);
 
-                        //write the response to browser (if not already flushed)
-                        PrintFlush(sconn.ReceivedDataCollection);
+                            //kill connections if we are not reusing connections or other problems occurred
+                            if (p_FlagKillConnection)
+                            {
+                                KillConnection();
+                            }
 
-                        //kill connections if we are not reusing connections or other problems occurred
-                        if (p_FlagKillConnection)
-                        {
-                            KillConnection();
-                        }
-
-                        //dispose the sconn explictily
-                        sconn = null;
+                        } // end using sconn
 
                     }; // proceed is true
 

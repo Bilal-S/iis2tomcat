@@ -39,7 +39,6 @@ using System.Web;
 
 
 
-
 namespace BonCodeAJP13
 {
 
@@ -70,9 +69,15 @@ namespace BonCodeAJP13
 
     /// <summary>
     /// BonCodeAJP13Connection implements the functionally in the server to 
-    /// manage one connection to Tomcat, its thread will be spawned from the CallHandler
+    /// manage one connection to Tomcat, its thread will be spawned from the CallHandler.
+    /// Implements IDisposable with finalizer for proper resource cleanup.
+    /// 
+    /// Ownership model:
+    /// - If TcpClient is passed via SetTcpClient, this class BORROWS it (does not own it).
+    ///   Only the NetworkStream and Timer created by this class will be disposed.
+    /// - If TcpClient is created internally, this class OWNS it and will dispose it.
     /// </summary>
-    public class BonCodeAJP13ServerConnection
+    public class BonCodeAJP13ServerConnection : IDisposable
     {
 
 
@@ -130,6 +135,10 @@ namespace BonCodeAJP13
         //this is function place holder
         private ServerPathDelegate p_ServerPath;
 
+        // IDisposable pattern fields
+        private bool _disposed = false;
+        private bool _ownsTcpClient = true; // true if we created TcpClient, false if it was passed in
+
         #endregion
 
         #region Properties
@@ -154,10 +163,14 @@ namespace BonCodeAJP13
 
 
         /// <summary>
-        /// Sets the TcpClient to use. Will conserve threads
+        /// Sets the TcpClient to use. Marks this instance as NOT owning the TcpClient.
+        /// The caller (e.g., CallHandler) retains ownership and is responsible for its lifecycle.
         /// </summary>
         public TcpClient SetTcpClient {
-            set { p_TCPClient = value; }
+            set { 
+                p_TCPClient = value; 
+                _ownsTcpClient = (value == null); // if null passed, we'll create our own and own it
+            }
         }
 
         /// <summary>
@@ -209,7 +222,11 @@ namespace BonCodeAJP13
         /// </summary>
         public BonCodeAJP13PacketCollection ReceivedDataCollection
         {
-            get { return p_PacketsReceived; }
+            get 
+            {
+                ThrowIfDisposed();
+                return p_PacketsReceived; 
+            }
         }
 
         #endregion
@@ -320,27 +337,135 @@ namespace BonCodeAJP13
 
         #endregion
 
-        #region destructor
+        #region IDisposable Pattern
 
         /// <summary>
-        /// During destruction of class reduce the connection count
-        /// Only initializes intance        
+        /// Finalizer — called by GC if Dispose() was never called.
+        /// Only releases unmanaged resources; does NOT touch managed objects
+        /// (they may already be finalized).
         /// </summary>
-        ~ BonCodeAJP13ServerConnection()
+        ~BonCodeAJP13ServerConnection()
         {
+            Dispose(false);
+        }
 
+        /// <summary>
+        /// Public Dispose — call this when done with the connection.
+        /// Safe to call multiple times.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
-            if (p_Logger != null) p_Logger.LogMessage(string.Format("Closing Connection ID: {0} [T-{1}]",  p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
-            //if (p_Logger != null) p_Logger.LogMessage(string.Format("Closing Connection ID: {0} [T-{1}]", p_ThisConnectionID, AppDomain.GetCurrentThreadId()), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
-            
+        /// <summary>
+        /// Core disposal logic.
+        /// When disposing=true: releases both managed and unmanaged resources.
+        /// When disposing=false (finalizer): releases only unmanaged resources.
+        /// </summary>
+        /// <param name="disposing">True if called from Dispose(), false if called from finalizer.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                // --- Release MANAGED resources ---
+
+                // Log before closing resources (logger is static so safe to use during managed disposal)
+                if (p_Logger != null) p_Logger.LogMessage(string.Format("Disposing Connection ID: {0} [T-{1}]", p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
+
+                // Stop stopwatch
+                if (p_StopWatch != null)
+                {
+                    p_StopWatch.Stop();
+                }
+
+                // Dispose keep-alive timer
+                if (p_KeepAliveTimer != null)
+                {
+                    p_KeepAliveTimer.Stop();
+                    p_KeepAliveTimer.Dispose();
+                    p_KeepAliveTimer = null;
+                }
+
+                // Close and dispose network stream (always owned by this class)
+                try
+                {
+                    if (p_NetworkStream != null)
+                    {
+                        p_NetworkStream.Flush();
+                        p_NetworkStream.Close();
+                        p_NetworkStream.Dispose();
+                        p_NetworkStream = null;
+                    }
+                }
+                catch (Exception e)
+                {
+                    if (p_Logger != null) p_Logger.LogException(e, "Stream Dispose:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+                }
+
+                // Close and dispose TCP client ONLY if we own it
+                if (_ownsTcpClient)
+                {
+                    try
+                    {
+                        if (p_TCPClient != null)
+                        {
+                            p_TCPClient.Close();
+                            p_TCPClient = null;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        if (p_Logger != null) p_Logger.LogException(e, "TCP Client Dispose:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+                    }
+                }
+                else
+                {
+                    // We don't own the TCP client — just clear our reference
+                    // The caller (e.g., CallHandler) is responsible for its lifecycle
+                    p_TCPClient = null;
+                }
+
+                // Clear packet collections
+                if (p_PacketsReceived != null)
+                {
+                    p_PacketsReceived.Clear();
+                    p_PacketsReceived = null;
+                }
+                if (p_PacketsToSend != null)
+                {
+                    p_PacketsToSend.Clear();
+                    p_PacketsToSend = null;
+                }
+
+                // Null out delegates to break references
+                p_FpDelegate = null;
+                p_FlushInProgress = null;
+                p_ServerPath = null;
+            }
+
+            // --- Release UNMANAGED resources ---
+            // (None currently, but the pattern supports future additions)
+
+            // Decrement concurrent connection counter
             Interlocked.Decrement(ref p_ConcurrentConnections);
-            Interlocked.Decrement(ref p_ConnectionsCounter);
+            // NOTE: Do NOT decrement p_ConnectionsCounter — it is a lifetime counter, not a concurrent counter
 
-            p_PacketsReceived.Clear();
-            p_PacketsReceived = null;
-            p_PacketsToSend.Clear();
-            p_PacketsToSend = null;            
-            
+            _disposed = true;
+        }
+
+        /// <summary>
+        /// Throws ObjectDisposedException if this instance has been disposed.
+        /// </summary>
+        private void ThrowIfDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(GetType().Name);
+            }
         }
 
         #endregion
@@ -403,6 +528,7 @@ namespace BonCodeAJP13
         /// </summary>
         public void BeginConnection()
         {
+            ThrowIfDisposed();
             p_CreateConnection(p_PacketsToSend);
         }
 
@@ -412,6 +538,7 @@ namespace BonCodeAJP13
         /// </summary>
         public void AddPacketToSendQueue(BonCodeAJP13Packet singlePacket)
         {
+            ThrowIfDisposed();
             p_PacketsToSend.Add(singlePacket);
         }
 
@@ -461,7 +588,6 @@ namespace BonCodeAJP13
                 p_PacketsReceived.Clear();
 
             }
-            
 
             
         }
@@ -471,6 +597,7 @@ namespace BonCodeAJP13
         /// </summary>
         private void p_CreateConnection(BonCodeAJP13PacketCollection packetsToSend)
         {
+            ThrowIfDisposed();
             p_AbortConnection = false;
             p_ThisConnectionID = Interlocked.Increment(ref p_ConnectionsCounter); //assign the connection id
 
@@ -478,11 +605,16 @@ namespace BonCodeAJP13
 
             try
             {
-                //create new connection and timer if we maintain connection timeout within this class
+                //create new TCP client if we don't have one
                 if (p_TCPClient == null)
                 {
                     p_TCPClient = new TcpClient(p_Server, p_Port);
+                    _ownsTcpClient = true;
+                }
 
+                // Always create keep-alive timer for timeout protection, regardless of TCP ownership
+                if (p_KeepAliveTimer == null)
+                {
                     p_KeepAliveTimer = new System.Timers.Timer();
                     p_KeepAliveTimer.Interval = BonCodeAJP13Consts.BONCODEAJP13_SERVER_KEEP_ALIVE_TIMEOUT;
                     p_KeepAliveTimer.Elapsed += new System.Timers.ElapsedEventHandler(p_KeepAliveTimer_Elapsed);
@@ -501,7 +633,6 @@ namespace BonCodeAJP13
             catch (Exception e)
             {
                 if (p_Logger != null) p_Logger.LogException(e, "TCP Client level -- Server/Port:" + p_Server + "/" + p_Port.ToString());
-                ConnectionError();
                 string errMsg = "Connection to Tomcat has been closed. Tomcat may be restarting. Please retry later.";
                 if (p_Logger != null)
                 {
@@ -513,7 +644,9 @@ namespace BonCodeAJP13
                 }
 
                 if (BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_TCPCLIENT_ERRORMSG.Length > 1) errMsg = BonCodeAJP13Settings.BONCODEAJP13_TOMCAT_TCPCLIENT_ERRORMSG;
+                // Add error packet BEFORE ConnectionError, since ConnectionError calls Dispose() which nulls collections
                 p_PacketsReceived.Add(new TomcatSendBodyChunk(errMsg));
+                ConnectionError();
                 return;
             }
         }
@@ -537,6 +670,7 @@ namespace BonCodeAJP13
         /// </summary>
         public void HandleConnection()
         {
+            ThrowIfDisposed();
 
 
             if (p_Logger != null) p_Logger.LogMessage(String.Format("New Connection {0} of {1} to tomcat: {2} ID: {3} [T-{4}]",p_ConcurrentConnections,BonCodeAJP13Settings.MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS, p_TCPClient.Client.RemoteEndPoint.ToString(), p_ThisConnectionID, Thread.CurrentThread.ManagedThreadId), BonCodeAJP13LogLevels.BONCODEAJP13_LOG_BASIC);
@@ -760,7 +894,7 @@ namespace BonCodeAJP13
 
                     try
                     {
-                        // Read or wait next package. We have situation in which the response does take time. We have to wait wait until data arrives or we time out
+                        // Read or wait next package. We have situation in which the response does take time. We have to wait until data arrives or we time out
                         numOfBytesReceived = ReadStream(ref receivedPacketBuffer,"regular read (2)");
                             
 
@@ -917,61 +1051,71 @@ namespace BonCodeAJP13
 
         /// <summary>
         /// Close connection and its Network stream. Everything is OK.
+        /// Closes stream and timer but does NOT null out collections — the caller
+        /// (e.g., CallHandler via using) needs to read received packets after this returns.
+        /// Full disposal (including collection cleanup) happens via Dispose().
         /// </summary>
         private void CloseConnectionNoError(string message = "Closing Stream")
         {
             if (p_Logger != null) p_Logger.LogMessage(message, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_DEBUG);
 
+            // Close network stream (always owned by this class)
             try
             {
                 if (p_NetworkStream != null)
                 {
                     p_NetworkStream.Flush();
                     p_NetworkStream.Close();
+                    p_NetworkStream.Dispose();
                     p_NetworkStream = null;
                 }
             }
             catch (Exception e)
             {
-                if (p_Logger != null) p_Logger.LogException(e, "Stream Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+                if (p_Logger != null) p_Logger.LogException(e, "CloseConnectionNoError stream:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
             }
 
-            try
+            // Stop and dispose keep-alive timer
+            if (p_KeepAliveTimer != null)
             {
-                if (p_TCPClient != null)
+                p_KeepAliveTimer.Stop();
+                p_KeepAliveTimer.Dispose();
+                p_KeepAliveTimer = null;
+            }
+
+            // Clear TCP reference only if we own it; otherwise leave for CallHandler
+            if (_ownsTcpClient && p_TCPClient != null)
+            {
+                try
                 {
                     p_TCPClient.Close();
-                    p_TCPClient = null;
                 }
-            }
-            catch (Exception e)
-            {
-                if (p_Logger != null) p_Logger.LogException(e, "TCP Client Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+                catch (Exception e)
+                {
+                    if (p_Logger != null) p_Logger.LogException(e, "CloseConnectionNoError TCP:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+                }
+                p_TCPClient = null;
             }
 
-            //Kill associated timer
-            if (p_KeepAliveTimer != null) p_KeepAliveTimer.Dispose();
+            // Stop stopwatch
+            if (p_StopWatch != null)
+            {
+                p_StopWatch.Stop();
+            }
+
+            // NOTE: We do NOT call Dispose() here because p_PacketsReceived
+            // must remain accessible for CallHandler to read after BeginConnection() returns.
         }
 
 
         /// <summary>
         /// Close connection and its Network stream and invoke the Connection Returned event with failure string.
-        /// This function has one override with string that can be passed.
+        /// Closes resources but does NOT null out collections — the caller (via using) needs to read received packets.
+        /// Full disposal happens via Dispose() called by the using block.
         /// </summary>
         private void ConnectionError()
         {
-            //if (p_Logger != null) p_Logger.LogMessage("One Connection raised an error", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
-            //attempt to close stream
-            try
-            {
-               if (p_NetworkStream != null) p_NetworkStream.Close();
-            }
-            catch (Exception e)
-            {
-                //log exception
-                if (p_Logger != null) p_Logger.LogException(e, "Stream Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
-            }
-
+            CloseConnectionResourcesOnError();
                         
             //now raise the error for the call handler it will close TCP client
             if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
@@ -983,24 +1127,61 @@ namespace BonCodeAJP13
         private void ConnectionError(string message="", string messageType="")
         {
             if (p_Logger != null) p_Logger.LogMessageAndType(message, messageType, BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
-            //attempt to close stream
-            try
-            {
-               if (p_NetworkStream != null) p_NetworkStream.Close();
-            }
-            catch (Exception e)
-            {
-                //log exception
-                if (p_Logger != null) p_Logger.LogException(e, "Stream Close:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
-            }
-   
+            CloseConnectionResourcesOnError();
 
             //now raise the error for the call handler it will close the TCP client
             if (BonCodeAJP13Settings.BONCODEAJP13_ENABLE_HTTPSTATUSCODES)
             {
                 throw new InvalidOperationException("Connection between Tomcat and IIS experienced error. If you restarted Tomcat this is expected. (2)" + messageType + ":" + message);
             }
-           
+        }
+
+        /// <summary>
+        /// Shared resource cleanup for error paths. Closes stream/timer/TCP (if owned)
+        /// but does NOT null out collections or set _disposed — allowing callers to still
+        /// read received packets. The using block's Dispose() handles final cleanup.
+        /// </summary>
+        private void CloseConnectionResourcesOnError()
+        {
+            try
+            {
+                if (p_NetworkStream != null)
+                {
+                    p_NetworkStream.Close();
+                    p_NetworkStream.Dispose();
+                    p_NetworkStream = null;
+                }
+            }
+            catch (Exception e)
+            {
+                if (p_Logger != null) p_Logger.LogException(e, "ErrorClose stream:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+            }
+
+            if (p_KeepAliveTimer != null)
+            {
+                try
+                {
+                    p_KeepAliveTimer.Stop();
+                    p_KeepAliveTimer.Dispose();
+                }
+                catch (Exception) { }
+                p_KeepAliveTimer = null;
+            }
+
+            if (_ownsTcpClient && p_TCPClient != null)
+            {
+                try
+                {
+                    p_TCPClient.Close();
+                }
+                catch (Exception e)
+                {
+                    if (p_Logger != null) p_Logger.LogException(e, "ErrorClose TCP:", BonCodeAJP13LogLevels.BONCODEAJP13_LOG_ERRORS);
+                }
+                p_TCPClient = null;
+            }
+
+            if (p_StopWatch != null) p_StopWatch.Stop();
         }
         #endregion
 
@@ -1321,6 +1502,3 @@ namespace BonCodeAJP13
         #endregion
     }
 }
-
-
-
