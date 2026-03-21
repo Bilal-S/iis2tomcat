@@ -1,80 +1,165 @@
 # BonCode AJP13 Connector for IIS
 
-## The easiest connector to script deployments and bundle in your projects ;o)
+**Connect IIS to Apache Tomcat in under a minute — no ISAPI, no hassle.**
 
-- Hands-down the easiest connector to use for the common developer (no need to get involved with the intricacies of Tomcat and IIS protocol interchanges.)
-- Simply run the `Connector_Setup.exe` and you are done.
-- If you need to script your deployments this can be achieved as easy as calling a command line.
+[![Download Latest](https://img.shields.io/github/v/release/Bilal-S/iis2tomcat?label=latest%20release&color=0078d4)](https://github.com/Bilal-S/iis2tomcat/releases/latest)
+[![.NET Framework](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)](https://docs.microsoft.com/en-us/dotnet/framework/)
+[![Windows](https://img.shields.io/badge/platform-Windows%207%20–%20Server%202025-0078d4)]()
+[![License](https://img.shields.io/badge/license-see%20source-green)]()
 
-## Differences and Advantages
+---
 
-This is the modern method of connecting IIS and Apache Tomcat. Most likely to use a Railo, Lucee or JSP driven backend.
-The BonCode AJP (Apache JServ Protocol version 1.3) Connector uses already existing pathways to connect to Apache Tomcat. 
-The AJP implementation is generic and will work to connect IIS with any AJP server such as Jboss, web-methods, Jetty etc.
-In general it is a preference question how you connect IIS to Tomcat, though, there are several advantages with the BonCode connector vs the old ISAPI connector:
-*   no ISAPI code, IIS6 vestiges or backward compatibility elements needed
-*   does not block or hinder IIS functionality or slows unrelated requests
-*   all managed code for IIS using the modern extensibility framework
-*   works on most IIS versions (Windows 7 through Windows 10, Windows Server 2003-2025)
-*   speed, throughput, and stability improvements 
-*   configuration in IIS UI
-*   no virtual directories and virtual mappings needed
-*   configuration can be inherited to sub-paths and virtual sites
-*   easy install/uninstall
-*   support partial stream sending to browser (automatic flushing) with faster response to client
-*   support both 32/64 bit of Windows with same process and files
-*   transfer of all request headers
-*   build-in simple-security for web-administration pages (Lucee, Tomcat, Railo, OpenBD, ColdFusion)
-*   IP6 support
-*   Additional HTTP headers data is passed to Tomcat servlet container (previously unavailable)
-*   Improved transfer of SSL data to Tomcat servlet container
-*   Support improved translation of load balancer headers to determine correct client IP 
-*   Support client fingerprint mechanism for use with safer sessions
-*   Support for Adobe Coldfusion 10 - 2021 AJP dialects
-*   Support for Lucee, Railo, and OpenBD CFML Engines 
-*   Support for alternate Path-Info header transmission via AJP
+## What Is It?
 
-## Even more stuff
+BonCode is a lightweight, fully managed IIS native module that bridges IIS to any AJP13-compatible servlet container — **Tomcat, JBoss, Jetty**, and CFML engines like **Lucee, Railo, OpenBD, and Adobe ColdFusion**.
 
-If you were using a proxy or URL rewrite engine you would also benefit from:
-*   Fully integrated SSL to Servlet container
-*   Tomcat threading awareness (will not overload Tomcat and drop connections unnecessarily)
-*   Your servlets and scripts will receive correct HTTP header/URL/IP information for processing
-*   reduced traffic and processing on both IIS and tomcat sides
-*   allows you to connect to multiple tomcat instances from within one IIS site without interfering with ISAPI connector, e.g. Shibboleth and ColdFusion
+```
+  Browser ──► IIS ──► BonCode AJP13 Module ──► Tomcat / JBoss / Jetty / CFML Engine
+```
 
-YouTube Videos:
-https://www.youtube.com/user/boncode/videos
+No ISAPI DLLs. No virtual directory gymnastics. No IIS6-era workarounds. Just a clean, modern IIS extensibility module that gets out of your way.
 
-## Lucee / Railo in place upgrade
+---
 
-- use this link: http://www.boncode.net/boncode-connector/upgrading-railo-or-lucee-connector
+## Quick Start
 
-## Adobe ColdFusion configuration
+1. **Download** the latest release from [GitHub Releases](https://github.com/Bilal-S/iis2tomcat/releases/latest)
+2. **Run** `Connector_Setup.exe` — the installer configures everything automatically
+3. **Done.** Your IIS site is now routing to Tomcat.
 
-- use this link: http://www.boncode.net/boncode-connector/using-boncode-with-adobe-coldfusion
+For scripted deployments, the connector supports silent command-line installation — ideal for CI/CD pipelines and automated provisioning.
 
-## Latest Package Download
+---
 
-- use this link: https://github.com/Bilal-S/iis2tomcat/releases/latest
+## Why BonCode?
 
-## Version History:
+| | **BonCode Connector** | **Legacy ISAPI Connector** |
+|---|---|---|
+| Architecture | Modern IIS Native Module (managed code) | ISAPI filter (IIS6 era) |
+| Install | One-click installer or CLI | Manual DLL registration & config |
+| IIS Impact | Zero interference with non-Java requests | Can block or slow unrelated requests |
+| Bitness | Single build, any process (32/64-bit) | Separate DLLs required |
+| Configuration | IIS UI + inheritable config hierarchy | Manual XML editing |
+| Virtual Directories | Not required | Required |
 
-Expanded version history is in the `Readme Notes.txt` file in this project under BonCodeAJP13 sources
+---
 
-## More Documentation and Support
+## Features
 
+### Performance
+- Partial stream flushing for faster time-to-first-byte
+- Tomcat thread awareness — won't overload or drop connections
+- Reduced traffic and processing on both IIS and Tomcat sides
+- Connect to multiple Tomcat instances from a single IIS site
 
-Full documentation is available in the download package from [github releases site](https://github.com/Bilal-S/iis2tomcat/releases). Download zip and look in `BonCode_Tomcat_Connector_Manual.pdf` file. 
+### Compatibility
+- Works on **Windows 7 through Windows 11** and **Windows Server 2003 through 2025**
+- Supports **IIS 7.0+** (all modern versions)
+- Single build handles both **32-bit and 64-bit** worker processes
+- Compatible with Adobe ColdFusion 10–2021 AJP dialects
+- Compatible with Lucee, Railo, and OpenBD CFML engines
 
-[The documentation](http://boncode.net/connector/webdocs/) also contains manual installation instruction, however, using automated installer contained in package is recommended.
+### Security
+- Built-in simple-security for web administration pages (Lucee, Tomcat, Railo, OpenBD, ColdFusion)
+- Client fingerprint mechanism for safer sessions
+- Full SSL passthrough to the servlet container
+- IPv6 support
 
-As usual any feedback is appreciated. Please use the [github issues site](https://github.com/Bilal-S/iis2tomcat/issues) to leave feedback or open issues.
+### Request Fidelity
+- Complete HTTP header forwarding (including previously unavailable headers)
+- Accurate SSL data transfer to the servlet container
+- Improved load balancer header translation for correct client IP detection
+- Alternate Path-Info header transmission via AJP
+- All request headers transferred faithfully
 
-## GDPR & CCPA Cookie Manager
+### Operations
+- Configure directly in the **IIS Manager UI**
+- Configuration inherits to sub-paths and virtual sites
+- Easy install and uninstall
+- No virtual directories or virtual mappings needed
 
-If you are looking for a good cookie and script manager take a look at one of my other open source projects XcooBee Cookie Kit:
+---
 
-https://github.com/XcooBee/xcoobee-cookie-kit/tree/master/packages/xcoobee-cookie-kit-web
+## Supported Backends
 
-Ensures that you can manage consent and only execute scripts and set cookies with the propper documented consent.
+| Backend | Supported |
+|---|:---:|
+| Apache Tomcat | ✅ |
+| JBoss / WildFly | ✅ |
+| Jetty | ✅ |
+| Lucee | ✅ |
+| Railo | ✅ |
+| OpenBD | ✅ |
+| Adobe ColdFusion (10–2021) | ✅ |
+| Web Methods | ✅ |
+
+*Any AJP13-compatible server will work.*
+
+---
+
+## Proxy & URL Rewrite Benefits
+
+If you're replacing a reverse proxy or URL rewrite setup, BonCode gives you:
+
+- Fully integrated SSL passthrough — no SSL termination proxy needed
+- Your servlets receive **correct** HTTP headers, URLs, and client IPs
+- No double-hop overhead — direct AJP13 binary protocol
+- Run alongside other ISAPI connectors (e.g., Shibboleth) without conflict
+
+---
+
+## Documentation
+
+- 📖 **Full manual** — included in the [release ZIP](https://github.com/Bilal-S/iis2tomcat/releases) as `BonCode_Tomcat_Connector_Manual.pdf`
+- 🌐 [Online documentation](http://boncode.net/connector/webdocs/) — includes manual install instructions (automated installer recommended)
+
+### Common Setup Guides
+
+- **[Upgrading from Railo/Lucee Connector](http://www.boncode.net/boncode-connector/upgrading-railo-or-lucee-connector)**
+- **[Using with Adobe ColdFusion](http://www.boncode.net/boncode-connector/using-boncode-with-adobe-coldfusion)**
+
+---
+
+## Version History
+
+See the [Releases page](https://github.com/Bilal-S/iis2tomcat/releases) for the full changelog. Detailed release notes are also available in `BonCodeAJP13/ReadMe Notes.txt` in the source tree.
+
+---
+
+## Feedback & Issues
+
+Found a bug or have a feature request? Please open an issue on the [GitHub Issues page](https://github.com/Bilal-S/iis2tomcat/issues).
+
+---
+
+## Building from Source
+
+This solution targets **.NET Framework 4.8** and requires Visual Studio with the .NET Framework 4.8 targeting pack.
+
+```bash
+# Build the solution
+msbuild ConsoleTCPIP.sln /p:Configuration=Release
+
+# Run tests
+msbuild ConsoleTCPIP.sln /p:Configuration=Release
+dotnet test Connector.Tests/
+```
+
+---
+
+## Project Structure
+
+```
+├── BonCodeAJP13/          # Core AJP13 protocol library
+│   ├── ServerPackets/     # Packets sent to Tomcat
+│   ├── TomcatPackets/     # Packets received from Tomcat
+│   └── Config/            # Configuration provider
+├── BonCodeIIS/            # IIS native module (managed handler)
+├── ConsoleTCPIP/          # Standalone TCP test console
+├── Connector.Tests/       # Unit tests
+└── ConsoleTCPIP.sln       # Solution file
+```
+
+---
+
+*BonCode AJP13 Connector — Copyright 2011-2026 © Bilal Soylu*
