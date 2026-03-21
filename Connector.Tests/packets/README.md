@@ -9,7 +9,30 @@ This directory contains test assets for capturing and validating raw AJP13 packe
 
 ## Capturing Packets
 
-1. Set `LogLevel` to `5` in your BonCode AJP configuration (app.config or web.config)
+### Automated (recommended)
+
+Use the provided Node.js script to hit every test page automatically:
+
+```bash
+node Connector.Tests/packets/capture.js
+```
+
+**Prerequisites:**
+- BonCode `LogLevel` set to `5` in your AJP configuration (app.config or web.config)
+- IIS running with the BonCode AJP connector
+- Lucee/Tomcat running with the CFM test pages deployed to the web root
+
+**What the script does:**
+- Sends 16 sequential requests (7 GET, 4 status code variations, 5 POST) to `http://localhost/`
+- Waits 500ms between requests to prevent packet interleaving
+- Saves binary response files (PNG) to `captured/` for offline comparison
+- Prints status code, byte count, and response body for each request
+
+**Output:** `.pak` and `.pak.meta` files appear in BonCode's configured log directory. Move selected files to `captured/` for test validation.
+
+### Manual
+
+1. Set `LogLevel` to `5` in your BonCode AJP configuration
 2. Make requests through IIS → BonCode → Lucee to each `.cfm` test page
 3. Raw packet files (`.pak` + `.pak.meta`) are written to the configured log directory
 4. Move selected `.pak` files here for test validation
