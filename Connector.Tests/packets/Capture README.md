@@ -23,7 +23,7 @@ node Connector.Tests/packets/capture.js
 - Lucee/Tomcat running with the CFM test pages deployed to the web root
 
 **What the script does:**
-- Sends 16 sequential requests (7 GET, 4 status code variations, 5 POST) to `http://localhost/`
+- Sends 19 sequential requests (10 GET, 4 status code variations, 5 POST) to `http://localhost/`
 - Waits 500ms between requests to prevent packet interleaving
 - Saves binary response files (PNG) to `captured/` for offline comparison
 - Prints status code, byte count, and response body for each request
@@ -77,6 +77,9 @@ ByteCount: 11
 | `test_get_text_odd.cfm` | GET, 5-byte text (padding=3) | Bug 1: includes padding bytes |
 | `test_get_binary.cfm` | GET, 67-byte PNG (padding=1) | Bug 1: drops last byte |
 | `test_get_binary_odd.cfm` | GET, 3-byte binary (padding=1) | Works by accident |
+| `test_get_binary_singlechunk.cfm` | GET, 5000-byte binary (single chunk) | Bug 1: drops 1 byte, no multi-chunk |
+| `test_get_binary_9000.cfm` | GET, 9000-byte sequential binary (2+ chunks) | Bug 1: ~2 bytes lost across chunks |
+| `test_get_binary_large.cfm` | GET, 20,510-byte PNG via file= (3 chunks) | Bug 1: 3 bytes lost, PNG corrupt |
 | `test_get_large_response.cfm` | GET, 16KB multi-chunk | Multi-chunk assembly |
 | `test_post_small.cfm` | POST, small form data | Basic POST flow |
 | `test_post_large.cfm` | POST, ~20KB data | Bug 2: integer division |

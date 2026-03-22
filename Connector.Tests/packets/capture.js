@@ -164,6 +164,24 @@ async function runGetTests() {
 
     await sleep(DELAY_MS);
 
+    // 5b. Binary single chunk - 5000 bytes (fits in one SendBodyChunk)
+    r = await getRequest('/test_get_binary_singlechunk.cfm');
+    logResult('GET  binary_singlechunk (5000B, single chunk)', r, 'test_get_binary_singlechunk.response');
+
+    await sleep(DELAY_MS);
+
+    // 5c. Binary 9000 bytes - multi-chunk, loop-generated sequential pattern
+    r = await getRequest('/test_get_binary_9000.cfm');
+    logResult('GET  binary_9000 (9000B, multi-chunk)', r, 'test_get_binary_9000.response');
+
+    await sleep(DELAY_MS);
+
+    // 5d. Binary large - 20,510-byte real PNG (3 chunks)
+    r = await getRequest('/test_get_binary_large.cfm');
+    logResult('GET  binary_large (20510B PNG, 3 chunks)', r, 'test_get_binary_large_playstore.response.png');
+
+    await sleep(DELAY_MS);
+
     // 6. Large response - 16KB multi-chunk
     r = await getRequest('/test_get_large_response.cfm');
     logResult('GET  large_response (16KB)', r);

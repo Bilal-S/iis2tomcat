@@ -104,7 +104,7 @@
     <Setting Name="DocRoot" Description="When setting EnableHeaderDataSupport is set to True IIS determines the Document Root and it will be send along to Tomcat in HTTP header x-tomcat-docroot. However, this may not work when Tomcat runs on different machines (e.g. Linus hosts). This alternate setting will allow an override to point to alternate file location." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="RedirectLoopPattern" Description="Regular expression pattern to detect accumulating query string parameters from redirect loops. The pattern is matched against the end of the query string. Default detects Lucee SES redirect loops (&__ repetitions)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
+    <Setting Name="RedirectLoopPattern" Description="Regular expression pattern to detect accumulating query string parameters from redirect loops. The pattern is matched against the end of the query string. Default detects Lucee SES redirect loops repetitions)." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.String" Scope="Application">
       <Value Profile="(Default)">(&amp;__)+$</Value>
     </Setting>
     <Setting Name="RedirectLoopThreshold" Description="Number of consecutive pattern matches required before breaking the redirect loop. Set to zero to disable redirect loop detection. Default 3." Provider="BonCodeAJP13.Config.BonCodeAJP13SettingProvider" Type="System.Int32" Scope="Application">
