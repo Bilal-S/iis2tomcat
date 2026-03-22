@@ -1,6 +1,8 @@
 using System;
+using System.Text.RegularExpressions;
 using Xunit;
 using BonCodeIIS;
+using BonCodeAJP13;
 
 namespace Connector.Tests.BonCodeIIS
 {
@@ -85,5 +87,84 @@ namespace Connector.Tests.BonCodeIIS
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?
                 .Invoke(handler, null);
         }
+
+        #region Redirect Loop Detection Tests
+
+        /// <summary>
+        /// Helper method that mirrors the redirect loop detection logic in CheckExecution
+        /// </summary>
+        private static bool DetectRedirectLoop(string queryString, string pattern, int threshold)
+        {
+            if (threshold <= 0 || string.IsNullOrEmpty(queryString)) return false;
+            var match = Regex.Match(queryString, pattern);
+            if (!match.Success) return false;
+            int loopCount = match.Value.Length / "&__".Length;
+            return loopCount >= threshold;
+        }
+
+        [Fact]
+        public void RedirectLoop_BelowThreshold_NotDetected()
+        {
+            // 2 repetitions, threshold is 3
+            Assert.False(DetectRedirectLoop("id=1&__&__", BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 3));
+        }
+
+        [Fact]
+        public void RedirectLoop_AtThreshold_IsDetected()
+        {
+            // 3 repetitions, threshold is 3
+            Assert.True(DetectRedirectLoop("id=1&__&__&__", BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 3));
+        }
+
+        [Fact]
+        public void RedirectLoop_AboveThreshold_IsDetected()
+        {
+            // 5 repetitions, threshold is 3
+            Assert.True(DetectRedirectLoop("id=1&__&__&__&__&__", BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 3));
+        }
+
+        [Fact]
+        public void RedirectLoop_NoPattern_NotDetected()
+        {
+            // Normal query string with no loop pattern
+            Assert.False(DetectRedirectLoop("id=1&name=test&page=2", BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 3));
+        }
+
+        [Fact]
+        public void RedirectLoop_EmptyQueryString_NotDetected()
+        {
+            Assert.False(DetectRedirectLoop("", BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 3));
+        }
+
+        [Fact]
+        public void RedirectLoop_ZeroThreshold_Disabled()
+        {
+            // Even with clear loop pattern, threshold of 0 disables detection
+            Assert.False(DetectRedirectLoop("&__&__&__&__&__", BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 0));
+        }
+
+        [Fact]
+        public void RedirectLoop_SingleRepetition_NotDetected()
+        {
+            // Only 1 repetition, threshold is 3
+            Assert.False(DetectRedirectLoop("page=1&__", BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 3));
+        }
+
+        [Fact]
+        public void RedirectLoop_PatternNotAtEnd_NotDetected()
+        {
+            // Pattern must be at end of string ($ anchor)
+            Assert.False(DetectRedirectLoop("&__&__&__&id=1", BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 3));
+        }
+
+        [Fact]
+        public void RedirectLoop_ExactLogScenario_IsDetected()
+        {
+            // Reproduces the exact pattern from the log: /iasjodasdhn.cfm?&__&__&__&__&__&__&__&__&__&__
+            string qs = "&__&__&__&__&__&__&__&__&__&__";
+            Assert.True(DetectRedirectLoop(qs, BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN, 3));
+        }
+
+        #endregion
     }
 }

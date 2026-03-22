@@ -29,6 +29,7 @@ using BonCodeAJP13;
 using BonCodeAJP13.ServerPackets;
 using BonCodeAJP13.TomcatPackets;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Security.Cryptography.X509Certificates;
 
@@ -759,6 +760,33 @@ namespace BonCodeIIS
             string retVal = "";
             try
             {
+                //check for redirect loop patterns in query string
+                if (BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_THRESHOLD > 0)
+                {
+                    string queryString = GetKeyValue(httpHeaders, "QUERY_STRING") ?? "";
+                    if (queryString.Length > 0)
+                    {
+                        try
+                        {
+                            Match match = Regex.Match(queryString, BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_PATTERN);
+                            if (match.Success)
+                            {
+                                // count occurrences of the repeating unit in the matched string
+                                int loopCount = match.Value.Length / "&__".Length;
+                                if (loopCount >= BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_THRESHOLD)
+                                {
+                                    RecordSysEvent("Redirect loop detected (" + loopCount + " repetitions): " + queryString, EventLogEntryType.Warning);
+                                    return BonCodeAJP13Settings.BONCODEAJP13_REDIRECT_LOOP_MESSAGE;
+                                }
+                            }
+                        }
+                        catch (RegexMatchTimeoutException)
+                        {
+                            // if regex times out, skip loop detection and proceed normally
+                        }
+                    }
+                }
+
                 //check for remote administrator use
                 //----------------------------------
                 if (!BonCodeAJP13Settings.BONCODEAJP13_ENABLE_REMOTE_MANAGER)

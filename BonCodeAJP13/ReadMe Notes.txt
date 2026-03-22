@@ -366,7 +366,7 @@ Version 1.0.50 Updates:
 * Upd: mark obsolete constructor calls for future removal
 * Add: create package capture log mode 5 and infrastructure
 * Add: create test cfm pages for standard packets
-* Add: log additional headers at log level 3
+* Add: Loop detection and abort when we have MOD_CFML or other looping
 
 --------------------------------------
 

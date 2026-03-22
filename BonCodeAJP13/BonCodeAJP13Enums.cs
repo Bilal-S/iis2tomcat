@@ -317,6 +317,14 @@ namespace BonCodeAJP13
 
         //DocRoot Override
         public static string BONCODE_DOCROOT_OVERRIDE = Properties.Settings.Default.DocRoot; // empty string
+
+        //Redirect loop detection: regex pattern to detect accumulating query string parameters from redirect loops
+        public static string BONCODEAJP13_REDIRECT_LOOP_PATTERN = Properties.Settings.Default.RedirectLoopPattern;
+        //Redirect loop detection: number of consecutive pattern matches before breaking the loop (0 = disabled)
+        public static int BONCODEAJP13_REDIRECT_LOOP_THRESHOLD = Properties.Settings.Default.RedirectLoopThreshold;
+        //Redirect loop detection: message displayed to the user when a loop is detected
+        public static string BONCODEAJP13_REDIRECT_LOOP_MESSAGE = Properties.Settings.Default.RedirectLoopMessage;
+
     }  
 
 

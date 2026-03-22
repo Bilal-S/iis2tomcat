@@ -539,5 +539,48 @@ namespace BonCodeAJP13.Properties {
                 return ((string)(this["DocRoot"]));
             }
         }
+
+        /// <summary>
+        /// Regular expression pattern to detect accumulating query string parameters from redirect loops. The pattern is matched against the end of the query string. Default detects Lucee SES redirect loops (&amp;__ repetitions).
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("Regular expression pattern to detect accumulating query string parameters from redirect loops. The pattern is matched against the end of the query string. Default detects Lucee SES redirect loops (&__ repetitions).")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("(&__)+$")]
+        public string RedirectLoopPattern {
+            get {
+                return ((string)(this["RedirectLoopPattern"]));
+            }
+        }
+        
+        /// <summary>
+        /// Number of consecutive pattern matches required before breaking the redirect loop. Set to zero to disable redirect loop detection. Default 3.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("Number of consecutive pattern matches required before breaking the redirect loop. Set to zero to disable redirect loop detection. Default 3.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
+        public int RedirectLoopThreshold {
+            get {
+                return ((int)(this["RedirectLoopThreshold"]));
+            }
+        }
+        
+        /// <summary>
+        /// Message displayed to the user when a redirect loop is detected. Useful for guiding administrators to fix the underlying Tomcat configuration such as MOD_CFML.
+        /// </summary>
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.SettingsProviderAttribute(typeof(BonCodeAJP13.Config.BonCodeAJP13SettingProvider))]
+        [global::System.Configuration.SettingsDescriptionAttribute("Message displayed to the user when a redirect loop is detected. Useful for guiding administrators to fix the underlying Tomcat configuration such as MOD_CFML.")]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Redirect loop detected. Check Tomcat configuration such as MOD_CFML or configure site context directly.")]
+        public string RedirectLoopMessage {
+            get {
+                return ((string)(this["RedirectLoopMessage"]));
+            }
+        }
+
     }
 }
