@@ -13,6 +13,7 @@ namespace Connector.Tests.BonCodeAJP13
     /// are wire-faithful — any patterns observed in captured files (e.g. Lucee's
     /// trail=1) reflect what the server actually sent, not a capture artifact.
     /// </summary>
+    [Collection("Sequential")]
     public class PacketCaptureFidelityTests : IDisposable
     {
         private readonly string _tempDir;

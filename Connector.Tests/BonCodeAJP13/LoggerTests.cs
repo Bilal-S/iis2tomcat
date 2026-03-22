@@ -9,6 +9,7 @@ namespace Connector.Tests.BonCodeAJP13
     /// <summary>
     /// Unit tests for BonCodeAJP13Logger class
     /// </summary>
+    [Collection("Sequential")]
     public class LoggerTests : IDisposable
     {
         private readonly Mutex _testMutex;
