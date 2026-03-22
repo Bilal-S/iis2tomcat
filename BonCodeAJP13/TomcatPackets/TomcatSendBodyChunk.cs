@@ -58,7 +58,7 @@ namespace BonCodeAJP13.TomcatPackets
         }
 
         /// <summary>
-        /// constructor with data to initialize      
+        /// constructor with data to initialize
         /// </summary>
         public TomcatSendBodyChunk(byte[] content)
         {
@@ -66,7 +66,17 @@ namespace BonCodeAJP13.TomcatPackets
             try
             {
                 p_PacketLength = content.Length;
-                p_UserDataLength = System.Convert.ToUInt16(content.Length - 4);
+                // Check if this is proper SendBodyChunk format (starts with 0x03)
+                if (content.Length > 0 && content[0] == 0x03)
+                {
+                    // Read chunk_length from bytes 1-2 (big-endian uint16)
+                    p_UserDataLength = (ushort)((content[1] << 8) | content[2]);
+                }
+                else
+                {
+                    // Fall back to legacy calculation for backward compatibility
+                    p_UserDataLength = System.Convert.ToUInt16(content.Length - 4);
+                }
             }
             catch (Exception ex)
             {
@@ -75,7 +85,7 @@ namespace BonCodeAJP13.TomcatPackets
         }
 
         /// <summary>
-        /// constructor with data to initialize using string as input 
+        /// constructor with data to initialize using string as input
         /// </summary>
         public TomcatSendBodyChunk(string strContent)
         {
@@ -98,7 +108,43 @@ namespace BonCodeAJP13.TomcatPackets
         #endregion
 
         #region Methods
-        //no specific method for this class
+
+        /// <summary>
+        /// Returns the user data bytes for SendBodyChunk packets.
+        /// For proper SendBodyChunk format (starts with 0x03), user data starts at offset 3 and has length p_UserDataLength.
+        /// For legacy format, falls back to base class behavior.
+        /// </summary>
+        public override byte[] GetUserDataBytes()
+        {
+            if (p_ByteStore == null)
+            {
+                System.Diagnostics.Debug.WriteLine("GetUserDataBytes called with null p_ByteStore");
+                return new byte[] { };
+            }
+
+            // Check if this is proper SendBodyChunk format
+            if (p_ByteStore.Length > 0 && p_ByteStore[0] == 0x03)
+            {
+                // SendBodyChunk format: user data starts at offset 3
+                if (p_ByteStore.Length >= 3 + p_UserDataLength)
+                {
+                    byte[] userArray = new byte[p_UserDataLength];
+                    Array.Copy(p_ByteStore, 3, userArray, 0, p_UserDataLength);
+                    return userArray;
+                }
+                else
+                {
+                    // Return empty array if data is malformed
+                    return new byte[] { };
+                }
+            }
+            else
+            {
+                // Legacy format: use base class behavior
+                return base.GetUserDataBytes();
+            }
+        }
+
         #endregion
     }
 }

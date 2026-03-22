@@ -369,11 +369,11 @@ namespace BonCodeAJP13.ServerPackets
                 addlHeaders.Add("xajp-managedthreadid", "" + System.Threading.Thread.CurrentThread.ManagedThreadId);
             }
 
-            //populate log values
+            //populate log values - p_Method and p_Url are used by PrintPacketHeader unconditionally
+            p_Method = GetKeyValue(httpHeaders, "REQUEST_METHOD");
+            p_Url = req_uri;
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL >= BonCodeAJP13LogLevels.BONCODEAJP13_LOG_HEADERS)
             {
-                p_Method = GetKeyValue(httpHeaders, "REQUEST_METHOD");
-                p_Url = req_uri;
                 p_HttpHeaders = goodHeaders;
             }
 

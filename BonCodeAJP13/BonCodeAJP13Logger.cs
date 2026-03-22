@@ -319,7 +319,6 @@ namespace BonCodeAJP13
         /// <param name="length">Number of bytes to capture</param>
         /// <param name="connectionID">Connection identifier for naming</param>
         /// <param name="packetType">AJP packet type byte</param>
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]
         public void LogPacketBytes(byte[] buffer, int offset, int length, int connectionID, byte packetType)
         {
             if (BonCodeAJP13Settings.BONCODEAJP13_LOG_LEVEL < BonCodeAJP13LogLevels.BONCODEAJP13_LOG_PACKETS)
