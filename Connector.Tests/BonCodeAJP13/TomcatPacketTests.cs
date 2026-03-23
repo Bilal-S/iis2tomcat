@@ -330,6 +330,106 @@ namespace Connector.Tests.BonCodeAJP13
             Assert.IsType<TomcatReturn>(packet, exactMatch: false);
         }
 
+        [Fact]
+        public void TomcatSendHeaders_GetStatus_ReturnsCorrectValue()
+        {
+            // Arrange - minimal headers packet with status 200
+            // Format: [type:1][status:2][msg_len:2][msg:n][msg_null:1][header_count:2]
+            var data = new byte[] { 
+                0x04,                   // type = SendHeaders (0x04)
+                0x00, 0xC8,             // status = 200 (big-endian)
+                0x00, 0x00, 0x00,       // empty status message (length=0, null terminator)
+                0x00, 0x00              // 0 headers
+            };
+            var packet = new TomcatSendHeaders(data);
+
+            // Act
+            var status = packet.GetStatus();
+
+            // Assert
+            Assert.Equal(200, status);
+        }
+
+        [Fact]
+        public void TomcatSendHeaders_GetStatus_Boundary32767_ReturnsCorrectValue()
+        {
+            // Arrange - status 32767 is the maximum positive signed Int16 value
+            // 32767 = 0x7FFF in hex
+            var data = new byte[] { 
+                0x04,                   // type = SendHeaders (0x04)
+                0x7F, 0xFF,             // status = 32767 (big-endian)
+                0x00, 0x00, 0x00,       // empty status message (length=0, null terminator)
+                0x00, 0x00              // 0 headers
+            };
+            var packet = new TomcatSendHeaders(data);
+
+            // Act
+            var status = packet.GetStatus();
+
+            // Assert
+            Assert.Equal(32767, status);
+        }
+
+        [Fact]
+        public void TomcatSendHeaders_GetStatus_Boundary32768_ReturnsCorrectValue()
+        {
+            // Arrange - status 32768 is just over the signed Int16 max (used to cause OverflowException)
+            // 32768 = 0x8000 in hex
+            var data = new byte[] { 
+                0x04,                   // type = SendHeaders (0x04)
+                0x80, 0x00,             // status = 32768 (big-endian)
+                0x00, 0x00, 0x00,       // empty status message (length=0, null terminator)
+                0x00, 0x00              // 0 headers
+            };
+            var packet = new TomcatSendHeaders(data);
+
+            // Act
+            var status = packet.GetStatus();
+
+            // Assert - should NOT throw OverflowException
+            Assert.Equal(32768, status);
+        }
+
+        [Fact]
+        public void TomcatSendHeaders_GetStatus_HighValue40000_ReturnsCorrectValue()
+        {
+            // Arrange - status 40000 is a non-standard value above signed Int16 max
+            // 40000 = 0x9C40 in hex
+            var data = new byte[] { 
+                0x04,                   // type = SendHeaders (0x04)
+                0x9C, 0x40,             // status = 40000 (big-endian)
+                0x00, 0x00, 0x00,       // empty status message (length=0, null terminator)
+                0x00, 0x00              // 0 headers
+            };
+            var packet = new TomcatSendHeaders(data);
+
+            // Act
+            var status = packet.GetStatus();
+
+            // Assert
+            Assert.Equal(40000, status);
+        }
+
+        [Fact]
+        public void TomcatSendHeaders_GetStatus_MaxUShort65535_ReturnsCorrectValue()
+        {
+            // Arrange - status 65535 is the maximum ushort value
+            // 65535 = 0xFFFF in hex
+            var data = new byte[] { 
+                0x04,                   // type = SendHeaders (0x04)
+                0xFF, 0xFF,             // status = 65535 (big-endian)
+                0x00, 0x00, 0x00,       // empty status message (length=0, null terminator)
+                0x00, 0x00              // 0 headers
+            };
+            var packet = new TomcatSendHeaders(data);
+
+            // Act
+            var status = packet.GetStatus();
+
+            // Assert
+            Assert.Equal(65535, status);
+        }
+
         #endregion
 
         #region BonCodeAJP13CPing Tests

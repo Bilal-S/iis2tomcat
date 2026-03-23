@@ -127,7 +127,7 @@ namespace BonCodeAJP13.TomcatPackets
                  GetInt16(p_ByteStore, ref retVal, 1);
             }
 
-            return System.Convert.ToInt16(retVal);
+            return (int)retVal;
         }
 
 
