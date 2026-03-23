@@ -566,8 +566,7 @@ namespace BonCodeAJP13
             
             //We use UTF 8 encoding for any string conversion
             UTF8Encoding encodingLib = new System.Text.UTF8Encoding();
-            byte[] stringBytes = new byte[value.Length];
-            stringBytes = encodingLib.GetBytes(value);
+            byte[] stringBytes = encodingLib.GetBytes(value);
                         
             return SetSimpleByteArray(data,stringBytes,pos); 
         }

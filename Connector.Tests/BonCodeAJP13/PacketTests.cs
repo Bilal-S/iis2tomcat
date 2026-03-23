@@ -49,6 +49,7 @@ namespace Connector.Tests.BonCodeAJP13
             public static int TestSetByteArray(byte[] data, byte[] value, int pos) => SetByteArray(data, value, pos);
             public static int TestGetByteArray(byte[] data, ref byte[] value, int pos) => GetByteArray(data, ref value, pos);
             public static byte[] TestFlipArray(byte[] data) => FlipArray(data);
+            public int TestSetSimpleString(byte[] data, string value, int pos) => SetSimpleString(data, value, pos);
         }
 
         #region Constructor Tests
@@ -509,6 +510,108 @@ namespace Connector.Tests.BonCodeAJP13
 
             // Assert
             Assert.Equal(testData, result);
+        }
+
+        #endregion
+
+        #region SetSimpleString Tests
+
+        [Fact]
+        public void SetSimpleString_ASCII_WritesCorrectBytes()
+        {
+            // Arrange
+            var data = new byte[10];
+            var packet = new TestablePacket();
+            string value = "AB";
+
+            // Act
+            int newPos = packet.TestSetSimpleString(data, value, 0);
+
+            // Assert
+            Assert.Equal(2, newPos); // 2 ASCII bytes
+            Assert.Equal((byte)'A', data[0]);
+            Assert.Equal((byte)'B', data[1]);
+        }
+
+        [Fact]
+        public void SetSimpleString_TwoByteUTF8_WritesCorrectBytes()
+        {
+            // Arrange — "café" has 4 chars but 'é' (U+00E9) is 2 bytes in UTF-8 → 5 bytes total
+            var data = new byte[10];
+            var packet = new TestablePacket();
+            string value = "café";
+            byte[] expected = System.Text.Encoding.UTF8.GetBytes(value); // [0x63, 0x61, 0x66, 0xC3, 0xA9]
+
+            // Act
+            int newPos = packet.TestSetSimpleString(data, value, 0);
+
+            // Assert — returned position must reflect actual UTF-8 byte count, not string length
+            Assert.Equal(5, newPos);       // 5 bytes, NOT 4 (value.Length)
+            Assert.Equal(expected.Length, newPos - 0);
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], data[i]);
+            }
+        }
+
+        [Fact]
+        public void SetSimpleString_ThreeByteUTF8_WritesCorrectBytes()
+        {
+            // Arrange — "\u4f60" (你) is a single CJK char but 3 bytes in UTF-8
+            var data = new byte[10];
+            var packet = new TestablePacket();
+            string value = "\u4f60";
+            byte[] expected = System.Text.Encoding.UTF8.GetBytes(value); // [0xE4, 0xBD, 0xA0]
+
+            // Act
+            int newPos = packet.TestSetSimpleString(data, value, 1); // start at offset 1
+
+            // Assert
+            Assert.Equal(4, newPos);       // 1 + 3 bytes
+            Assert.Equal(3, newPos - 1);   // 3 bytes written, NOT 1 (value.Length)
+            Assert.Equal(expected[0], data[1]);
+            Assert.Equal(expected[1], data[2]);
+            Assert.Equal(expected[2], data[3]);
+        }
+
+        [Fact]
+        public void SetSimpleString_MixedASCIIAndNonASCII_WritesCorrectBytes()
+        {
+            // Arrange — "hello世界" = 5 ASCII + 2 CJK chars (3 bytes each) = 11 bytes
+            var data = new byte[20];
+            var packet = new TestablePacket();
+            string value = "hello世界";
+            byte[] expected = System.Text.Encoding.UTF8.GetBytes(value);
+
+            // Act
+            int newPos = packet.TestSetSimpleString(data, value, 0);
+
+            // Assert — 7 chars but 11 bytes in UTF-8
+            Assert.Equal(11, newPos);
+            Assert.Equal(expected.Length, newPos);
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.Equal(expected[i], data[i]);
+            }
+        }
+
+        [Fact]
+        public void SetSimpleString_ReturnedPosition_MatchesActualByteCount()
+        {
+            // Arrange — this is the key invariant the buggy code violates in intent:
+            // the returned position must equal Encoding.UTF8.GetByteCount(value), not value.Length
+            var data = new byte[100];
+            var packet = new TestablePacket();
+            string value = "Ñoño中文"; // 2+3+2 = 7 chars, but many more bytes in UTF-8
+            int startPos = 3;
+
+            // Act
+            int newPos = packet.TestSetSimpleString(data, value, startPos);
+
+            // Assert
+            int expectedByteCount = System.Text.Encoding.UTF8.GetByteCount(value);
+            Assert.Equal(expectedByteCount, newPos - startPos);
+            Assert.NotEqual(value.Length, newPos - startPos); // prove non-ASCII expands
         }
 
         #endregion
