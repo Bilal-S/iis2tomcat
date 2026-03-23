@@ -755,7 +755,7 @@ namespace BonCodeAJP13.ServerPackets
             //add a mapping prefix if one is provided
             if (BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length > 2)
             {
-                req_uri = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX.Length + "/" + req_uri;
+                req_uri = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX + "/" + req_uri;
             }
 
             // set protocol required data points

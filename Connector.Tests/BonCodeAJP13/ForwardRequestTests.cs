@@ -557,7 +557,127 @@ namespace Connector.Tests.BonCodeAJP13
 
         #endregion
 
+        #region WritePacketTest Path Prefix Tests
+
+        [Fact]
+        public void WritePacketTest_PathPrefix_ProducesCorrectUri()
+        {
+            // This test exposes the bug: WritePacketTest uses .Length (int) instead of
+            // the string value, producing e.g. "6//test" instead of "/lucee/test"
+            string originalPrefix = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX;
+            try
+            {
+                BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX = "/lucee";
+
+                var packet = new BonCodeAJP13ForwardRequest(
+                    method: 0x02,
+                    protocol: "HTTP/1.1",
+                    req_uri: "/test",
+                    remote_addr: "::1",
+                    remote_host: "::1",
+                    server_name: "localhost",
+                    server_port: 80,
+                    is_ssl: false
+                );
+
+                string uri = ExtractUriFromTestPacket(packet.GetDataBytes());
+                Assert.Equal("/lucee//test", uri);
+            }
+            finally
+            {
+                BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX = originalPrefix;
+            }
+        }
+
+        [Fact]
+        public void WritePacketTest_PathPrefix_DoesNotStartWithDigit()
+        {
+            // The bug concatenates .Length (an integer) producing URIs like "6//test"
+            // A valid URI should never start with the length number
+            string originalPrefix = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX;
+            try
+            {
+                BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX = "/lucee";
+
+                var packet = new BonCodeAJP13ForwardRequest(
+                    method: 0x02,
+                    protocol: "HTTP/1.1",
+                    req_uri: "/some/path",
+                    remote_addr: "::1",
+                    remote_host: "::1",
+                    server_name: "localhost",
+                    server_port: 80,
+                    is_ssl: false
+                );
+
+                string uri = ExtractUriFromTestPacket(packet.GetDataBytes());
+                Assert.False(uri.Length > 0 && char.IsDigit(uri[0]),
+                    $"URI should not start with a digit. Got: \"{uri}\"");
+            }
+            finally
+            {
+                BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX = originalPrefix;
+            }
+        }
+
+        [Fact]
+        public void WritePacketTest_NoPathPrefix_ProducesOriginalUri()
+        {
+            // When prefix is empty (length <= 2), the prefix block is skipped entirely
+            string originalPrefix = BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX;
+            try
+            {
+                BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX = "";
+
+                var packet = new BonCodeAJP13ForwardRequest(
+                    method: 0x02,
+                    protocol: "HTTP/1.1",
+                    req_uri: "/test",
+                    remote_addr: "::1",
+                    remote_host: "::1",
+                    server_name: "localhost",
+                    server_port: 80,
+                    is_ssl: false
+                );
+
+                string uri = ExtractUriFromTestPacket(packet.GetDataBytes());
+                Assert.Equal("/test", uri);
+            }
+            finally
+            {
+                BonCodeAJP13Settings.BONCODEAJP13_PATH_PREFIX = originalPrefix;
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
+
+        /// <summary>
+        /// Extracts the URI string from a test-constructor packet by parsing the AJP13 binary layout.
+        /// Layout after 4-byte header: type(1) + method(1) + protocol(string) + URI(string) + ...
+        /// </summary>
+        private static string ExtractUriFromTestPacket(byte[] packetBytes)
+        {
+            int pos = 4; // skip 4-byte header (magic + length)
+            pos++;       // skip type byte (0x02 = SERVER_FORWARD_REQUEST)
+            pos++;       // skip method byte
+            ExtractAjpString(packetBytes, ref pos); // skip protocol string (e.g. "HTTP/1.1")
+            return ExtractAjpString(packetBytes, ref pos); // this is the URI
+        }
+
+        /// <summary>
+        /// Reads an AJP13-encoded string from the byte array at the given position.
+        /// AJP13 string format: [len_hi len_lo][UTF-8 bytes][0x00 terminator]
+        /// Advances pos past the entire string entry.
+        /// </summary>
+        private static string ExtractAjpString(byte[] data, ref int pos)
+        {
+            ushort len = (ushort)((data[pos] << 8) | data[pos + 1]);
+            string value = System.Text.Encoding.UTF8.GetString(data, pos + 2, len);
+            pos = pos + len + 3; // skip length prefix (2) + string bytes + null terminator (1)
+            return value;
+        }
 
         private NameValueCollection CreateBasicHeaders()
         {
