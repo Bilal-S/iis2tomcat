@@ -680,7 +680,14 @@ namespace BonCodeIIS
             //set a constant for public error if we used period in argument
             if (strPublicErr == ".")
             {
-                strPublicErr = "Generic Connector Communication Error: <hr>Please check and adjust your setup:<br>Ensure that Tomcat is running on given host and port.<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual). [" + DateTime.Now.ToString(timestampFormat) + "]";
+                if (strLocalErr.Contains("Index and count must refer to a location within the buffer"))
+                {
+                    strPublicErr = "<b>Package too Large</b>: <hr>Tomcat may be sending a package that is larger than we expected. This can happen when you use large Cookie Payloads or large initial Request or Response package. Please change your PacketSize settings in Tomcat and Boncode or reduce Cookie Payloads. (see manual). [" + DateTime.Now.ToString(timestampFormat) + "]";
+                }
+                else
+                {
+                    strPublicErr = "<b>Generic Connector Communication Error</b>: <hr>Please check and adjust your setup:<br>Ensure that Tomcat is running on given host and port.<br>If this is a timeout error consider adjusting IIS timeout by changing executionTimeout attribute in web.config (see manual). [" + DateTime.Now.ToString(timestampFormat) + "]";
+                }
             }
 
             //we will need to redirect to alternate URL if we have connect error URL setting defined -- we will add an errorcode and detail
