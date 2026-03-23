@@ -221,10 +221,11 @@ namespace Connector.Tests.BonCodeAJP13
             Array.Copy(packet1, 0, combined, 0, packet1.Length);
             Array.Copy(packet2, 0, combined, packet1.Length, packet2.Length);
 
-            // Capture packet1 via slice
+            // Capture packet1 via slice (different connectionIDs prevent
+            // filename collision when both calls land on the same millisecond)
             logger.LogPacketBytes(combined, 0, packet1.Length, 10, 0x03);
             // Capture packet2 via slice
-            logger.LogPacketBytes(combined, packet1.Length, packet2.Length, 10, 0x03);
+            logger.LogPacketBytes(combined, packet1.Length, packet2.Length, 11, 0x03);
 
             var pakFiles = Directory.GetFiles(_tempDir, "*.pak");
             Assert.Equal(2, pakFiles.Length);

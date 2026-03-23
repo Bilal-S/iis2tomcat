@@ -39,6 +39,7 @@ namespace BonCodeAJP13
         private string p_FileNamePattern;  // Original filename pattern for date rolling
         private static String p_filenameDateFormat = "yyyyMMdd";
         private static String p_timestampFormat = "yyyy-MM-dd HH:mm:ss ";
+        private static readonly Random _random = new Random();
 
         /// <summary>
         /// Initialize the Logger with the File Name and Mutex to guard the access of this file.
@@ -285,7 +286,7 @@ namespace BonCodeAJP13
                 string dir = GetLogDir();
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
                 int threadId = Thread.CurrentThread.ManagedThreadId;
-                string baseName = string.Format("{0:D5}_T{1}_{2}", connectionID, threadId, timestamp);
+                string baseName = string.Format("{0:D5}_T{1}_{2}_{3}", connectionID, threadId, timestamp, GetRandomAlphanumeric());
                 string pakPath = Path.Combine(dir, baseName + ".pak");
                 string metaPath = Path.Combine(dir, baseName + ".pak.meta");
 
@@ -419,6 +420,26 @@ namespace BonCodeAJP13
             {
                 //EventLog not accessible (e.g. Security/State logs inaccessible under IIS)
             }
+        }
+
+        /// <summary>
+        /// Generates a random alphanumeric string of the specified length.
+        /// </summary>
+        /// <param name="length">The length of the string to generate.</param>
+        /// <returns>A random alphanumeric string.</returns>
+        private string GetRandomAlphanumeric(int length = 4)
+        {
+            if (length <= 0) return string.Empty;
+
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            char[] result = new char[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = chars[_random.Next(chars.Length)];
+            }
+
+            return new string(result);
         }
 
 
