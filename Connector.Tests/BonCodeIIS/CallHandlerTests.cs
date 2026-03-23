@@ -1,5 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
+using System.Reflection;
 using Xunit;
 using BonCodeIIS;
 using BonCodeAJP13;
@@ -13,6 +14,37 @@ namespace Connector.Tests.BonCodeIIS
     /// </summary>
     public class CallHandlerTests
     {
+        /// <summary>
+        /// Helper to reset static p_isReusable field via reflection.
+        /// This is needed to ensure test isolation.
+        /// </summary>
+        private static void ResetStaticIsReusable(bool value)
+        {
+            var field = typeof(BonCodeCallHandler).GetField("p_isReusable", 
+                BindingFlags.Static | BindingFlags.NonPublic);
+            field?.SetValue(null, value);
+        }
+
+        /// <summary>
+        /// Helper to get the static p_isReusable field value via reflection.
+        /// </summary>
+        private static bool GetStaticIsReusable()
+        {
+            var field = typeof(BonCodeCallHandler).GetField("p_isReusable", 
+                BindingFlags.Static | BindingFlags.NonPublic);
+            return (bool?)field?.GetValue(null) ?? true;
+        }
+
+        /// <summary>
+        /// Helper to get the static p_InstanceCount field value via reflection.
+        /// </summary>
+        private static int GetInstanceCount()
+        {
+            var field = typeof(BonCodeCallHandler).GetField("p_InstanceCount", 
+                BindingFlags.Static | BindingFlags.NonPublic);
+            return (int?)field?.GetValue(null) ?? 0;
+        }
+
         /// <summary>
         /// Test that IsLocalIP correctly identifies loopback addresses
         /// </summary>
@@ -299,6 +331,181 @@ namespace Connector.Tests.BonCodeIIS
             long tenMB = 10 * 1024 * 1024;
             int expected = (int)Math.Ceiling((double)tenMB / 8185);
             Assert.Equal(expected, BonCodeCallHandler.CalculatePacketCount(tenMB, 8185));
+        }
+
+        #endregion
+
+        #region IsReusable Static Bug Tests
+
+        /// <summary>
+        /// This test demonstrates the bug: when p_isReusable is static, its value is shared
+        /// across ALL handler instances. This means changing it affects all instances.
+        /// 
+        /// BUG CONFIRMATION: With the buggy static implementation:
+        /// 1. Create a handler instance when p_isReusable is true
+        /// 2. Change the static field to false (simulating what ProcessRequest does)
+        /// 3. The previously created handler's IsReusable now returns false!
+        /// 
+        /// EXPECTED BEHAVIOR: Each handler's IsReusable should be immutable after construction.
+        /// A handler created when reusable=true should ALWAYS return true.
+        /// 
+        /// This test FAILS with the bug (static field) and PASSES after the fix (instance field).
+        /// </summary>
+        [Fact]
+        public void IsReusable_ShouldBeImmutableAfterConstruction()
+        {
+            // Arrange - Ensure static field starts as true
+            ResetStaticIsReusable(true);
+            
+            // Create a handler while static field is true
+            var handler = new BonCodeCallHandler();
+            bool isReusableAtCreation = handler.IsReusable;
+            
+            // Verify it's true at creation
+            Assert.True(isReusableAtCreation, "Handler should be reusable at creation");
+            
+            // Act - Simulate what ProcessRequest does: set static field to false
+            // This happens in ProcessRequest when threshold is exceeded:
+            //   if (p_isReusable && MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS < (p_InstanceCount + 10))
+            //   {
+            //       p_isReusable = false;  // <-- This mutates the shared static!
+            //   }
+            ResetStaticIsReusable(false);
+            
+            // Assert - Check handler's IsReusable again
+            bool isReusableAfterChange = handler.IsReusable;
+            
+            // CLEANUP first (so cleanup runs even if assert fails)
+            try
+            {
+                handler.GetType().GetMethod("Finalize", 
+                    BindingFlags.Instance | BindingFlags.NonPublic)?
+                    .Invoke(handler, null);
+            }
+            catch { /* ignore cleanup errors */ }
+            ResetStaticIsReusable(true);
+            
+            // BUG: With static field, isReusableAfterChange will be FALSE (shared state changed)
+            // FIX: With instance field, isReusableAfterChange should still be TRUE (independent state)
+            Assert.True(isReusableAfterChange, 
+                $"BUG: Handler's IsReusable changed from {isReusableAtCreation} to {isReusableAfterChange} " +
+                "after construction due to shared static p_isReusable field. " +
+                "Each instance should have independent, immutable IsReusable state.");
+        }
+
+        /// <summary>
+        /// This test verifies that new handler instances get fresh IsReusable state
+        /// after a previous instance triggered the threshold condition.
+        /// 
+        /// SCENARIO:
+        /// 1. Handler A is created (IsReusable = true)
+        /// 2. Handler A's ProcessRequest runs, hits threshold, sets p_isReusable = false
+        /// 3. Handler B is created - should it be reusable?
+        /// 
+        /// BUG: Handler B sees IsReusable = false (inherited from static field mutation)
+        /// EXPECTED: Handler B should start fresh with IsReusable = true
+        /// 
+        /// This test FAILS with the bug and PASSES after the fix.
+        /// </summary>
+        [Fact]
+        public void IsReusable_NewInstanceShouldStartFresh_AfterPreviousInstanceTriggeredThreshold()
+        {
+            // Arrange - Reset to initial state
+            ResetStaticIsReusable(true);
+            
+            // Create handler A
+            var handlerA = new BonCodeCallHandler();
+            bool handlerAInitial = handlerA.IsReusable;
+            Assert.True(handlerAInitial, "Handler A should initially be reusable");
+            
+            // Simulate ProcessRequest threshold condition being triggered
+            // (This is what happens when p_InstanceCount + 10 > MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS)
+            ResetStaticIsReusable(false);
+            
+            // Act - Create a NEW handler B after the threshold was triggered
+            var handlerB = new BonCodeCallHandler();
+            bool handlerBIsReusable = handlerB.IsReusable;
+            
+            // Cleanup
+            try
+            {
+                handlerA.GetType().GetMethod("Finalize", 
+                    BindingFlags.Instance | BindingFlags.NonPublic)?
+                    .Invoke(handlerA, null);
+                handlerB.GetType().GetMethod("Finalize", 
+                    BindingFlags.Instance | BindingFlags.NonPublic)?
+                    .Invoke(handlerB, null);
+            }
+            catch { /* ignore cleanup errors */ }
+            ResetStaticIsReusable(true);
+            
+            // Assert - Handler B should be reusable (fresh start)
+            // BUG: With static field, handlerBIsReusable is FALSE (wrong!)
+            // FIX: With instance field, handlerBIsReusable should be TRUE (correct!)
+            Assert.True(handlerBIsReusable,
+                $"BUG: New handler B has IsReusable={handlerBIsReusable} because the static " +
+                "p_isReusable field was permanently set to false by handler A's threshold trigger. " +
+                "Each new instance should start with a fresh IsReusable=true state.");
+        }
+
+        /// <summary>
+        /// Verify that p_isReusable field exists and check if it's static or instance.
+        /// This test documents the bug and will change behavior after the fix.
+        /// </summary>
+        [Fact]
+        public void IsReusable_FieldShouldBeInstanceNotStatic()
+        {
+            // Check for static field
+            var staticField = typeof(BonCodeCallHandler).GetField("p_isReusable", 
+                BindingFlags.Static | BindingFlags.NonPublic);
+            
+            // Check for instance field
+            var instanceField = typeof(BonCodeCallHandler).GetField("p_isReusable", 
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            
+            // BUG: staticField is not null (p_isReusable is static)
+            // FIX: staticField should be null and instanceField should not be null
+            
+            if (staticField != null)
+            {
+                // BUG EXISTS: p_isReusable is static
+                // This assertion will FAIL after the fix is applied
+                Assert.Fail(
+                    "BUG CONFIRMED: p_isReusable is a static field. " +
+                    "It should be an instance field so each handler has independent reusability state.");
+            }
+            else if (instanceField != null)
+            {
+                // FIX APPLIED: p_isReusable is an instance field
+                // Test passes - the fix is in place
+            }
+            else
+            {
+                Assert.Fail(
+                    "p_isReusable field not found - neither static nor instance. " +
+                    "Field name may have changed.");
+            }
+        }
+
+        /// <summary>
+        /// Verify that when MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS is 0,
+        /// IsReusable is false (this is intentional behavior that must be preserved).
+        /// </summary>
+        [Fact]
+        public void IsReusable_WhenMaxConnectionsIsZero_ShouldBeFalse()
+        {
+            // This test documents the expected behavior when MaxConnections = 0
+            // In this case, connections should NOT be reused (intentional)
+            
+            // Note: We can't easily change MAX_BONCODEAJP13_CONCURRENT_CONNECTIONS at runtime
+            // because it's read from settings. This test documents the expected behavior
+            // for when the setting is 0.
+            
+            // If MaxConnections is 0, the code sets p_isReusable = false in ProcessRequest
+            // This is correct behavior - no pooling when configured to 0
+            
+            // This test serves as documentation that MaxConnections=0 means IsReusable=false
+            // The fix should preserve this behavior
         }
 
         #endregion

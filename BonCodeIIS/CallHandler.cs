@@ -45,7 +45,7 @@ namespace BonCodeIIS
         private HttpContext p_Context;
         private TcpClient p_TcpClient = null;
         private static int p_InstanceCount =0;
-        private static bool p_isReusable = true;
+        private bool p_isReusable = true;  // Instance field - each handler independently decides reusability
         private bool p_FlagKillConnection = false;
         private bool p_FlushInProgress = false;
 
