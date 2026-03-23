@@ -243,3 +243,6 @@ ModelManifest.xml
 
 # local resources
 .dev/
+
+# Do not ignore .meta files in this specific directory
+!Connector.Tests/packets/captured/**/*.meta
