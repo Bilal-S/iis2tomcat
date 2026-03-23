@@ -358,11 +358,12 @@ Version 1.0.50 Updates:
 * Fix: connection timeout
 * Fix: socket leak bugs
 * Fix: correct release version in connector
+* Fix: edge case bugs and code technical debt
 * Add: basic integration test via github CI/CD
 * Add: comprehensive unit tests for all classes and seperate test project
 * Upd: class disposing logic to ensure we do not close connection early
 * Upd: Github documentation
-* Upd: clearer log entries
+* Add: clearer log entries
 * Upd: mark obsolete constructor calls for future removal
 * Add: create package capture log mode 5 and infrastructure
 * Add: create test cfm pages for standard packets
