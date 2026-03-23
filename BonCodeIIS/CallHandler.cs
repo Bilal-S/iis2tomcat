@@ -268,15 +268,10 @@ namespace BonCodeIIS
                             {
                                 // need to create a collection of forward requests to package data in      
                                 int maxPacketSize = BonCodeAJP13Settings.MAX_BONCODEAJP13_USERDATA_LENGTH - 1;
-                                int numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(context.Request.ContentLength / Convert.ToDouble(maxPacketSize))));
+                                long bodyLength = isChunkedTransfer ? streamLen : context.Request.ContentLength;
+                                int numOfPackets = CalculatePacketCount(bodyLength, maxPacketSize);
                                 int iStart = 0;
                                 int iCount = 0;
-
-                                //for chunked transfer we use stream length to determine number of packets
-                                if (isChunkedTransfer)
-                                {
-                                    numOfPackets = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(streamLen / Convert.ToDouble(maxPacketSize)))); ;
-                                }
 
                                 for (int i = 1; i <= numOfPackets; i++)
                                 {
@@ -997,6 +992,18 @@ namespace BonCodeIIS
             return strReturn + "<hr noshade>";
         }
 
+
+        /// <summary>
+        /// Calculate the number of AJP13 forward-request packets needed to send a given body length.
+        /// Uses floating-point division to avoid integer truncation, then rounds up via Ceiling.
+        /// </summary>
+        /// <param name="contentLength">Total body length in bytes</param>
+        /// <param name="maxPacketSize">Maximum payload bytes per forward-request packet</param>
+        /// <returns>Number of packets required (0 when contentLength is 0)</returns>
+        public static int CalculatePacketCount(long contentLength, int maxPacketSize)
+        {
+            return Convert.ToInt32(Math.Ceiling((double)contentLength / maxPacketSize));
+        }
 
         /// <summary>
         /// Determine whether a given address is local to this machine  
