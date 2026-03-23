@@ -856,7 +856,7 @@ namespace BonCodeAJP13.ServerPackets
         /// </summary> 
         private  void PopulateRawHeaders(String rawHeaders)
         {
-            if (this.p_RawHeadersTranlator == null && rawHeaders.Length > 0)
+            if (this.p_RawHeadersTranlator == null && rawHeaders != null && rawHeaders.Length > 0)
             {
                 string[] lstRawHeaders = rawHeaders.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
                 
@@ -912,7 +912,7 @@ namespace BonCodeAJP13.ServerPackets
 
             if (retVal.StartsWith("http_")) retVal = retVal.Remove(0, 5); //IIS adds the HTTP_ prefix we need to remove
             retVal = retVal.Replace("_", "-"); //escape underscores to dashes
-            if (this.p_RawHeadersTranlator.ContainsKey(retVal))
+            if (this.p_RawHeadersTranlator != null && this.p_RawHeadersTranlator.ContainsKey(retVal))
             {
                 //inbound data had this header, use that spelling and casing
                 retVal = (string)this.p_RawHeadersTranlator[retVal];

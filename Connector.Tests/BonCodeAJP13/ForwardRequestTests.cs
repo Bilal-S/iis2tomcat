@@ -651,6 +651,85 @@ namespace Connector.Tests.BonCodeAJP13
 
         #endregion
 
+        #region GetCorrectHeaderName Null Check Tests (Bug Fix: NullReferenceException when raw headers are empty)
+
+        [Fact]
+        public void ForwardRequest_WithEmptyAllRawHeader_DoesNotThrow()
+        {
+            // Bug Fix Test: When ALL_RAW is empty, p_RawHeadersTranlator stays null
+            // GetCorrectHeaderName should handle null gracefully without NullReferenceException
+            
+            // Arrange - ALL_RAW is empty string, causing p_RawHeadersTranlator to stay null
+            var headers = new NameValueCollection();
+            headers["REQUEST_METHOD"] = "GET";
+            headers["SERVER_PROTOCOL"] = "HTTP/1.1";
+            headers["SCRIPT_NAME"] = "/test";
+            headers["REMOTE_ADDR"] = "127.0.0.1";
+            headers["REMOTE_HOST"] = "localhost";
+            headers["HTTP_HOST"] = "localhost";
+            headers["SERVER_PORT"] = "80";
+            headers["HTTPS"] = "off";
+            headers["ALL_RAW"] = "";  // Empty raw headers - causes p_RawHeadersTranlator to be null
+            // Add a header that is NOT in the byte-mapped list
+            headers["HTTP_X_FORWARDED_FOR"] = "10.0.0.1";
+
+            // Act & Assert - Should NOT throw after the null check fix
+            var exception = Record.Exception(() => new BonCodeAJP13ForwardRequest(headers));
+            Assert.Null(exception);
+        }
+
+        [Fact] 
+        public void ForwardRequest_WithEmptyAllRawHeader_CreatesValidPacket()
+        {
+            // Verify that creating a packet with empty ALL_RAW works correctly
+            
+            // Arrange
+            var headers = new NameValueCollection();
+            headers["REQUEST_METHOD"] = "GET";
+            headers["SERVER_PROTOCOL"] = "HTTP/1.1";
+            headers["SCRIPT_NAME"] = "/test/path";
+            headers["REMOTE_ADDR"] = "192.168.1.100";
+            headers["REMOTE_HOST"] = "client.local";
+            headers["HTTP_HOST"] = "example.com";
+            headers["SERVER_PORT"] = "8080";
+            headers["HTTPS"] = "off";
+            headers["ALL_RAW"] = "";
+            headers["HTTP_X_CUSTOM_HEADER"] = "custom-value";
+
+            // Act
+            var packet = new BonCodeAJP13ForwardRequest(headers);
+
+            // Assert
+            Assert.NotNull(packet);
+            Assert.NotNull(packet.GetDataBytes());
+            Assert.Equal("GET", packet.GetMethod);
+            Assert.Equal("/test/path", packet.GetUrl);
+        }
+
+        [Fact]
+        public void ForwardRequest_WithNullAllRawHeader_DoesNotThrow()
+        {
+            // Verify that missing ALL_RAW header doesn't crash
+            
+            // Arrange - don't set ALL_RAW at all
+            var headers = new NameValueCollection();
+            headers["REQUEST_METHOD"] = "POST";
+            headers["SERVER_PROTOCOL"] = "HTTP/1.1";
+            headers["SCRIPT_NAME"] = "/api/submit";
+            headers["REMOTE_ADDR"] = "::1";
+            headers["REMOTE_HOST"] = "::1";
+            headers["HTTP_HOST"] = "localhost";
+            headers["SERVER_PORT"] = "443";
+            headers["HTTPS"] = "on";
+            headers["HTTP_X_API_KEY"] = "secret123";
+
+            // Act & Assert - Should NOT throw
+            var exception = Record.Exception(() => new BonCodeAJP13ForwardRequest(headers));
+            Assert.Null(exception);
+        }
+
+        #endregion
+
         #region Helper Methods
 
         /// <summary>
