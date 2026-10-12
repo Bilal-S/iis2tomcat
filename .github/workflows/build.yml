@@ -189,3 +189,50 @@ jobs:
       with:
         files: BonCode-DLLs-*.zip
         generate_release_notes: true
+
+  # Version Sync: after a release publishes, commit the tag version back to
+  # the source files (const + both AssemblyFileVersions) so the repo always
+  # reflects the last released version. Skips the commit entirely when the
+  # files already match the tag.
+  version-sync:
+    name: Version Sync
+    runs-on: ubuntu-latest
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout default branch
+      uses: actions/checkout@v4
+      with:
+        ref: master
+
+    - name: Sync version files to tag
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $utf8Bom = New-Object System.Text.UTF8Encoding($true)
+        $changed = $false
+
+        $enumsPath = "BonCodeAJP13/BonCodeAJP13Enums.cs"
+        $enums = [IO.File]::ReadAllText($enumsPath)
+        $new = $enums -replace 'BONCODEAJP13_CONNECTOR_VERSION = "[^"]*"', "BONCODEAJP13_CONNECTOR_VERSION = `"$tag`""
+        if ($new -ne $enums) { [IO.File]::WriteAllText($enumsPath, $new, $utf8Bom); $changed = $true }
+
+        foreach ($p in @("BonCodeAJP13/Properties/AssemblyInfo.cs", "BonCodeIIS/Properties/AssemblyInfo.cs")) {
+          $t = [IO.File]::ReadAllText($p)
+          $n = $t -replace 'AssemblyFileVersion\("[^"]*"\)', "AssemblyFileVersion(`"$tag.0`")"
+          if ($n -ne $t) { [IO.File]::WriteAllText($p, $n, $utf8Bom); $changed = $true }
+        }
+
+        if (-not $changed) {
+          Write-Host "Version files already at $tag - nothing to sync"
+          exit 0
+        }
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add BonCodeAJP13/BonCodeAJP13Enums.cs BonCodeAJP13/Properties/AssemblyInfo.cs BonCodeIIS/Properties/AssemblyInfo.cs
+        git commit -m "sync version to $tag"
+        git push
+        Write-Host "Synced version to $tag on master"
