@@ -11,7 +11,7 @@
  * BonCode GetUserDataBytes() bug: Array.Copy(store, 3, out, 0, store.Length - 4)
  *   - Returns (payload_len - 4) bytes instead of chunk_len bytes
  *   - payload_len = chunk_len + 3 (type+chunklen) + 1 (0x00 termination) = chunk_len + 4
- *   - So bug output = chunk_len + 4 - 4 = chunk_len — CORRECT by coincidence!
+ *   - So bug output = chunk_len + 4 - 4 = chunk_len - CORRECT by coincidence!
  *   - The 0x00 termination byte makes the bug invisible for Tomcat 11.
  */
 
@@ -79,7 +79,7 @@ function parsePak(filePath) {
         // With Tomcat 11's 0x00 termination, bug is always masked
         if (result.bugDelta === 0) {
             result.bugStatus = 'OK';
-            result.bugDescription = `Output length correct (${bugOutputLen}B) — 0x00 termination masks the bug`;
+            result.bugDescription = `Output length correct (${bugOutputLen}B) - 0x00 termination masks the bug`;
         } else {
             result.bugStatus = 'BUG';
             result.bugDescription = `Output ${bugOutputLen}B vs expected ${chunkLen}B (delta=${result.bugDelta})`;
@@ -117,7 +117,7 @@ for (const f of pakFiles) {
     chunksByConnection[connId].push(p);
 
     if (!p.magicValid) {
-        console.log(`  ${p.file}: [${p.magic}] Outbound packet — skip`);
+        console.log(`  ${p.file}: [${p.magic}] Outbound packet - skip`);
         continue;
     }
     if (!p.payloadLenMatch) {
@@ -170,6 +170,6 @@ console.log(` SendBodyChunks: ${bodyChunks} total`);
 if (issues > 0) {
     console.log(` ❌ FOUND ${issues} ISSUE(S)`);
 } else {
-    console.log(' ✅ All files valid — Tomcat 11 0x00 termination makes GetUserDataBytes bug invisible');
+    console.log(' ✅ All files valid - Tomcat 11 0x00 termination makes GetUserDataBytes bug invisible');
 }
 console.log('='.repeat(100));

@@ -4,7 +4,7 @@
  * Hits ALL JSP test pages through http://localhost/ (IIS → BonCode → Tomcat AJP)
  * to generate raw .pak files via BonCode's log level 5 packet capture.
  * 
- * This captures PURE Tomcat 11 AJP packets — no Lucee engine involved.
+ * This captures PURE Tomcat 11 AJP packets - no Lucee engine involved.
  * 
  * Usage: node capture_tomcat.js
  * 
@@ -94,7 +94,7 @@ function checkPass(result) {
 
 async function main() {
     console.log('===========================================');
-    console.log(' Tomcat 11 AJP Packet Capture — Full Suite');
+    console.log(' Tomcat 11 AJP Packet Capture - Full Suite');
     console.log(' Target: ' + BASE_URL);
     console.log(' Output: ' + capturedDir);
     console.log('===========================================');
@@ -128,7 +128,7 @@ async function main() {
         let pngExpected = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
         ok = r.body.length === 67 && r.body.equals(pngExpected);
         console.log(`  Status: ${r.statusCode}, Bytes: ${r.body.length}, Expected: 67`);
-        console.log(`  ${ok ? '✓ PASS' : '✗ FAIL'} ${ok ? '' : (r.body.length === 66 ? '1 byte short — GetUserDataBytes truncation!' : `Got ${r.body.length} bytes`)}`);
+        console.log(`  ${ok ? '✓ PASS' : '✗ FAIL'} ${ok ? '' : (r.body.length === 66 ? '1 byte short - GetUserDataBytes truncation!' : `Got ${r.body.length} bytes`)}`);
         ok ? passCount++ : failCount++;
         await sleep(DELAY_MS);
 
@@ -210,7 +210,7 @@ async function main() {
         ok = r.body.length === 4 && r.body.toString('utf-8') === 'ABCD';
         console.log(`  Status: ${r.statusCode}, Bytes: ${r.body.length}, Expected: 4`);
         if (r.body.length === 3) {
-            console.log(`  ⚠ 1 byte short — GetUserDataBytes dropped last byte!`);
+            console.log(`  ⚠ 1 byte short - GetUserDataBytes dropped last byte!`);
         }
         console.log(`  ${ok ? '✓ PASS' : '✗ FAIL'} ${ok ? '' : `"${r.body.toString('utf-8')}" (${r.body.length} bytes)`}`);
         ok ? passCount++ : failCount++;

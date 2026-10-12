@@ -92,7 +92,7 @@ namespace ConsoleTCPIP
             Console.WriteLine("Server: {0} , Port: {1}, URL: {2}", myServer, myPort, myURL);
 
             //call server request
-#pragma warning disable CS0618 // Type or member is obsolete — scratchpad test program
+#pragma warning disable CS0618 // Type or member is obsolete - scratchpad test program
             BonCodeAJP13ServerConnection sconn = new BonCodeAJP13ServerConnection(FR,true);
 #pragma warning restore CS0618
             sconn.Server = myServer;

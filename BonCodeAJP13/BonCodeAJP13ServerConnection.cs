@@ -346,7 +346,7 @@ namespace BonCodeAJP13
         #region IDisposable Pattern
 
         /// <summary>
-        /// Finalizer — called by GC if Dispose() was never called.
+        /// Finalizer - called by GC if Dispose() was never called.
         /// Only releases unmanaged resources; does NOT touch managed objects
         /// (they may already be finalized).
         /// </summary>
@@ -356,7 +356,7 @@ namespace BonCodeAJP13
         }
 
         /// <summary>
-        /// Public Dispose — call this when done with the connection.
+        /// Public Dispose - call this when done with the connection.
         /// Safe to call multiple times.
         /// </summary>
         public void Dispose()
@@ -430,7 +430,7 @@ namespace BonCodeAJP13
                 }
                 else
                 {
-                    // We don't own the TCP client — just clear our reference
+                    // We don't own the TCP client - just clear our reference
                     // The caller (e.g., CallHandler) is responsible for its lifecycle
                     p_TCPClient = null;
                 }
@@ -458,7 +458,7 @@ namespace BonCodeAJP13
 
             // Decrement concurrent connection counter
             Interlocked.Decrement(ref p_ConcurrentConnections);
-            // NOTE: Do NOT decrement p_ConnectionsCounter — it is a lifetime counter, not a concurrent counter
+            // NOTE: Do NOT decrement p_ConnectionsCounter - it is a lifetime counter, not a concurrent counter
 
             _disposed = true;
         }
@@ -1092,7 +1092,7 @@ namespace BonCodeAJP13
 
         /// <summary>
         /// Close connection and its Network stream. Everything is OK.
-        /// Closes stream and timer but does NOT null out collections — the caller
+        /// Closes stream and timer but does NOT null out collections - the caller
         /// (e.g., CallHandler via using) needs to read received packets after this returns.
         /// Full disposal (including collection cleanup) happens via Dispose().
         /// </summary>
@@ -1151,7 +1151,7 @@ namespace BonCodeAJP13
 
         /// <summary>
         /// Close connection and its Network stream and invoke the Connection Returned event with failure string.
-        /// Closes resources but does NOT null out collections — the caller (via using) needs to read received packets.
+        /// Closes resources but does NOT null out collections - the caller (via using) needs to read received packets.
         /// Full disposal happens via Dispose() called by the using block.
         /// </summary>
         private void ConnectionError()
@@ -1179,7 +1179,7 @@ namespace BonCodeAJP13
 
         /// <summary>
         /// Shared resource cleanup for error paths. Closes stream/timer/TCP (if owned)
-        /// but does NOT null out collections or set _disposed — allowing callers to still
+        /// but does NOT null out collections or set _disposed - allowing callers to still
         /// read received packets. The using block's Dispose() handles final cleanup.
         /// </summary>
         private void CloseConnectionResourcesOnError()

@@ -13,9 +13,9 @@ AJP13 (Apache JServ Protocol v1.3) is a binary protocol used between a web serve
 Every AJP13 packet on the wire has this structure:
 
 ```
-[0x41 0x42]        — Magic bytes ("AB")
-[len_hi len_lo]    — Payload length (big-endian uint16)
-[payload...]       — Packet-type-specific data
+[0x41 0x42]        - Magic bytes ("AB")
+[len_hi len_lo]    - Payload length (big-endian uint16)
+[payload...]       - Packet-type-specific data
 ```
 
 The 4-byte header is **not** part of `p_ByteStore` for Tomcat-to-server packets. The BonCode connector strips it during `AnalyzePackage()` before constructing `TomcatReturn` subclasses. So `p_ByteStore` contains only the payload.
@@ -44,7 +44,7 @@ This is the most important packet for response handling:
 ```
 Offset  Size    Field
 0       1       Type byte (0x03)
-1       2       chunk_length (big-endian uint16) — length of body data ONLY
+1       2       chunk_length (big-endian uint16) - length of body data ONLY
 3       N       Body data (N = chunk_length)
 3+N     0-3     Padding to align total payload to 4-byte boundary
 ```
@@ -65,7 +65,7 @@ Examples:
 
 ---
 
-## 2. GetUserDataBytes — What It Returns and Why
+## 2. GetUserDataBytes - What It Returns and Why
 
 `GetUserDataBytes()` is the method that extracts the "useful" data from a packet's `p_ByteStore`. Each packet type has different internal structure, so the extraction logic differs.
 
@@ -86,7 +86,7 @@ This works for generic packets where the payload is: `[4-byte header][data][4-by
 // Returns p_ByteStore[3 .. 3+p_UserDataLength]
 ```
 
-**Critical distinction:** `p_UserDataLength` stores the **chunk_length field from the wire** (body bytes only), NOT the total payload length. The total payload includes padding bytes after the body. If you used `p_ByteStore.Length - 3` instead, you'd get body+padding concatenated — which is wrong.
+**Critical distinction:** `p_UserDataLength` stores the **chunk_length field from the wire** (body bytes only), NOT the total payload length. The total payload includes padding bytes after the body. If you used `p_ByteStore.Length - 3` instead, you'd get body+padding concatenated - which is wrong.
 
 ### The Bug That Was Fixed
 
@@ -94,13 +94,13 @@ Before the fix, `TomcatSendBodyChunk` had two problems:
 
 1. **`p_UserDataLength` was computed wrong:** The `byte[]` constructor did `p_UserDataLength = content.Length - 4` (generic base class formula). For a packet with 8 body bytes + 1 padding byte (9 payload bytes), this gave `9 - 4 = 5` instead of the correct `8`. The fix reads `p_UserDataLength` from the actual chunk_length field at bytes `[1..2]`.
 
-2. **`GetUserDataBytes()` wasn't overridden:** It fell through to the base class which skipped 4 bytes and stripped 4 trailing bytes — completely wrong for SendBodyChunk's 3-byte prefix layout. The override skips exactly 3 bytes and uses `p_UserDataLength` to stop before padding.
+2. **`GetUserDataBytes()` wasn't overridden:** It fell through to the base class which skipped 4 bytes and stripped 4 trailing bytes - completely wrong for SendBodyChunk's 3-byte prefix layout. The override skips exactly 3 bytes and uses `p_UserDataLength` to stop before padding.
 
 ### Why This Matters
 
-Any code that calls `GetUserDataBytes()` on a `TomcatSendBodyChunk` received incorrect data — body bytes mixed with padding, or truncated data. **However, the production response-writing path in `CallHandler.cs` does not use `GetUserDataBytes()`** — it writes `p_ByteStore` directly via `GetDataBytes()`. So this bug did **not** cause corrupt binary output in production responses. The wire data is always written faithfully (proven by `PacketCaptureFidelityTests`).
+Any code that calls `GetUserDataBytes()` on a `TomcatSendBodyChunk` received incorrect data - body bytes mixed with padding, or truncated data. **However, the production response-writing path in `CallHandler.cs` does not use `GetUserDataBytes()`** - it writes `p_ByteStore` directly via `GetDataBytes()`. So this bug did **not** cause corrupt binary output in production responses. The wire data is always written faithfully (proven by `PacketCaptureFidelityTests`).
 
-The actual impact was on any **new code** that tried to use `GetUserDataBytes()` to extract clean body data — such as the replay tests and any future consumers. Without the fix, those consumers would get body+padding concatenated, making byte-count assertions fail by exactly the padding amount (0–3 bytes).
+The actual impact was on any **new code** that tried to use `GetUserDataBytes()` to extract clean body data - such as the replay tests and any future consumers. Without the fix, those consumers would get body+padding concatenated, making byte-count assertions fail by exactly the padding amount (0–3 bytes).
 
 ---
 
@@ -110,7 +110,7 @@ The actual impact was on any **new code** that tried to use `GetUserDataBytes()`
 
 `.pak` files are byte-for-byte exact copies of AJP13 packets as they arrived on the wire. They are written by `BonCodeAJP13Logger.LogPacketBytes()` when `BONCODEAJP13_LOG_LEVEL >= BONCODEAJP13_LOG_PACKETS`.
 
-**Wire-faithfulness is proven** by `PacketCaptureFidelityTests` — every byte of the input buffer is written to disk exactly, including AJP padding bytes.
+**Wire-faithfulness is proven** by `PacketCaptureFidelityTests` - every byte of the input buffer is written to disk exactly, including AJP padding bytes.
 
 ### LogPacketBytes Overloads
 
@@ -122,7 +122,7 @@ void LogPacketBytes(byte[] packetData, int connectionId, byte packetType)
 void LogPacketBytes(byte[] buffer, int offset, int length, int connectionId, byte packetType)
 ```
 
-The slice overload does `Array.Copy(buffer, offset, temp, 0, length)` then writes `temp` — so the .pak file contains only the extracted packet, not the surrounding buffer.
+The slice overload does `Array.Copy(buffer, offset, temp, 0, length)` then writes `temp` - so the .pak file contains only the extracted packet, not the surrounding buffer.
 
 ### File Naming
 

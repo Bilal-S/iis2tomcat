@@ -10,7 +10,7 @@ namespace Connector.Tests.BonCodeAJP13
     /// <summary>
     /// Validates that BonCodeAJP13Logger.LogPacketBytes() produces byte-for-byte
     /// exact copies of the input data on disk. This proves that .pak capture files
-    /// are wire-faithful — any patterns observed in captured files (e.g. Lucee's
+    /// are wire-faithful - any patterns observed in captured files (e.g. Lucee's
     /// trail=1) reflect what the server actually sent, not a capture artifact.
     /// </summary>
     [Collection("Sequential")]
@@ -115,7 +115,7 @@ namespace Connector.Tests.BonCodeAJP13
         }
 
         // ---------------------------------------------------------------
-        // Direct byte[] overload — no padding (5000 bytes)
+        // Direct byte[] overload - no padding (5000 bytes)
         // Critical: if capture drops 1 byte here, the bug diagnosis
         // would be wrong (capture bug, not GetUserDataBytes)
         // ---------------------------------------------------------------
@@ -140,7 +140,7 @@ namespace Connector.Tests.BonCodeAJP13
         }
 
         // ---------------------------------------------------------------
-        // 1 byte padding (7 bytes body) — the Lucee case
+        // 1 byte padding (7 bytes body) - the Lucee case
         // ---------------------------------------------------------------
         [Fact]
         public void LogPacketBytes_DirectOverload_Padding1_ExactCopy()
@@ -172,7 +172,7 @@ namespace Connector.Tests.BonCodeAJP13
         }
 
         // ---------------------------------------------------------------
-        // 3 bytes padding (5 bytes body) — maximum padding
+        // 3 bytes padding (5 bytes body) - maximum padding
         // ---------------------------------------------------------------
         [Fact]
         public void LogPacketBytes_DirectOverload_Padding3_ExactCopy()
@@ -204,7 +204,7 @@ namespace Connector.Tests.BonCodeAJP13
         }
 
         // ---------------------------------------------------------------
-        // Slice overload — simulates how AnalyzePackage calls it
+        // Slice overload - simulates how AnalyzePackage calls it
         // AnalyzePackage passes (receiveBuffer, iStart, packetLength+4, ...)
         // Tests the Array.Copy path inside LogPacketBytes
         // ---------------------------------------------------------------
@@ -240,7 +240,7 @@ namespace Connector.Tests.BonCodeAJP13
         }
 
         // ---------------------------------------------------------------
-        // Slice with non-zero offset — ensures offset doesn't shift bytes
+        // Slice with non-zero offset - ensures offset doesn't shift bytes
         // ---------------------------------------------------------------
         [Fact]
         public void LogPacketBytes_SliceOverload_NonZeroOffset_ExactCopy()
@@ -264,7 +264,7 @@ namespace Connector.Tests.BonCodeAJP13
         }
 
         // ---------------------------------------------------------------
-        // Large packet — 8188 bytes body (max single SendBodyChunk)
+        // Large packet - 8188 bytes body (max single SendBodyChunk)
         // ---------------------------------------------------------------
         [Fact]
         public void LogPacketBytes_DirectOverload_LargePacket_8188Bytes_NoPadding_ExactCopy()
@@ -280,7 +280,7 @@ namespace Connector.Tests.BonCodeAJP13
         }
 
         // ---------------------------------------------------------------
-        // Null/empty input — should not crash or create files
+        // Null/empty input - should not crash or create files
         // ---------------------------------------------------------------
         [Fact]
         public void LogPacketBytes_NullInput_NoFileCreated()
@@ -299,7 +299,7 @@ namespace Connector.Tests.BonCodeAJP13
         }
 
         // ---------------------------------------------------------------
-        // Sequential byte pattern — proves no byte reordering
+        // Sequential byte pattern - proves no byte reordering
         // Uses pattern 0x01..0xFE repeating (same as CFM test pages)
         // ---------------------------------------------------------------
         [Fact]

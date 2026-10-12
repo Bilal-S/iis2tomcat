@@ -203,7 +203,7 @@ namespace Connector.Tests.BonCodeIIS
 
         /// <summary>
         /// The reported "bug" scenario: ContentLength=8187, maxPacketSize=8186.
-        /// The original code was NOT buggy — Convert.ToDouble(maxPacketSize) is inside
+        /// The original code was NOT buggy - Convert.ToDouble(maxPacketSize) is inside
         /// the division, so int/double promotes to double/double (floating-point division).
         /// This test proves the correct result: 2 packets, not 1.
         /// </summary>

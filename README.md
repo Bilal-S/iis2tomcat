@@ -1,6 +1,6 @@
 # BonCode AJP13 Connector for IIS
 
-**Connect IIS to Apache Tomcat in under a minute — no ISAPI, no hassle.**
+**Connect IIS to Apache Tomcat in under a minute - no ISAPI, no hassle.**
 
 [![Download Latest](https://img.shields.io/github/v/release/Bilal-S/iis2tomcat?label=latest%20release&color=0078d4)](https://github.com/Bilal-S/iis2tomcat/releases/latest)
 [![.NET Framework](https://img.shields.io/badge/.NET%20Framework-4.8-512bd4)](https://docs.microsoft.com/en-us/dotnet/framework/)
@@ -11,7 +11,7 @@
 
 ## What Is It?
 
-BonCode is a lightweight, fully managed IIS native module that bridges IIS to any AJP13-compatible servlet container — **Tomcat, JBoss, Jetty**, and CFML engines like **Lucee, Railo, OpenBD, and Adobe ColdFusion**.
+BonCode is a lightweight, fully managed IIS native module that bridges IIS to any AJP13-compatible servlet container - **Tomcat, JBoss, Jetty**, and CFML engines like **Lucee, Railo, OpenBD, and Adobe ColdFusion**.
 
 ```
   Browser ──► IIS ──► BonCode AJP13 Module ──► Tomcat / JBoss / Jetty / CFML Engine
@@ -24,10 +24,10 @@ No ISAPI DLLs. No virtual directory gymnastics. No IIS6-era workarounds. Just a 
 ## Quick Start
 
 1. **Download** the latest release from [GitHub Releases](https://github.com/Bilal-S/iis2tomcat/releases/latest)
-2. **Run** `Connector_Setup.exe` — the installer configures everything automatically
+2. **Run** `Connector_Setup.exe` - the installer configures everything automatically
 3. **Done.** Your IIS site is now routing to Tomcat.
 
-For scripted deployments, the connector supports silent command-line installation — ideal for CI/CD pipelines and automated provisioning.
+For scripted deployments, the connector supports silent command-line installation - ideal for CI/CD pipelines and automated provisioning.
 
 ---
 
@@ -48,7 +48,7 @@ For scripted deployments, the connector supports silent command-line installatio
 
 ### Performance
 - Partial stream flushing for faster time-to-first-byte
-- Tomcat thread awareness — won't overload or drop connections
+- Tomcat thread awareness - won't overload or drop connections
 - Reduced traffic and processing on both IIS and Tomcat sides
 - Connect to multiple Tomcat instances from a single IIS site
 
@@ -101,17 +101,17 @@ For scripted deployments, the connector supports silent command-line installatio
 
 If you're replacing a reverse proxy or URL rewrite setup, BonCode gives you:
 
-- Fully integrated SSL passthrough — no SSL termination proxy needed
+- Fully integrated SSL passthrough - no SSL termination proxy needed
 - Your servlets receive **correct** HTTP headers, URLs, and client IPs
-- No double-hop overhead — direct AJP13 binary protocol
+- No double-hop overhead - direct AJP13 binary protocol
 - Run alongside other ISAPI connectors (e.g., Shibboleth) without conflict
 
 ---
 
 ## Documentation
 
-- 📖 **Full manual** — included in the [release ZIP](https://github.com/Bilal-S/iis2tomcat/releases) as `BonCode_Tomcat_Connector_Manual.pdf`
-- 🌐 [Online documentation](http://boncode.net/connector/webdocs/) — includes manual install instructions (automated installer recommended)
+- 📖 **Full manual** - included in the [release ZIP](https://github.com/Bilal-S/iis2tomcat/releases) as `BonCode_Tomcat_Connector_Manual.pdf`
+- 🌐 [Online documentation](http://boncode.net/connector/webdocs/) - includes manual install instructions (automated installer recommended)
 
 ### Common Setup Guides
 
@@ -129,6 +129,12 @@ See the [Releases page](https://github.com/Bilal-S/iis2tomcat/releases) for the 
 ## Feedback & Issues
 
 Found a bug or have a feature request? Please open an issue on the [GitHub Issues page](https://github.com/Bilal-S/iis2tomcat/issues).
+
+---
+
+## Contributing
+
+Pull requests are welcome! Read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, build and test instructions, and the project's code style, testing style, and coverage expectations. Working with an AI coding agent? Also see [AGENTS.md](AGENTS.md) for agent-specific ground rules (including: agents never commit or push - humans do all git operations).
 
 ---
 
@@ -162,4 +168,4 @@ dotnet test Connector.Tests/
 
 ---
 
-*BonCode AJP13 Connector — Copyright 2011-2026 © Bilal Soylu*
+*BonCode AJP13 Connector - Copyright 2011-2026 © Bilal Soylu*

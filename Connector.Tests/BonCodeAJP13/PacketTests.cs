@@ -536,7 +536,7 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void SetSimpleString_TwoByteUTF8_WritesCorrectBytes()
         {
-            // Arrange — "café" has 4 chars but 'é' (U+00E9) is 2 bytes in UTF-8 → 5 bytes total
+            // Arrange - "café" has 4 chars but 'é' (U+00E9) is 2 bytes in UTF-8 → 5 bytes total
             var data = new byte[10];
             var packet = new TestablePacket();
             string value = "café";
@@ -545,7 +545,7 @@ namespace Connector.Tests.BonCodeAJP13
             // Act
             int newPos = packet.TestSetSimpleString(data, value, 0);
 
-            // Assert — returned position must reflect actual UTF-8 byte count, not string length
+            // Assert - returned position must reflect actual UTF-8 byte count, not string length
             Assert.Equal(5, newPos);       // 5 bytes, NOT 4 (value.Length)
             Assert.Equal(expected.Length, newPos - 0);
             for (int i = 0; i < expected.Length; i++)
@@ -557,7 +557,7 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void SetSimpleString_ThreeByteUTF8_WritesCorrectBytes()
         {
-            // Arrange — "\u4f60" (你) is a single CJK char but 3 bytes in UTF-8
+            // Arrange - "\u4f60" (你) is a single CJK char but 3 bytes in UTF-8
             var data = new byte[10];
             var packet = new TestablePacket();
             string value = "\u4f60";
@@ -577,7 +577,7 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void SetSimpleString_MixedASCIIAndNonASCII_WritesCorrectBytes()
         {
-            // Arrange — "hello世界" = 5 ASCII + 2 CJK chars (3 bytes each) = 11 bytes
+            // Arrange - "hello世界" = 5 ASCII + 2 CJK chars (3 bytes each) = 11 bytes
             var data = new byte[20];
             var packet = new TestablePacket();
             string value = "hello世界";
@@ -586,7 +586,7 @@ namespace Connector.Tests.BonCodeAJP13
             // Act
             int newPos = packet.TestSetSimpleString(data, value, 0);
 
-            // Assert — 7 chars but 11 bytes in UTF-8
+            // Assert - 7 chars but 11 bytes in UTF-8
             Assert.Equal(11, newPos);
             Assert.Equal(expected.Length, newPos);
             for (int i = 0; i < expected.Length; i++)
@@ -598,7 +598,7 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void SetSimpleString_ReturnedPosition_MatchesActualByteCount()
         {
-            // Arrange — this is the key invariant the buggy code violates in intent:
+            // Arrange - this is the key invariant the buggy code violates in intent:
             // the returned position must equal Encoding.UTF8.GetByteCount(value), not value.Length
             var data = new byte[100];
             var packet = new TestablePacket();

@@ -91,7 +91,7 @@ namespace Connector.Tests.BonCodeAJP13
             return chunk.GetUserDataBytes();
         }
 
-        #region Category 1: Invariant — All PAK files end with 0x00
+        #region Category 1: Invariant - All PAK files end with 0x00
 
         [Fact]
         public void All_TomcatCapture_SendBodyChunks_EndWith0x00()
@@ -118,7 +118,7 @@ namespace Connector.Tests.BonCodeAJP13
             string oldDir = Path.Combine(baseDir, "OldCapture");
             if (!Directory.Exists(oldDir))
             {
-                // OldCapture may not always be present — skip gracefully
+                // OldCapture may not always be present - skip gracefully
                 return;
             }
 
@@ -203,7 +203,7 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void OddSizeChunk_3Bytes_Mod4Equals3_ReturnsCorrectBytes()
         {
-            // T216_02: chunkLen=3 (3 % 4 == 3 — worst case for padding theory)
+            // T216_02: chunkLen=3 (3 % 4 == 3 - worst case for padding theory)
             string pakPath = Path.Combine(GetCaptureBaseDir(), "TomcatCapture", "T216_02_SendBodyChunk.pak");
             byte[] result = ReplayPakFile(pakPath);
             byte[] expected = ExtractBodyDirect(File.ReadAllBytes(pakPath));
@@ -215,7 +215,7 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void SingleByteChunk_1Byte_ReturnsCorrectByte()
         {
-            // T216_06: chunkLen=1 — edge case, losing 1 byte = losing 100% of data
+            // T216_06: chunkLen=1 - edge case, losing 1 byte = losing 100% of data
             string pakPath = Path.Combine(GetCaptureBaseDir(), "TomcatCapture", "T216_06_SendBodyChunk.pak");
             byte[] result = ReplayPakFile(pakPath);
             byte[] expected = ExtractBodyDirect(File.ReadAllBytes(pakPath));
@@ -300,7 +300,7 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void MultiChunk_20605Bytes_LargeResponse_ReturnsCorrectTotal()
         {
-            // T208: test_get_large_response.jsp — 5 data chunks (70 + 8184 + 8184 + 4142 + 25)
+            // T208: test_get_large_response.jsp - 5 data chunks (70 + 8184 + 8184 + 4142 + 25)
             // Note: T208 has multiple responses in one connection; chunks 02,06,07,08 are the large one
             string baseDir = Path.Combine(GetCaptureBaseDir(), "TomcatCapture");
             var pakFiles = new[]
