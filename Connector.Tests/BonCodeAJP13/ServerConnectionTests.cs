@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -449,6 +450,104 @@ namespace Connector.Tests.BonCodeAJP13
                 BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
             if (method == null) throw new InvalidOperationException($"Method {methodName} not found");
             return (T)method.Invoke(instance, parameters);
+        }
+
+        #endregion
+
+        #region AnalyzePackage - partial packet header across reads
+
+        private static byte[] SendBodyChunk(int dataLength)
+        {
+            // 41 42 | payload length (2) | 03 | chunk length (2) | data | 00
+            int payloadLength = 1 + 2 + dataLength + 1;
+            var packet = new byte[4 + payloadLength];
+            packet[0] = 0x41; packet[1] = 0x42;
+            packet[2] = (byte)(payloadLength >> 8); packet[3] = (byte)(payloadLength & 0xFF);
+            packet[4] = 0x03;
+            packet[5] = (byte)(dataLength >> 8); packet[6] = (byte)(dataLength & 0xFF);
+            for (int i = 0; i < dataLength; i++) packet[7 + i] = 0x61;
+            packet[7 + dataLength] = 0x00;
+            return packet;
+        }
+
+        private static readonly byte[] EndResponse = { 0x41, 0x42, 0x00, 0x02, 0x05, 0x01 };
+
+        private bool IsLastPacket(BonCodeAJP13ServerConnection conn)
+        {
+            return (bool)typeof(BonCodeAJP13ServerConnection)
+                .GetField("p_IsLastPacket", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(conn);
+        }
+
+        private byte[] Analyze(BonCodeAJP13ServerConnection conn, byte[] buffer)
+        {
+            var method = typeof(BonCodeAJP13ServerConnection).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+                .First(m => m.Name == "AnalyzePackage" && m.GetParameters().Length == 3);
+            return (byte[])method.Invoke(conn, new object[] { buffer, false, 0 });
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void AnalyzePackage_ReadEndingInsideNextPacketHeader_CarriesTheHeaderBytes(int bytesIntoEndPacket)
+        {
+            var body = SendBodyChunk(10);
+            var stream = body.Concat(EndResponse).ToArray();
+            int cut = body.Length + bytesIntoEndPacket;
+            var first = stream.Take(cut).ToArray();
+            var second = stream.Skip(cut).ToArray();
+
+            using (var conn = new BonCodeAJP13ServerConnection("", ""))
+            {
+                byte[] carried = Analyze(conn, first);
+                Assert.NotNull(carried);
+                Assert.Equal(bytesIntoEndPacket, carried.Length);
+                Assert.False(IsLastPacket(conn));
+
+                byte[] leftover = Analyze(conn, carried.Concat(second).ToArray());
+                Assert.Null(leftover);
+                Assert.True(IsLastPacket(conn), "END_RESPONSE split across two reads must still be recognised");
+            }
+        }
+
+        [Fact]
+        public void AnalyzePackage_ResponseReadInPacketSizePieces_RecognisesEndResponse()
+        {
+            // The shape seen in production: 281-byte SEND_HEADERS, three full 8192-byte body chunks,
+            // a 7910-byte chunk and END_RESPONSE, 32773 bytes in all, read 8192 bytes at a time. The
+            // fourth read ends one byte into END_RESPONSE.
+            var headers = new byte[281];
+            headers[0] = 0x41; headers[1] = 0x42; headers[2] = 0x01; headers[3] = 0x15; headers[4] = 0x04;
+            var stream = headers
+                .Concat(SendBodyChunk(8184)).Concat(SendBodyChunk(8184)).Concat(SendBodyChunk(8184))
+                .Concat(SendBodyChunk(7902)).Concat(EndResponse).ToArray();
+            Assert.Equal(32773, stream.Length);
+
+            using (var conn = new BonCodeAJP13ServerConnection("", ""))
+            {
+                byte[] carry = null;
+                for (int offset = 0; offset < stream.Length; offset += 8192)
+                {
+                    var piece = stream.Skip(offset).Take(8192).ToArray();
+                    carry = Analyze(conn, (carry ?? new byte[0]).Concat(piece).ToArray());
+                }
+                Assert.Null(carry);
+                Assert.True(IsLastPacket(conn));
+            }
+        }
+
+        [Fact]
+        public void AnalyzePackage_ReadEndingOnPacketBoundary_CarriesNothing()
+        {
+            var body = SendBodyChunk(10);
+            using (var conn = new BonCodeAJP13ServerConnection("", ""))
+            {
+                Assert.Null(Analyze(conn, body));
+                Assert.False(IsLastPacket(conn));
+                Assert.Null(Analyze(conn, EndResponse));
+                Assert.True(IsLastPacket(conn));
+            }
         }
 
         #endregion

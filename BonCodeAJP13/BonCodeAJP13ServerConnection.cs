@@ -1240,6 +1240,7 @@ namespace BonCodeAJP13
             byte[] searchFor = new byte[2] { 0x41, 0x42 };
             int packetLength = 0;
             byte[] unalyzedBytes = null;
+            int lastPacketEnd = iOffset; //index just past the last complete packet, for the partial-header check below
             int iSafety = 0; //safety check for exit condition (with standard packets and a min packet size of 4 bytes max theoretical packets to be analyze is 8196/4)
 
             while (iStart >= 0 && iStart <= receiveBuffer.Length - 1 && iSafety <= 2050)
@@ -1375,6 +1376,7 @@ namespace BonCodeAJP13
 
                         //reset new iStart
                         iStart = iStart + 4 + packetLength - 1;
+                        lastPacketEnd = iStart + 1;
 
                         //detect end package
                         if (packetType == BonCodeAJP13TomcatPacketType.TOMCAT_ENDRESPONSE)
@@ -1417,7 +1419,22 @@ namespace BonCodeAJP13
 
             }
 
-            //flush skip check 
+            //A read can end inside the 4-byte header of the next packet. ByteSearch cannot match the
+            //two magic bytes in a one-byte tail, so without this the lone 0x41 was dropped, the packet
+            //that followed (often END_RESPONSE) was never recognised, and the connector waited for
+            //data Tomcat had already sent. Carry a partial header (1 to 3 bytes starting with 0x41)
+            //into the next read like any other incomplete packet.
+            if (unalyzedBytes == null)
+            {
+                int tail = receiveBuffer.Length - lastPacketEnd;
+                if (tail > 0 && tail < 4 && receiveBuffer[lastPacketEnd] == 0x41)
+                {
+                    unalyzedBytes = new byte[tail];
+                    Array.Copy(receiveBuffer, lastPacketEnd, unalyzedBytes, 0, tail);
+                }
+            }
+
+            //flush skip check
             if (skipFlush)
             {
                 p_IsFlush = false;
