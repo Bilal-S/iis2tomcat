@@ -8,6 +8,7 @@ using BonCodeAJP13;
 
 namespace Connector.Tests.BonCodeAJP13
 {
+    [Collection("Sequential")]
     public class ServerConnectionTests
     {
         #region Static Method Tests - FlipArray

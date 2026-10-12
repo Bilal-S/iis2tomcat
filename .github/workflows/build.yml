@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [ master, fix/* ]
+    tags: [ '1.*' ]
   pull_request:
     branches: [ master ]
 
@@ -26,6 +27,28 @@ jobs:
 
     - name: Restore NuGet packages
       run: nuget restore ConsoleTCPIP.sln
+
+    - name: Inject version from tag
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        $utf8Bom = New-Object System.Text.UTF8Encoding($true)
+
+        # Connector version const (single occurrence)
+        $enumsPath = "BonCodeAJP13/BonCodeAJP13Enums.cs"
+        $enums = [IO.File]::ReadAllText($enumsPath)
+        $enums = $enums -replace 'BONCODEAJP13_CONNECTOR_VERSION = "[^"]*"', "BONCODEAJP13_CONNECTOR_VERSION = `"$tag`""
+        [IO.File]::WriteAllText($enumsPath, $enums, $utf8Bom)
+
+        # DLL file version in both assembly infos
+        foreach ($p in @("BonCodeAJP13/Properties/AssemblyInfo.cs", "BonCodeIIS/Properties/AssemblyInfo.cs")) {
+          $t = [IO.File]::ReadAllText($p)
+          $t = $t -replace 'AssemblyFileVersion\("[^"]*"\)', "AssemblyFileVersion(`"$tag.0`")"
+          [IO.File]::WriteAllText($p, $t, $utf8Bom)
+        }
+
+        Write-Host "Injected connector version $tag from tag"
 
     - name: Build Release
       run: msbuild ConsoleTCPIP.sln /p:Configuration=Release /p:Platform="Any CPU" /m
@@ -127,3 +150,42 @@ jobs:
         if exist "c:\lucee\install.log" type c:\lucee\install.log
         echo "--- IIS BonCode DLLs ---"
         dir c:\lucee\AJP13\*.dll
+
+  release:
+    runs-on: windows-latest
+    needs: [build, test-iis]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+    - name: Download BonCode DLLs
+      uses: actions/download-artifact@v4
+      with:
+        name: BonCode-DLLs
+
+    - name: Verify DLL versions match tag
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        foreach ($dll in @("BonCodeAJP13/bin/Release/BonCodeAJP13.dll", "BonCodeIIS/bin/Release/BonCodeIIS.dll")) {
+          $v = (Get-Item $dll).VersionInfo
+          $fileVer = "$($v.FileMajorPart).$($v.FileMinorPart).$($v.FileBuildPart)"
+          if ($fileVer -ne $tag) {
+            Write-Error "$dll reports version $fileVer, expected $tag"
+            exit 1
+          }
+          Write-Host "$dll version $fileVer matches tag $tag"
+        }
+
+    - name: Package DLLs
+      shell: pwsh
+      run: |
+        $zip = "BonCode-DLLs-${{ github.ref_name }}.zip"
+        Compress-Archive -Path BonCodeAJP13/bin/Release/BonCodeAJP13.dll, BonCodeIIS/bin/Release/BonCodeIIS.dll -DestinationPath $zip
+        Write-Host "Packaged $zip"
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: BonCode-DLLs-*.zip
+        generate_release_notes: true
