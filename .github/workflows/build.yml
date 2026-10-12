@@ -30,6 +30,17 @@ jobs:
     - name: Build Release
       run: msbuild ConsoleTCPIP.sln /p:Configuration=Release /p:Platform="Any CPU" /m
 
+    - name: Run unit tests
+      run: dotnet test Connector.Tests/bin/Release/Connector.Tests.dll --logger "trx;LogFileName=unit-tests.trx" --results-directory TestResults
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-results
+        path: TestResults
+        if-no-files-found: warn
+
     - name: Upload BonCode DLLs
       uses: actions/upload-artifact@v4
       with:

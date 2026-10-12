@@ -514,9 +514,9 @@ namespace Connector.Tests.BonCodeAJP13
         [Fact]
         public void AnalyzePackage_ResponseReadInPacketSizePieces_RecognisesEndResponse()
         {
-            // The shape seen in production: 281-byte SEND_HEADERS, three full 8192-byte body chunks,
-            // a 7910-byte chunk and END_RESPONSE, 32773 bytes in all, read 8192 bytes at a time. The
-            // fourth read ends one byte into END_RESPONSE.
+            // 281-byte SEND_HEADERS + three full 8192-byte chunks + a 7910-byte chunk + END_RESPONSE
+            // = 32773 bytes total. Read in 8192-byte pieces, the fourth read ends one byte into
+            // END_RESPONSE (layout from #115).
             var headers = new byte[281];
             headers[0] = 0x41; headers[1] = 0x42; headers[2] = 0x01; headers[3] = 0x15; headers[4] = 0x04;
             var stream = headers
@@ -550,6 +550,7 @@ namespace Connector.Tests.BonCodeAJP13
             }
         }
 
+        // future tests (see #115): lone 0x41 tail carry; partial header then partial body
         #endregion
     }
 }

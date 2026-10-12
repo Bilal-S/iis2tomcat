@@ -1419,13 +1419,13 @@ namespace BonCodeAJP13
 
             }
 
-            //A read can end inside the 4-byte header of the next packet. ByteSearch cannot match the
-            //two magic bytes in a one-byte tail, so without this the lone 0x41 was dropped, the packet
-            //that followed (often END_RESPONSE) was never recognised, and the connector waited for
-            //data Tomcat had already sent. Carry a partial header (1 to 3 bytes starting with 0x41)
-            //into the next read like any other incomplete packet.
+            //A read can end inside the 4-byte header of the next packet. ByteSearch needs both magic
+            //bytes, so a lone 0x41 tail was dropped and the packet that followed (often END_RESPONSE)
+            //was lost. Carry a partial header into the next read like any other incomplete packet (see #115).
             if (unalyzedBytes == null)
             {
+                //Tails of 2-3 bytes that contain the full 0x41 0x42 magic are already carried by the
+                //incomplete-packet branch above; this guard only catches what ByteSearch could not match.
                 int tail = receiveBuffer.Length - lastPacketEnd;
                 if (tail > 0 && tail < 4 && receiveBuffer[lastPacketEnd] == 0x41)
                 {
