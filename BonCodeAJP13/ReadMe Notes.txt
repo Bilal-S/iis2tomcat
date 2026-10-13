@@ -369,6 +369,13 @@ Version 1.0.50 Updates:
 * Add: create test cfm pages for standard packets
 * Add: Loop detection and abort when we have MOD_CFML or other looping
 
+Version 1.0.53 Updates:
+* Fix: byte match error that would result in timeout and response delay when we have boundary conditions without magic identification bytes
+
+--------------------------------------
+
+PLANNING:
+
 --------------------------------------
 
 Version 1.0.60 Updates Planning:
